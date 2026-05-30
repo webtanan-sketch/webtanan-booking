@@ -1,0 +1,2146 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Webtanan Booking 0.9.0\n"
+"Report-Msgid-Bugs-To: https://webtanan.com/\n"
+"POT-Creation-Date: 2026-05-28 17:07+0000\n"
+"PO-Revision-Date: 2026-05-28 17:07+0000\n"
+"Last-Translator: Webtanan\n"
+"Language-Team: Persian\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Webtanan Booking extractor\n"
+
+#: includes/class-admin.php:1482
+msgid "API URLها"
+msgstr "API URLها"
+
+#: includes/class-admin.php:661
+msgid "TransID"
+msgstr "TransID"
+
+#: includes/class-admin.php:1457
+msgid "آخرین مهلت لغو توسط بیمار"
+msgstr "آخرین مهلت لغو توسط بیمار"
+
+#: includes/class-admin.php:610
+msgid "آخرین نوبت"
+msgstr "آخرین نوبت"
+
+#: includes/class-admin.php:1478
+msgid "آدرس بازگشت پرداخت"
+msgstr "آدرس بازگشت پرداخت"
+
+#: includes/class-admin.php:1261 includes/class-post-types.php:167 templates/receipt.php:43
+msgid "آدرس مطب"
+msgstr "آدرس مطب"
+
+#: includes/class-admin.php:1493
+msgid "آدرس پایه API"
+msgstr "آدرس پایه API"
+
+#: templates/single-saas-doctors.php:160
+msgid "آدرس:"
+msgstr "آدرس:"
+
+#: includes/class-admin.php:1730
+msgid "آرشیو کامل پزشکان"
+msgstr "آرشیو کامل پزشکان"
+
+#: includes/class-admin.php:1474 includes/class-aqayepardakht-gateway.php:20
+msgid "آقای پرداخت"
+msgstr "آقای پرداخت"
+
+#: includes/class-aqayepardakht-gateway.php:116
+msgid "آقای پرداخت تراکنش پرداخت را ایجاد نکرد."
+msgstr "آقای پرداخت تراکنش پرداخت را ایجاد نکرد."
+
+#: includes/class-admin.php:1510
+msgid "ابزار تست پیامک"
+msgstr "ابزار تست پیامک"
+
+#: includes/class-admin.php:1231
+msgid "اتصال به IPPanel موفق بود."
+msgstr "اتصال به IPPanel موفق بود."
+
+#: includes/class-admin.php:1231
+msgid "اتصال به IPPanel ناموفق بود."
+msgstr "اتصال به IPPanel ناموفق بود."
+
+#: includes/class-admin.php:337
+msgid "اتصال منشی به پزشک"
+msgstr "اتصال منشی به پزشک"
+
+#: includes/class-post-types.php:206
+msgid "اجازه پرداخت آنلاین"
+msgstr "اجازه پرداخت آنلاین"
+
+#: includes/class-post-types.php:209
+msgid "اجازه پرداخت در مطب"
+msgstr "اجازه پرداخت در مطب"
+
+#: includes/class-admin.php:1496
+msgid "ارسال به بیمار"
+msgstr "ارسال به بیمار"
+
+#: includes/class-admin.php:1496
+msgid "ارسال به منشی"
+msgstr "ارسال به منشی"
+
+#: includes/class-admin.php:1496
+msgid "ارسال به پزشک"
+msgstr "ارسال به پزشک"
+
+#: includes/class-admin.php:1492
+msgid "ارسال پیامک از طریق IPPanel"
+msgstr "ارسال پیامک از طریق IPPanel"
+
+#: includes/class-admin.php:1516
+msgid "ارسال پیامک تست"
+msgstr "ارسال پیامک تست"
+
+#: includes/class-frontend.php:93
+msgid "ارسال کد ورود"
+msgstr "ارسال کد ورود"
+
+#: includes/class-admin.php:1110
+msgid "استثنا ذخیره شد."
+msgstr "استثنا ذخیره شد."
+
+#: includes/class-admin.php:479
+msgid "استثنائات و مرخصی‌ها"
+msgstr "استثنائات و مرخصی‌ها"
+
+#: includes/class-admin.php:486
+msgid "استثنایی ثبت نشده است."
+msgstr "استثنایی ثبت نشده است."
+
+#: includes/class-booking.php:702
+msgid "استرداد بابت لغو نوبت."
+msgstr "استرداد بابت لغو نوبت."
+
+#: includes/class-admin.php:1459
+msgid "استرداد درصدی بیمار تا"
+msgstr "استرداد درصدی بیمار تا"
+
+#: includes/class-admin.php:1458
+msgid "استرداد کامل بیمار تا"
+msgstr "استرداد کامل بیمار تا"
+
+#: includes/class-sms.php:366
+msgid "استرداد کیف پول طبق قانون لغو محاسبه می‌شود."
+msgstr "استرداد کیف پول طبق قانون لغو محاسبه می‌شود."
+
+#: includes/class-admin.php:815
+msgid "استفاده‌شده"
+msgstr "استفاده‌شده"
+
+#: includes/class-admin.php:815
+msgid "استفاده‌نشده"
+msgstr "استفاده‌نشده"
+
+#: includes/class-admin.php:412 includes/class-admin.php:1312
+msgid "اسلاگ"
+msgstr "اسلاگ"
+
+#: includes/class-admin.php:1412
+msgid "اصلاح دستی مثبت"
+msgstr "اصلاح دستی مثبت"
+
+#: includes/class-admin.php:1207
+msgid "اصلاح دستی مدیر"
+msgstr "اصلاح دستی مدیر"
+
+#: includes/class-admin.php:1406
+msgid "اصلاح دستی کیف پول"
+msgstr "اصلاح دستی کیف پول"
+
+#: includes/class-admin.php:1211
+msgid "اصلاح کیف پول ثبت شد."
+msgstr "اصلاح کیف پول ثبت شد."
+
+#: includes/class-admin.php:1099
+msgid "اطلاعات استثنا کامل نیست."
+msgstr "اطلاعات استثنا کامل نیست."
+
+#: includes/class-admin.php:1058
+msgid "اطلاعات برنامه کاری کامل نیست."
+msgstr "اطلاعات برنامه کاری کامل نیست."
+
+#: includes/class-admin.php:1767
+msgid "اطلاعات حساس به زمان از REST لود می‌شود و کش HTML را دور می‌زند."
+msgstr "اطلاعات حساس به زمان از REST لود می‌شود و کش HTML را دور می‌زند."
+
+#: includes/class-post-types.php:64
+msgid "اطلاعات عملیاتی نوبت‌دهی وب‌تنان"
+msgstr "اطلاعات عملیاتی نوبت‌دهی وب‌تنان"
+
+#: templates/single-saas-doctors.php:156
+msgid "اطلاعات مطب"
+msgstr "اطلاعات مطب"
+
+#: templates/single-saas-doctors.php:139
+msgid "اطلاعات نوبت‌دهی این پزشک هنوز تکمیل نشده است."
+msgstr "اطلاعات نوبت‌دهی این پزشک هنوز تکمیل نشده است."
+
+#: includes/class-admin.php:1398
+msgid "اعمال"
+msgstr "اعمال"
+
+#: includes/class-admin.php:1412
+msgid "افزایش اعتبار"
+msgstr "افزایش اعتبار"
+
+#: includes/class-admin.php:1306
+msgid "افزودن تخصص"
+msgstr "افزودن تخصص"
+
+#: includes/class-admin.php:194 includes/class-admin.php:1246 includes/class-admin.php:1296 includes/class-post-types.php:28
+msgid "افزودن پزشک"
+msgstr "افزودن پزشک"
+
+#: includes/class-frontend.php:329 includes/class-frontend.php:366
+msgid "امروز"
+msgstr "امروز"
+
+#: includes/class-admin.php:345
+msgid "انتخاب"
+msgstr "انتخاب"
+
+#: includes/class-admin.php:1630 includes/class-post-types.php:150
+msgid "انتخاب تخصص"
+msgstr "انتخاب تخصص"
+
+#: includes/class-admin.php:1289
+msgid "انتخاب تصاویر گالری"
+msgstr "انتخاب تصاویر گالری"
+
+#: includes/class-admin.php:1278
+msgid "انتخاب تصویر"
+msgstr "انتخاب تصویر"
+
+#: includes/class-frontend.php:45
+msgid "انتخاب درگاه پرداخت"
+msgstr "انتخاب درگاه پرداخت"
+
+#: includes/class-frontend.php:43 includes/class-frontend.php:272
+msgid "انتخاب نوبت"
+msgstr "انتخاب نوبت"
+
+#: includes/class-admin.php:461 includes/class-admin.php:1374 includes/class-admin.php:1428
+msgid "انتخاب پزشک"
+msgstr "انتخاب پزشک"
+
+#: includes/class-admin.php:1254 includes/class-post-types.php:121
+msgid "انتخاب کاربر"
+msgstr "انتخاب کاربر"
+
+#: includes/class-frontend.php:397
+msgid "انصراف"
+msgstr "انصراف"
+
+#: includes/class-admin.php:882
+msgid "انقضای OTP به دقیقه"
+msgstr "انقضای OTP به دقیقه"
+
+#: includes/class-admin.php:1766
+msgid "اولین نوبت آزاد"
+msgstr "اولین نوبت آزاد"
+
+#: includes/Elementor/class-next-available-widget.php:18
+msgid "اولین نوبت آزاد وب‌تنان"
+msgstr "اولین نوبت آزاد وب‌تنان"
+
+#: includes/class-payment-gateways.php:88
+msgid "ایجاد تراکنش پرداخت انجام نشد."
+msgstr "ایجاد تراکنش پرداخت انجام نشد."
+
+#: includes/class-otp.php:57
+msgid "ایجاد کد ورود انجام نشد."
+msgstr "ایجاد کد ورود انجام نشد."
+
+#: includes/class-booking.php:162 includes/class-booking.php:502
+msgid "این زمان قبلاً رزرو یا قفل شده است."
+msgstr "این زمان قبلاً رزرو یا قفل شده است."
+
+#: includes/class-admin.php:1262
+msgid "این مبلغ از بیمار در سایت دریافت می‌شود."
+msgstr "این مبلغ از بیمار در سایت دریافت می‌شود."
+
+#: includes/class-admin.php:1265
+msgid "این مبلغ فقط در پروفایل نمایش داده می‌شود و توسط سایت دریافت نمی‌شود."
+msgstr "این مبلغ فقط در پروفایل نمایش داده می‌شود و توسط سایت دریافت نمی‌شود."
+
+#: includes/class-booking.php:1145
+msgid "این نوبت قابل لغو است."
+msgstr "این نوبت قابل لغو است."
+
+#: includes/class-booking.php:670
+msgid "این نوبت قابل لغو نیست."
+msgstr "این نوبت قابل لغو نیست."
+
+#: includes/class-booking.php:1148
+msgid "این نوبت قبلاً نهایی، منقضی یا تکمیل شده و قابل لغو نیست."
+msgstr "این نوبت قبلاً نهایی، منقضی یا تکمیل شده و قابل لغو نیست."
+
+#: includes/class-booking.php:128 includes/class-booking.php:464
+msgid "این پزشک برای نوبت‌دهی فعال نیست."
+msgstr "این پزشک برای نوبت‌دهی فعال نیست."
+
+#: includes/class-admin.php:1462
+msgid "با استرداد کامل به کیف پول بیمار انجام شود"
+msgstr "با استرداد کامل به کیف پول بیمار انجام شود"
+
+#: includes/class-admin.php:900
+msgid "باز کردن فهرست مستندات"
+msgstr "باز کردن فهرست مستندات"
+
+#: includes/class-rest.php:656
+msgid "بازه زمانی استثنا معتبر نیست."
+msgstr "بازه زمانی استثنا معتبر نیست."
+
+#: includes/class-rest.php:600
+msgid "بازه زمانی برنامه کاری معتبر نیست."
+msgstr "بازه زمانی برنامه کاری معتبر نیست."
+
+#: includes/class-admin.php:1264
+msgid "باقی‌مانده هزینه نوبت‌دهی به عنوان درآمد پلتفرم ثبت می‌شود."
+msgstr "باقی‌مانده هزینه نوبت‌دهی به عنوان درآمد پلتفرم ثبت می‌شود."
+
+#: includes/class-admin.php:763
+msgid "بدهی کمیسیون حضوری"
+msgstr "بدهی کمیسیون حضوری"
+
+#: includes/class-admin.php:1255
+msgid "بدون منشی؛ سهم به پزشک ثبت شود"
+msgstr "بدون منشی؛ سهم به پزشک ثبت شود"
+
+#: includes/class-post-types.php:134
+msgid "بدون منشی؛ سهم به پزشک واریز شود"
+msgstr "بدون منشی؛ سهم به پزشک واریز شود"
+
+#: includes/class-admin.php:1313
+msgid "بدون والد"
+msgstr "بدون والد"
+
+#: includes/class-admin.php:363
+msgid "برای تنظیم دسترسی، ابتدا یک کاربر با نقش منشی وب‌تنان بسازید."
+msgstr "برای تنظیم دسترسی، ابتدا یک کاربر با نقش منشی وب‌تنان بسازید."
+
+#: includes/class-booking.php:941
+msgid "برای ثبت تسویه پرداخت‌شده، شماره پیگیری بانکی الزامی است."
+msgstr "برای ثبت تسویه پرداخت‌شده، شماره پیگیری بانکی الزامی است."
+
+#: includes/class-admin.php:910
+msgid "برای ساخت صفحات اصلی سایت، این شورت‌کدها را در برگه‌های وردپرس یا ویجت‌های المنتور قرار دهید."
+msgstr "برای ساخت صفحات اصلی سایت، این شورت‌کدها را در برگه‌های وردپرس یا ویجت‌های المنتور قرار دهید."
+
+#: includes/class-admin.php:1761
+msgid "برای صفحه پزشک یا صفحه اختصاصی رزرو یک پزشک."
+msgstr "برای صفحه پزشک یا صفحه اختصاصی رزرو یک پزشک."
+
+#: includes/class-admin.php:465
+msgid "برای مدیریت برنامه کاری ابتدا یک پزشک را انتخاب کنید."
+msgstr "برای مدیریت برنامه کاری ابتدا یک پزشک را انتخاب کنید."
+
+#: includes/class-frontend.php:47
+msgid "برای پرداخت آنلاین ابتدا وارد حساب شوید."
+msgstr "برای پرداخت آنلاین ابتدا وارد حساب شوید."
+
+#: includes/class-admin.php:1521
+msgid "بررسی اتصال IPPanel"
+msgstr "بررسی اتصال IPPanel"
+
+#: includes/class-admin.php:196
+msgid "بررسی تراکنش‌ها"
+msgstr "بررسی تراکنش‌ها"
+
+#: includes/class-admin.php:49 includes/class-frontend.php:357
+msgid "برنامه کاری"
+msgstr "برنامه کاری"
+
+#: includes/class-admin.php:1069
+msgid "برنامه کاری ذخیره شد."
+msgstr "برنامه کاری ذخیره شد."
+
+#: includes/class-admin.php:457
+msgid "برنامه کاری و استثنائات"
+msgstr "برنامه کاری و استثنائات"
+
+#: includes/class-admin.php:476
+msgid "برنامه‌ای ثبت نشده است."
+msgstr "برنامه‌ای ثبت نشده است."
+
+#: includes/class-booking.php:1354
+msgid "برگشت بدهی خدمات نوبت‌دهی پرداخت در مطب پس از لغو."
+msgstr "برگشت بدهی خدمات نوبت‌دهی پرداخت در مطب پس از لغو."
+
+#: includes/class-admin.php:1847 includes/class-rest.php:1054
+msgid "برگشت به کیف پول"
+msgstr "برگشت به کیف پول"
+
+#: includes/class-booking.php:1407
+msgid "برگشت درآمد خدمات نوبت‌دهی پلتفرم پس از لغو."
+msgstr "برگشت درآمد خدمات نوبت‌دهی پلتفرم پس از لغو."
+
+#: includes/class-booking.php:288
+msgid "برگشت دیرهنگام پرداخت: مبلغ به کیف پول بیمار منتقل شد."
+msgstr "برگشت دیرهنگام پرداخت: مبلغ به کیف پول بیمار منتقل شد."
+
+#: includes/class-booking.php:1393
+msgid "برگشت سهم گیرنده خدمات نوبت‌دهی پس از لغو."
+msgstr "برگشت سهم گیرنده خدمات نوبت‌دهی پس از لغو."
+
+#: includes/class-booking.php:1366
+msgid "برگشت طلب خدمات نوبت‌دهی پرداخت در مطب پس از لغو."
+msgstr "برگشت طلب خدمات نوبت‌دهی پرداخت در مطب پس از لغو."
+
+#: includes/class-frontend.php:380
+msgid "بستن"
+msgstr "بستن"
+
+#: includes/class-admin.php:554 includes/class-admin.php:610 includes/class-admin.php:1855 includes/class-frontend.php:332
+msgid "بیمار"
+msgstr "بیمار"
+
+#: includes/class-roles.php:38
+msgid "بیمار وب‌تنان"
+msgstr "بیمار وب‌تنان"
+
+#: includes/class-admin.php:51
+msgid "بیماران"
+msgstr "بیماران"
+
+#: includes/class-admin.php:615
+msgid "بیماری یافت نشد."
+msgstr "بیماری یافت نشد."
+
+#: includes/class-admin.php:481 includes/class-admin.php:661 includes/class-admin.php:710 includes/class-admin.php:856 includes/class-admin.php:1354 includes/class-admin.php:1375 includes/class-frontend.php:383
+msgid "تاریخ"
+msgstr "تاریخ"
+
+#: templates/receipt.php:31
+msgid "تاریخ و ساعت"
+msgstr "تاریخ و ساعت"
+
+#: includes/class-booking.php:132 includes/class-booking.php:468
+msgid "تاریخ یا ساعت نوبت معتبر نیست."
+msgstr "تاریخ یا ساعت نوبت معتبر نیست."
+
+#: includes/class-admin.php:1293 includes/class-admin.php:1851
+msgid "تایید شده"
+msgstr "تایید شده"
+
+#: includes/class-sms.php:20
+msgid "تایید نوبت - بیمار"
+msgstr "تایید نوبت - بیمار"
+
+#: includes/class-sms.php:21
+msgid "تایید نوبت - پزشک/منشی"
+msgstr "تایید نوبت - پزشک/منشی"
+
+#: includes/class-aqayepardakht-gateway.php:172
+msgid "تایید پرداخت در آقای پرداخت ناموفق بود."
+msgstr "تایید پرداخت در آقای پرداخت ناموفق بود."
+
+#: includes/class-admin.php:231 includes/class-admin.php:263 includes/class-admin.php:1396 includes/class-admin.php:1843 includes/class-frontend.php:180 includes/class-post-types.php:203 includes/class-rest.php:1062 templates/archive-saas-doctors.php:116
+msgid "تاییدشده"
+msgstr "تاییدشده"
+
+#: includes/class-admin.php:232 includes/class-admin.php:263
+msgid "تاییدنشده"
+msgstr "تاییدنشده"
+
+#: includes/class-admin.php:240 includes/class-admin.php:1258 includes/class-post-types.php:148
+msgid "تخصص"
+msgstr "تخصص"
+
+#: includes/class-admin.php:1033
+msgid "تخصص ذخیره شد."
+msgstr "تخصص ذخیره شد."
+
+#: includes/class-frontend.php:224
+msgid "تخصص فعالی ثبت نشده است."
+msgstr "تخصص فعالی ثبت نشده است."
+
+#: includes/class-admin.php:426
+msgid "تخصصی یافت نشد."
+msgstr "تخصصی یافت نشد."
+
+#: includes/class-admin.php:48 includes/class-admin.php:1757
+msgid "تخصص‌ها"
+msgstr "تخصص‌ها"
+
+#: includes/class-payment-gateways.php:174
+msgid "تراکنش پرداخت پیدا نشد."
+msgstr "تراکنش پرداخت پیدا نشد."
+
+#: includes/class-admin.php:666
+msgid "تراکنشی یافت نشد."
+msgstr "تراکنشی یافت نشد."
+
+#: includes/class-admin.php:52 includes/class-admin.php:650
+msgid "تراکنش‌ها"
+msgstr "تراکنش‌ها"
+
+#: includes/class-admin.php:169
+msgid "تراکنش‌های موفق"
+msgstr "تراکنش‌های موفق"
+
+#: includes/class-admin.php:412
+msgid "ترتیب"
+msgstr "ترتیب"
+
+#: includes/class-admin.php:1314
+msgid "ترتیب نمایش"
+msgstr "ترتیب نمایش"
+
+#: includes/class-admin.php:762
+msgid "تسویه در انتظار"
+msgstr "تسویه در انتظار"
+
+#: includes/class-sms.php:29
+msgid "تسویه پرداخت شد"
+msgstr "تسویه پرداخت شد"
+
+#: includes/class-booking.php:962
+msgid "تسویه پرداخت‌شده توسط مدیر، شماره درخواست %d"
+msgstr "تسویه پرداخت‌شده توسط مدیر، شماره درخواست %d"
+
+#: includes/class-admin.php:54 includes/class-admin.php:747
+msgid "تسویه پزشکان"
+msgstr "تسویه پزشکان"
+
+#: includes/class-admin.php:1273
+msgid "تصویر پزشک"
+msgstr "تصویر پزشک"
+
+#: includes/class-otp.php:102
+msgid "تعداد تلاش برای این کد ورود تمام شده است."
+msgstr "تعداد تلاش برای این کد ورود تمام شده است."
+
+#: includes/class-otp.php:35
+msgid "تعداد درخواست‌های کد ورود زیاد است. کمی بعد دوباره تلاش کنید."
+msgstr "تعداد درخواست‌های کد ورود زیاد است. کمی بعد دوباره تلاش کنید."
+
+#: includes/class-admin.php:610
+msgid "تعداد نوبت"
+msgstr "تعداد نوبت"
+
+#: includes/Elementor/class-doctor-list-widget.php:34
+msgid "تعداد پزشک در هر صفحه"
+msgstr "تعداد پزشک در هر صفحه"
+
+#: templates/receipt.php:36 templates/single-saas-doctors.php:114
+msgid "تعرفه ویزیت اعلامی"
+msgstr "تعرفه ویزیت اعلامی"
+
+#: includes/class-admin.php:1265 includes/class-post-types.php:186
+msgid "تعرفه ویزیت نمایشی (اختیاری)"
+msgstr "تعرفه ویزیت نمایشی (اختیاری)"
+
+#: includes/class-admin.php:1355
+msgid "تعطیلی کامل"
+msgstr "تعطیلی کامل"
+
+#: includes/class-frontend.php:101
+msgid "تغییر شماره"
+msgstr "تغییر شماره"
+
+#: includes/class-frontend.php:355
+msgid "تقویم نوبت‌دهی"
+msgstr "تقویم نوبت‌دهی"
+
+#: includes/Elementor/class-booking-calendar-widget.php:18
+msgid "تقویم نوبت‌دهی وب‌تنان"
+msgstr "تقویم نوبت‌دهی وب‌تنان"
+
+#: includes/class-admin.php:1760
+msgid "تقویم نوبت‌دهی پزشک"
+msgstr "تقویم نوبت‌دهی پزشک"
+
+#: includes/class-admin.php:1260 includes/class-post-types.php:163
+msgid "تلفن مطب"
+msgstr "تلفن مطب"
+
+#: templates/single-saas-doctors.php:159
+msgid "تلفن:"
+msgstr "تلفن:"
+
+#: templates/single-saas-doctors.php:121
+msgid "تماس با مطب"
+msgstr "تماس با مطب"
+
+#: includes/class-admin.php:327
+msgid "تنظیم دسترسی"
+msgstr "تنظیم دسترسی"
+
+#: includes/class-admin.php:57
+msgid "تنظیمات"
+msgstr "تنظیمات"
+
+#: includes/class-admin.php:873
+msgid "تنظیمات افزونه"
+msgstr "تنظیمات افزونه"
+
+#: includes/class-admin.php:197
+msgid "تنظیمات درگاه و پیامک"
+msgstr "تنظیمات درگاه و پیامک"
+
+#: includes/class-admin.php:1472
+msgid "تنظیمات درگاه پرداخت"
+msgstr "تنظیمات درگاه پرداخت"
+
+#: includes/class-admin.php:877
+msgid "تنظیمات عمومی"
+msgstr "تنظیمات عمومی"
+
+#: includes/class-admin.php:1490
+msgid "تنظیمات پیامک IPPanel"
+msgstr "تنظیمات پیامک IPPanel"
+
+#: includes/class-admin.php:710 includes/class-admin.php:1414
+msgid "توضیح"
+msgstr "توضیح"
+
+#: includes/class-frontend.php:188 includes/class-frontend.php:189 templates/archive-saas-doctors.php:124 templates/archive-saas-doctors.php:126
+msgid "تومان"
+msgstr "تومان"
+
+#: templates/single-saas-doctors.php:110
+msgid "تومان هزینه نوبت‌دهی"
+msgstr "تومان هزینه نوبت‌دهی"
+
+#: includes/class-booking.php:1253
+msgid "توکن قفل نوبت مطابقت ندارد."
+msgstr "توکن قفل نوبت مطابقت ندارد."
+
+#: includes/class-admin.php:1348
+msgid "ثبت استثنا/مرخصی"
+msgstr "ثبت استثنا/مرخصی"
+
+#: includes/class-admin.php:1415
+msgid "ثبت اصلاح"
+msgstr "ثبت اصلاح"
+
+#: includes/class-admin.php:1432
+msgid "ثبت درخواست"
+msgstr "ثبت درخواست"
+
+#: includes/class-booking.php:899
+msgid "ثبت درخواست تسویه انجام نشد."
+msgstr "ثبت درخواست تسویه انجام نشد."
+
+#: includes/class-admin.php:1424
+msgid "ثبت درخواست تسویه دستی"
+msgstr "ثبت درخواست تسویه دستی"
+
+#: includes/class-wallet.php:91
+msgid "ثبت دفتر کل کیف پول انجام نشد."
+msgstr "ثبت دفتر کل کیف پول انجام نشد."
+
+#: includes/class-admin.php:1326
+msgid "ثبت شیفت هفتگی"
+msgstr "ثبت شیفت هفتگی"
+
+#: includes/class-admin.php:1382 includes/class-frontend.php:377 includes/class-frontend.php:398
+msgid "ثبت نوبت"
+msgstr "ثبت نوبت"
+
+#: includes/class-booking.php:538
+msgid "ثبت نوبت توسط مطب انجام نشد."
+msgstr "ثبت نوبت توسط مطب انجام نشد."
+
+#: includes/class-admin.php:195 includes/class-admin.php:1370 includes/class-frontend.php:371 includes/class-frontend.php:379
+msgid "ثبت نوبت حضوری"
+msgstr "ثبت نوبت حضوری"
+
+#: includes/class-frontend.php:119 includes/class-frontend.php:249
+msgid "جستجو"
+msgstr "جستجو"
+
+#: includes/class-admin.php:220
+msgid "جستجو نام، کد، شماره نظام پزشکی"
+msgstr "جستجو نام، کد، شماره نظام پزشکی"
+
+#: templates/archive-saas-doctors.php:60
+msgid "جستجو و دریافت نوبت پزشکان"
+msgstr "جستجو و دریافت نوبت پزشکان"
+
+#: includes/class-admin.php:1737
+msgid "جستجوی Ajax/REST بر اساس نام، تخصص یا آدرس."
+msgstr "جستجوی Ajax/REST بر اساس نام، تخصص یا آدرس."
+
+#: includes/class-admin.php:403
+msgid "جستجوی تخصص"
+msgstr "جستجوی تخصص"
+
+#: includes/class-admin.php:1739 includes/class-frontend.php:117
+msgid "جستجوی پزشک"
+msgstr "جستجوی پزشک"
+
+#: includes/class-admin.php:1736 includes/class-post-types.php:31
+msgid "جستجوی پزشکان"
+msgstr "جستجوی پزشکان"
+
+#: includes/Elementor/class-doctor-search-widget.php:18
+msgid "جستجوی پزشکان وب‌تنان"
+msgstr "جستجوی پزشکان وب‌تنان"
+
+#: includes/class-admin.php:1838
+msgid "جمعه"
+msgstr "جمعه"
+
+#: includes/class-admin.php:1496
+msgid "حالت تست"
+msgstr "حالت تست"
+
+#: includes/class-admin.php:1476
+msgid "حالت سندباکس"
+msgstr "حالت سندباکس"
+
+#: includes/class-admin.php:1279
+msgid "حذف تصویر"
+msgstr "حذف تصویر"
+
+#: includes/class-admin.php:1290
+msgid "حذف گالری"
+msgstr "حذف گالری"
+
+#: includes/class-admin.php:1394
+msgid "حضور"
+msgstr "حضور"
+
+#: includes/class-frontend.php:319 templates/single-saas-doctors.php:70
+msgid "خانه"
+msgstr "خانه"
+
+#: includes/class-frontend.php:324 includes/class-frontend.php:361
+msgid "خروج از حساب"
+msgstr "خروج از حساب"
+
+#: includes/class-admin.php:661
+msgid "خطا"
+msgstr "خطا"
+
+#: includes/class-frontend.php:48
+msgid "خطایی رخ داد. لطفاً دوباره تلاش کنید."
+msgstr "خطایی رخ داد. لطفاً دوباره تلاش کنید."
+
+#: includes/class-admin.php:1270
+msgid "خلاصه پروفایل"
+msgstr "خلاصه پروفایل"
+
+#: includes/class-admin.php:326
+msgid "دارد"
+msgstr "دارد"
+
+#: includes/class-admin.php:45
+msgid "داشبورد"
+msgstr "داشبورد"
+
+#: includes/class-admin.php:177
+msgid "داشبورد مدیریت نوبت‌دهی"
+msgstr "داشبورد مدیریت نوبت‌دهی"
+
+#: includes/class-frontend.php:351
+msgid "داشبورد مطب"
+msgstr "داشبورد مطب"
+
+#: includes/class-admin.php:1778
+msgid "داشبورد پزشک و منشی"
+msgstr "داشبورد پزشک و منشی"
+
+#: includes/class-admin.php:1843 includes/class-admin.php:1851 includes/class-rest.php:1060
+msgid "در انتظار"
+msgstr "در انتظار"
+
+#: includes/class-admin.php:1253
+msgid "در انتظار بررسی"
+msgstr "در انتظار بررسی"
+
+#: templates/single-saas-doctors.php:118
+msgid "در این سایت هزینه خدمات نوبت‌دهی دریافت می‌شود؛ هزینه ویزیت، در صورت اعلام پزشک، فقط جهت اطلاع نمایش داده شده است."
+msgstr "در این سایت هزینه خدمات نوبت‌دهی دریافت می‌شود؛ هزینه ویزیت، در صورت اعلام پزشک، فقط جهت اطلاع نمایش داده شده است."
+
+#: includes/class-frontend.php:46
+msgid "در حال انتقال به درگاه پرداخت..."
+msgstr "در حال انتقال به درگاه پرداخت..."
+
+#: includes/class-frontend.php:41
+msgid "در حال بارگذاری..."
+msgstr "در حال بارگذاری..."
+
+#: includes/class-admin.php:1843 includes/class-rest.php:1061
+msgid "در حال رزرو"
+msgstr "در حال رزرو"
+
+#: includes/class-admin.php:188
+msgid "درآمد ثبت‌شده پلتفرم"
+msgstr "درآمد ثبت‌شده پلتفرم"
+
+#: includes/class-booking.php:1036
+msgid "درآمد پلتفرم از خدمات نوبت‌دهی نوبت تاییدشده."
+msgstr "درآمد پلتفرم از خدمات نوبت‌دهی نوبت تاییدشده."
+
+#: templates/single-saas-doctors.php:144
+msgid "درباره %s"
+msgstr "درباره %s"
+
+#: includes/class-sms.php:28
+msgid "درخواست تسویه ثبت شد"
+msgstr "درخواست تسویه ثبت شد"
+
+#: includes/class-admin.php:1162
+msgid "درخواست تسویه دستی ثبت شد."
+msgstr "درخواست تسویه دستی ثبت شد."
+
+#: includes/class-booking.php:926
+msgid "درخواست تسویه پیدا نشد."
+msgstr "درخواست تسویه پیدا نشد."
+
+#: includes/class-admin.php:772
+msgid "درخواست تسویه‌ای یافت نشد."
+msgstr "درخواست تسویه‌ای یافت نشد."
+
+#: includes/class-admin.php:767
+msgid "درخواست/پردازش"
+msgstr "درخواست/پردازش"
+
+#: includes/class-admin.php:170
+msgid "درخواست‌های تسویه باز"
+msgstr "درخواست‌های تسویه باز"
+
+#: includes/class-admin.php:1461
+msgid "درصد استرداد دیرهنگام"
+msgstr "درصد استرداد دیرهنگام"
+
+#: includes/class-admin.php:1460
+msgid "درصد استرداد میانی"
+msgstr "درصد استرداد میانی"
+
+#: includes/class-admin.php:879 includes/class-admin.php:1263 includes/class-post-types.php:177
+msgid "درصدی"
+msgstr "درصدی"
+
+#: includes/class-admin.php:655 includes/class-admin.php:661
+msgid "درگاه"
+msgstr "درگاه"
+
+#: includes/class-admin.php:1474
+msgid "درگاه فعال"
+msgstr "درگاه فعال"
+
+#: includes/class-frontend.php:285
+msgid "درگاه پرداخت"
+msgstr "درگاه پرداخت"
+
+#: includes/class-payment-gateways.php:60
+msgid "درگاه پرداخت انتخاب‌شده فعال نیست."
+msgstr "درگاه پرداخت انتخاب‌شده فعال نیست."
+
+#: includes/class-admin.php:1763 templates/single-saas-doctors.php:120
+msgid "دریافت نوبت"
+msgstr "دریافت نوبت"
+
+#: includes/class-admin.php:192
+msgid "دسترسی سریع"
+msgstr "دسترسی سریع"
+
+#: includes/class-admin.php:1788
+msgid "دسترسی غیرمجاز است."
+msgstr "دسترسی غیرمجاز است."
+
+#: includes/class-admin.php:313
+msgid "دسترسی مالی"
+msgstr "دسترسی مالی"
+
+#: includes/class-admin.php:998
+msgid "دسترسی منشی ذخیره شد."
+msgstr "دسترسی منشی ذخیره شد."
+
+#: includes/class-rest.php:425 includes/class-rest.php:487 includes/class-rest.php:525 includes/class-rest.php:562 includes/class-rest.php:573 includes/class-rest.php:589 includes/class-rest.php:627 includes/class-rest.php:644 includes/class-rest.php:684 includes/class-rest.php:765
+msgid "دسترسی پزشک پیدا نشد."
+msgstr "دسترسی پزشک پیدا نشد."
+
+#: includes/class-admin.php:481 includes/class-admin.php:1360
+msgid "دلیل"
+msgstr "دلیل"
+
+#: includes/class-admin.php:1397
+msgid "دلیل لغو"
+msgstr "دلیل لغو"
+
+#: includes/class-admin.php:1834
+msgid "دوشنبه"
+msgstr "دوشنبه"
+
+#: includes/class-admin.php:1447
+msgid "ذخیره"
+msgstr "ذخیره"
+
+#: includes/class-admin.php:1361
+msgid "ذخیره استثنا"
+msgstr "ذخیره استثنا"
+
+#: includes/class-admin.php:1316
+msgid "ذخیره تخصص"
+msgstr "ذخیره تخصص"
+
+#: includes/class-admin.php:888
+msgid "ذخیره تنظیمات"
+msgstr "ذخیره تنظیمات"
+
+#: includes/class-admin.php:360
+msgid "ذخیره دسترسی منشی"
+msgstr "ذخیره دسترسی منشی"
+
+#: includes/class-admin.php:1338
+msgid "ذخیره شیفت"
+msgstr "ذخیره شیفت"
+
+#: includes/class-admin.php:1496
+msgid "ذخیره لاگ"
+msgstr "ذخیره لاگ"
+
+#: includes/class-admin.php:1296
+msgid "ذخیره پزشک"
+msgstr "ذخیره پزشک"
+
+#: includes/class-admin.php:1851
+msgid "رد شده"
+msgstr "رد شده"
+
+#: templates/receipt.php:21
+msgid "رسید"
+msgstr "رسید"
+
+#: includes/class-rest.php:867 templates/receipt.php:22
+msgid "رسید نوبت"
+msgstr "رسید نوبت"
+
+#: includes/class-admin.php:1496
+msgid "رفتار پیامک"
+msgstr "رفتار پیامک"
+
+#: includes/class-admin.php:471
+msgid "روز"
+msgstr "روز"
+
+#: includes/class-admin.php:1332
+msgid "روز هفته"
+msgstr "روز هفته"
+
+#: includes/class-rest.php:594
+msgid "روز هفته معتبر نیست."
+msgstr "روز هفته معتبر نیست."
+
+#: includes/class-admin.php:1479
+msgid "روش بازگشت پرداخت"
+msgstr "روش بازگشت پرداخت"
+
+#: templates/receipt.php:39
+msgid "روش پرداخت"
+msgstr "روش پرداخت"
+
+#: includes/class-admin.php:715
+msgid "رکوردی یافت نشد."
+msgstr "رکوردی یافت نشد."
+
+#: includes/class-booking.php:136 includes/class-booking.php:472
+msgid "زمان انتخاب‌شده خارج از برنامه کاری پزشک است."
+msgstr "زمان انتخاب‌شده خارج از برنامه کاری پزشک است."
+
+#: includes/class-booking.php:358 includes/class-booking.php:424 includes/class-payment-gateways.php:49
+msgid "زمان قفل نوبت منقضی شده است."
+msgstr "زمان قفل نوبت منقضی شده است."
+
+#: includes/class-frontend.php:273
+msgid "زمان‌های موجود برای رزرو"
+msgstr "زمان‌های موجود برای رزرو"
+
+#: includes/class-frontend.php:384
+msgid "ساعت"
+msgstr "ساعت"
+
+#: includes/class-admin.php:1376
+msgid "ساعت شروع"
+msgstr "ساعت شروع"
+
+#: includes/class-admin.php:1458 includes/class-admin.php:1459
+msgid "ساعت قبل از نوبت"
+msgstr "ساعت قبل از نوبت"
+
+#: includes/class-admin.php:1457
+msgid "ساعت قبل از نوبت؛ مقدار صفر یعنی بیمار هر زمان می‌تواند لغو کند."
+msgstr "ساعت قبل از نوبت؛ مقدار صفر یعنی بیمار هر زمان می‌تواند لغو کند."
+
+#: includes/class-booking.php:1022
+msgid "سهم خدمات نوبت‌دهی از نوبت تاییدشده."
+msgstr "سهم خدمات نوبت‌دهی از نوبت تاییدشده."
+
+#: includes/class-admin.php:1835
+msgid "سه‌شنبه"
+msgstr "سه‌شنبه"
+
+#: includes/class-frontend.php:321
+msgid "سوابق نوبت"
+msgstr "سوابق نوبت"
+
+#: includes/class-sms.php:24
+msgid "شارژ کیف پول"
+msgstr "شارژ کیف پول"
+
+#: includes/class-admin.php:767 includes/class-admin.php:1268 includes/class-admin.php:1430
+msgid "شبا"
+msgstr "شبا"
+
+#: includes/class-admin.php:471 includes/class-admin.php:481 includes/class-admin.php:1333 includes/class-admin.php:1356
+msgid "شروع"
+msgstr "شروع"
+
+#: includes/class-rest.php:539 includes/class-rest.php:551
+msgid "شما اجازه تغییر این نوبت را ندارید."
+msgstr "شما اجازه تغییر این نوبت را ندارید."
+
+#: includes/class-rest.php:769
+msgid "شما اجازه ثبت درخواست تسویه برای این پزشک را ندارید."
+msgstr "شما اجازه ثبت درخواست تسویه برای این پزشک را ندارید."
+
+#: includes/class-rest.php:356
+msgid "شما اجازه لغو این نوبت را ندارید."
+msgstr "شما اجازه لغو این نوبت را ندارید."
+
+#: includes/class-rest.php:724 includes/class-rest.php:748
+msgid "شما اجازه مشاهده اطلاعات مالی این پزشک را ندارید."
+msgstr "شما اجازه مشاهده اطلاعات مالی این پزشک را ندارید."
+
+#: includes/class-rest.php:857
+msgid "شما اجازه مشاهده این رسید را ندارید."
+msgstr "شما اجازه مشاهده این رسید را ندارید."
+
+#: includes/class-ippanel-sms-service.php:32
+msgid "شماره ارسال‌کننده آی‌پی‌پنل خالی است."
+msgstr "شماره ارسال‌کننده آی‌پی‌پنل خالی است."
+
+#: includes/class-post-types.php:192
+msgid "شماره شبا"
+msgstr "شماره شبا"
+
+#: includes/class-admin.php:1495
+msgid "شماره فرستنده"
+msgstr "شماره فرستنده"
+
+#: includes/class-frontend.php:90
+msgid "شماره موبایل"
+msgstr "شماره موبایل"
+
+#: includes/class-otp.php:20
+msgid "شماره موبایل معتبر نیست."
+msgstr "شماره موبایل معتبر نیست."
+
+#: includes/class-ippanel-sms-service.php:20
+msgid "شماره موبایل گیرنده خالی است."
+msgstr "شماره موبایل گیرنده خالی است."
+
+#: includes/class-admin.php:1257 includes/class-post-types.php:144
+msgid "شماره نظام پزشکی"
+msgstr "شماره نظام پزشکی"
+
+#: includes/class-admin.php:1445
+msgid "شماره پیگیری بانکی"
+msgstr "شماره پیگیری بانکی"
+
+#: includes/Elementor/class-doctor-list-widget.php:44
+msgid "شناسه تخصص"
+msgstr "شناسه تخصص"
+
+#: includes/class-admin.php:852
+msgid "شناسه نوبت"
+msgstr "شناسه نوبت"
+
+#: includes/Elementor/class-booking-calendar-widget.php:34 includes/Elementor/class-doctor-card-widget.php:34 includes/Elementor/class-next-available-widget.php:34
+msgid "شناسه پزشک"
+msgstr "شناسه پزشک"
+
+#: includes/class-admin.php:705 includes/class-admin.php:1410
+msgid "شناسه کاربر"
+msgstr "شناسه کاربر"
+
+#: includes/class-admin.php:883
+msgid "شناسه کاربر کیف پول پلتفرم"
+msgstr "شناسه کاربر کیف پول پلتفرم"
+
+#: includes/class-payment-gateways.php:166
+msgid "شناسه‌های تراکنش در callback پرداخت وجود ندارد."
+msgstr "شناسه‌های تراکنش در callback پرداخت وجود ندارد."
+
+#: includes/class-admin.php:1832
+msgid "شنبه"
+msgstr "شنبه"
+
+#: includes/class-admin.php:915
+msgid "شورت‌کد"
+msgstr "شورت‌کد"
+
+#: includes/class-admin.php:58
+msgid "شورت‌کدها"
+msgstr "شورت‌کدها"
+
+#: includes/class-admin.php:909
+msgid "شورت‌کدهای راه‌اندازی سیستم"
+msgstr "شورت‌کدهای راه‌اندازی سیستم"
+
+#: includes/class-admin.php:1355
+msgid "شیفت اضافه"
+msgstr "شیفت اضافه"
+
+#: includes/class-admin.php:1355
+msgid "شیفت جایگزین"
+msgstr "شیفت جایگزین"
+
+#: includes/class-admin.php:1355
+msgid "شیفت کوتاه"
+msgstr "شیفت کوتاه"
+
+#: includes/class-admin.php:469
+msgid "شیفت‌های هفتگی"
+msgstr "شیفت‌های هفتگی"
+
+#: includes/class-admin.php:1269
+msgid "صاحب حساب"
+msgstr "صاحب حساب"
+
+#: includes/class-post-types.php:196
+msgid "صاحب حساب بانکی"
+msgstr "صاحب حساب بانکی"
+
+#: includes/class-booking.php:1314 includes/class-booking.php:1326
+msgid "طلب خدمات نوبت‌دهی پلتفرم بابت نوبت پرداخت در مطب."
+msgstr "طلب خدمات نوبت‌دهی پلتفرم بابت نوبت پرداخت در مطب."
+
+#: includes/class-admin.php:471 includes/class-admin.php:1359
+msgid "ظرفیت"
+msgstr "ظرفیت"
+
+#: includes/class-admin.php:1336
+msgid "ظرفیت هر اسلات"
+msgstr "ظرفیت هر اسلات"
+
+#: includes/class-admin.php:243 includes/class-admin.php:313 includes/class-admin.php:412 includes/class-admin.php:471 includes/class-admin.php:481 includes/class-admin.php:554 includes/class-admin.php:767
+msgid "عملیات"
+msgstr "عملیات"
+
+#: includes/class-admin.php:1137
+msgid "عملیات نامعتبر است."
+msgstr "عملیات نامعتبر است."
+
+#: includes/class-admin.php:230 includes/class-admin.php:263 includes/class-admin.php:407 includes/class-admin.php:419 includes/class-admin.php:474
+msgid "غیرفعال"
+msgstr "غیرفعال"
+
+#: includes/class-admin.php:1725
+msgid "فرم ورود/ثبت‌نام بیماران با شماره موبایل و کد پیامکی."
+msgstr "فرم ورود/ثبت‌نام بیماران با شماره موبایل و کد پیامکی."
+
+#: includes/class-admin.php:229 includes/class-admin.php:263 includes/class-admin.php:406 includes/class-admin.php:419 includes/class-admin.php:474 includes/class-admin.php:1292 includes/class-admin.php:1315 includes/class-admin.php:1337 includes/class-admin.php:1499 includes/class-post-types.php:200
+msgid "فعال"
+msgstr "فعال"
+
+#: includes/class-admin.php:1475
+msgid "فعال‌سازی آقای پرداخت"
+msgstr "فعال‌سازی آقای پرداخت"
+
+#: includes/class-admin.php:1492
+msgid "فعال‌سازی پیامک"
+msgstr "فعال‌سازی پیامک"
+
+#: includes/Elementor/class-doctor-list-widget.php:53
+msgid "فقط پرداخت آنلاین"
+msgstr "فقط پرداخت آنلاین"
+
+#: includes/Elementor/class-doctor-list-widget.php:62
+msgid "فقط پرداخت در مطب"
+msgstr "فقط پرداخت در مطب"
+
+#: includes/class-admin.php:234 includes/class-admin.php:409 includes/class-admin.php:551 includes/class-admin.php:607 includes/class-admin.php:658 includes/class-admin.php:707 includes/class-admin.php:755 includes/class-admin.php:816 includes/class-admin.php:853 templates/archive-saas-doctors.php:85
+msgid "فیلتر"
+msgstr "فیلتر"
+
+#: includes/class-admin.php:761
+msgid "قابل برداشت"
+msgstr "قابل برداشت"
+
+#: includes/class-admin.php:1481
+msgid "قالب توضیحات"
+msgstr "قالب توضیحات"
+
+#: includes/class-booking.php:1203
+msgid "قفل درخواست تسویه انجام نشد. لطفاً دوباره تلاش کنید."
+msgstr "قفل درخواست تسویه انجام نشد. لطفاً دوباره تلاش کنید."
+
+#: includes/class-wallet.php:123
+msgid "قفل دفتر کل کیف پول انجام نشد. لطفاً دوباره تلاش کنید."
+msgstr "قفل دفتر کل کیف پول انجام نشد. لطفاً دوباره تلاش کنید."
+
+#: includes/class-booking.php:351 includes/class-booking.php:417 includes/class-payment-gateways.php:39
+msgid "قفل نوبت معتبر نیست."
+msgstr "قفل نوبت معتبر نیست."
+
+#: includes/class-frontend.php:286
+msgid "قفل و ادامه پرداخت"
+msgstr "قفل و ادامه پرداخت"
+
+#: includes/class-booking.php:198
+msgid "قفل کردن زمان نوبت انجام نشد."
+msgstr "قفل کردن زمان نوبت انجام نشد."
+
+#: includes/class-admin.php:1455
+msgid "قوانین لغو و استرداد"
+msgstr "قوانین لغو و استرداد"
+
+#: includes/class-admin.php:55 includes/class-admin.php:809
+msgid "لاگ OTP"
+msgstr "لاگ OTP"
+
+#: includes/class-admin.php:56 includes/class-admin.php:845
+msgid "لاگ پیامک"
+msgstr "لاگ پیامک"
+
+#: includes/class-admin.php:861
+msgid "لاگ پیامکی یافت نشد."
+msgstr "لاگ پیامکی یافت نشد."
+
+#: includes/class-admin.php:818
+msgid "لاگی یافت نشد."
+msgstr "لاگی یافت نشد."
+
+#: includes/class-admin.php:1394
+msgid "لغو"
+msgstr "لغو"
+
+#: includes/class-booking.php:1157
+msgid "لغو بیمار فقط تا %d ساعت قبل از نوبت مجاز است."
+msgstr "لغو بیمار فقط تا %d ساعت قبل از نوبت مجاز است."
+
+#: includes/class-admin.php:1462
+msgid "لغو توسط مطب یا مدیر"
+msgstr "لغو توسط مطب یا مدیر"
+
+#: includes/class-admin.php:1851
+msgid "لغو شده"
+msgstr "لغو شده"
+
+#: includes/class-sms.php:22
+msgid "لغو نوبت - بیمار"
+msgstr "لغو نوبت - بیمار"
+
+#: includes/class-sms.php:23
+msgid "لغو نوبت - پزشک/منشی"
+msgstr "لغو نوبت - پزشک/منشی"
+
+#: includes/class-admin.php:1843 includes/class-rest.php:1063
+msgid "لغوشده"
+msgstr "لغوشده"
+
+#: includes/class-frontend.php:356
+msgid "لیست بیماران"
+msgstr "لیست بیماران"
+
+#: includes/class-admin.php:1754
+msgid "لیست تخصص‌ها"
+msgstr "لیست تخصص‌ها"
+
+#: includes/class-admin.php:1731
+msgid "لیست تخصص‌ها، جستجوی پزشک و کارت پزشکان برای صفحه اصلی نوبت‌دهی."
+msgstr "لیست تخصص‌ها، جستجوی پزشک و کارت پزشکان برای صفحه اصلی نوبت‌دهی."
+
+#: includes/class-admin.php:1742 includes/class-admin.php:1745
+msgid "لیست پزشکان"
+msgstr "لیست پزشکان"
+
+#: includes/Elementor/class-doctor-list-widget.php:18
+msgid "لیست پزشکان وب‌تنان"
+msgstr "لیست پزشکان وب‌تنان"
+
+#: includes/class-admin.php:930
+msgid "لینک‌های عمومی خودکار"
+msgstr "لینک‌های عمومی خودکار"
+
+#: includes/class-admin.php:710
+msgid "مانده بعد"
+msgstr "مانده بعد"
+
+#: includes/class-admin.php:661 includes/class-admin.php:710 includes/class-admin.php:767 includes/class-admin.php:1413 includes/class-admin.php:1429
+msgid "مبلغ"
+msgstr "مبلغ"
+
+#: includes/class-booking.php:877
+msgid "مبلغ تسویه بیشتر از موجودی قابل برداشت است."
+msgstr "مبلغ تسویه بیشتر از موجودی قابل برداشت است."
+
+#: includes/class-admin.php:879 includes/class-admin.php:1263 includes/class-post-types.php:178
+msgid "مبلغ ثابت"
+msgstr "مبلغ ثابت"
+
+#: includes/class-admin.php:554
+msgid "مبلغ خدمات"
+msgstr "مبلغ خدمات"
+
+#: includes/class-aqayepardakht-gateway.php:61
+msgid "مبلغ پرداخت خارج از بازه مجاز آقای پرداخت است."
+msgstr "مبلغ پرداخت خارج از بازه مجاز آقای پرداخت است."
+
+#: includes/class-wallet.php:62
+msgid "مبلغ کیف پول باید بیشتر از صفر باشد."
+msgstr "مبلغ کیف پول باید بیشتر از صفر باشد."
+
+#: includes/class-admin.php:1271
+msgid "متن پروفایل"
+msgstr "متن پروفایل"
+
+#: includes/Elementor/class-booking-calendar-widget.php:30 includes/Elementor/class-doctor-card-widget.php:30 includes/Elementor/class-doctor-list-widget.php:30 includes/Elementor/class-next-available-widget.php:30
+msgid "محتوا"
+msgstr "محتوا"
+
+#: includes/class-admin.php:1480
+msgid "محدوده مبلغ"
+msgstr "محدوده مبلغ"
+
+#: includes/class-admin.php:471
+msgid "مدت"
+msgstr "مدت"
+
+#: includes/class-admin.php:881
+msgid "مدت قفل نوبت به دقیقه"
+msgstr "مدت قفل نوبت به دقیقه"
+
+#: includes/class-admin.php:1358
+msgid "مدت نوبت"
+msgstr "مدت نوبت"
+
+#: includes/class-admin.php:1335
+msgid "مدت هر نوبت"
+msgstr "مدت هر نوبت"
+
+#: includes/class-admin.php:601
+msgid "مدیریت بیماران"
+msgstr "مدیریت بیماران"
+
+#: includes/class-admin.php:397
+msgid "مدیریت تخصص‌ها"
+msgstr "مدیریت تخصص‌ها"
+
+#: includes/class-admin.php:306
+msgid "مدیریت دسترسی منشی‌ها"
+msgstr "مدیریت دسترسی منشی‌ها"
+
+#: includes/class-admin.php:36
+msgid "مدیریت نوبت‌دهی"
+msgstr "مدیریت نوبت‌دهی"
+
+#: includes/class-admin.php:539
+msgid "مدیریت نوبت‌ها"
+msgstr "مدیریت نوبت‌ها"
+
+#: includes/class-admin.php:214
+msgid "مدیریت پزشکان"
+msgstr "مدیریت پزشکان"
+
+#: includes/class-admin.php:1396 includes/class-admin.php:1843 includes/class-rest.php:1066
+msgid "مراجعه نکرد"
+msgstr "مراجعه نکرد"
+
+#: includes/class-admin.php:1396 includes/class-admin.php:1843 includes/class-rest.php:1065
+msgid "مراجعه کرد"
+msgstr "مراجعه کرد"
+
+#: includes/class-frontend.php:358
+msgid "مرخصی‌ها"
+msgstr "مرخصی‌ها"
+
+#: includes/class-admin.php:59 includes/class-admin.php:898
+msgid "مستندات"
+msgstr "مستندات"
+
+#: includes/class-admin.php:899
+msgid "مستندات توسعه در پوشه docs افزونه قرار دارد. از فایل docs/00-index.md شروع کنید."
+msgstr "مستندات توسعه در پوشه docs افزونه قرار دارد. از فایل docs/00-index.md شروع کنید."
+
+#: includes/class-admin.php:1476
+msgid "مسیر سندباکس استفاده شود"
+msgstr "مسیر سندباکس استفاده شود"
+
+#: includes/class-admin.php:1773
+msgid "مشاهده نوبت‌های آینده، سوابق، رسید و کیف پول بیمار."
+msgstr "مشاهده نوبت‌های آینده، سوابق، رسید و کیف پول بیمار."
+
+#: includes/class-frontend.php:192 templates/archive-saas-doctors.php:130
+msgid "مشاهده و دریافت نوبت"
+msgstr "مشاهده و دریافت نوبت"
+
+#: includes/class-post-types.php:182
+msgid "مقدار سهم هزینه نوبت‌دهی"
+msgstr "مقدار سهم هزینه نوبت‌دهی"
+
+#: includes/class-admin.php:1264
+msgid "مقدار سهم پزشک/منشی"
+msgstr "مقدار سهم پزشک/منشی"
+
+#: includes/class-admin.php:880
+msgid "مقدار کارمزد پیش‌فرض"
+msgstr "مقدار کارمزد پیش‌فرض"
+
+#: includes/class-admin.php:1253
+msgid "منتشر شده"
+msgstr "منتشر شده"
+
+#: includes/class-admin.php:313 includes/class-admin.php:1855
+msgid "منشی"
+msgstr "منشی"
+
+#: includes/class-admin.php:359
+msgid "منشی اجازه مشاهده کیف پول، درآمد و تسویه این پزشک‌ها را داشته باشد"
+msgstr "منشی اجازه مشاهده کیف پول، درآمد و تسویه این پزشک‌ها را داشته باشد"
+
+#: includes/class-post-types.php:127
+msgid "منشی دریافت‌کننده سهم خدمات نوبت‌دهی"
+msgstr "منشی دریافت‌کننده سهم خدمات نوبت‌دهی"
+
+#: includes/class-admin.php:1255
+msgid "منشی دریافت‌کننده سهم نوبت‌دهی"
+msgstr "منشی دریافت‌کننده سهم نوبت‌دهی"
+
+#: includes/class-roles.php:28
+msgid "منشی وب‌تنان"
+msgstr "منشی وب‌تنان"
+
+#: includes/class-admin.php:47
+msgid "منشی‌ها"
+msgstr "منشی‌ها"
+
+#: includes/class-admin.php:311
+msgid "منشی‌های ثبت‌شده"
+msgstr "منشی‌های ثبت‌شده"
+
+#: includes/class-admin.php:1843 includes/class-rest.php:1064
+msgid "منقضی"
+msgstr "منقضی"
+
+#: includes/class-admin.php:610 includes/class-admin.php:813 includes/class-admin.php:849 includes/class-admin.php:856 includes/class-admin.php:1380 includes/class-frontend.php:284 includes/class-frontend.php:388
+msgid "موبایل"
+msgstr "موبایل"
+
+#: includes/class-admin.php:760
+msgid "موجودی کل"
+msgstr "موجودی کل"
+
+#: includes/class-booking.php:951
+msgid "موجودی کیف پول برای پرداخت این تسویه کافی نیست."
+msgstr "موجودی کیف پول برای پرداخت این تسویه کافی نیست."
+
+#: includes/class-booking.php:366
+msgid "موجودی کیف پول کافی نیست."
+msgstr "موجودی کیف پول کافی نیست."
+
+#: includes/class-post-types.php:50
+msgid "موقعیت پزشک"
+msgstr "موقعیت پزشک"
+
+#: includes/class-post-types.php:49
+msgid "موقعیت‌های پزشکان"
+msgstr "موقعیت‌های پزشکان"
+
+#: includes/class-admin.php:412 includes/class-admin.php:1377 includes/class-frontend.php:281 includes/class-frontend.php:385
+msgid "نام"
+msgstr "نام"
+
+#: templates/receipt.php:29
+msgid "نام بیمار"
+msgstr "نام بیمار"
+
+#: includes/class-admin.php:1311
+msgid "نام تخصص"
+msgstr "نام تخصص"
+
+#: includes/class-admin.php:1011
+msgid "نام تخصص الزامی است."
+msgstr "نام تخصص الزامی است."
+
+#: includes/class-admin.php:1378 includes/class-frontend.php:282 includes/class-frontend.php:386
+msgid "نام خانوادگی"
+msgstr "نام خانوادگی"
+
+#: includes/class-admin.php:1259 includes/class-post-types.php:159
+msgid "نام مطب"
+msgstr "نام مطب"
+
+#: templates/single-saas-doctors.php:158
+msgid "نام مطب:"
+msgstr "نام مطب:"
+
+#: includes/class-admin.php:1252 templates/receipt.php:27
+msgid "نام پزشک"
+msgstr "نام پزشک"
+
+#: includes/class-admin.php:945
+msgid "نام پزشک الزامی است."
+msgstr "نام پزشک الزامی است."
+
+#: templates/archive-saas-doctors.php:73
+msgid "نام پزشک، تخصص یا آدرس مطب"
+msgstr "نام پزشک، تخصص یا آدرس مطب"
+
+#: includes/class-frontend.php:118 includes/class-frontend.php:248
+msgid "نام پزشک، تخصص یا شهر"
+msgstr "نام پزشک، تخصص یا شهر"
+
+#: includes/class-admin.php:606
+msgid "نام، موبایل یا کد ملی"
+msgstr "نام، موبایل یا کد ملی"
+
+#: includes/class-admin.php:550
+msgid "نام، موبایل، کد ملی یا کد نوبت"
+msgstr "نام، موبایل، کد ملی یا کد نوبت"
+
+#: includes/class-admin.php:1847
+msgid "ناموفق"
+msgstr "ناموفق"
+
+#: includes/class-frontend.php:318
+msgid "ناوبری پنل بیمار"
+msgstr "ناوبری پنل بیمار"
+
+#: includes/class-frontend.php:353
+msgid "ناوبری پنل مطب"
+msgstr "ناوبری پنل مطب"
+
+#: templates/archive-saas-doctors.php:65
+msgid "نتیجه"
+msgstr "نتیجه"
+
+#: includes/class-admin.php:1222
+msgid "نتیجه تست پیامک: %s"
+msgstr "نتیجه تست پیامک: %s"
+
+#: includes/class-admin.php:326
+msgid "ندارد"
+msgstr "ندارد"
+
+#: includes/class-admin.php:1395
+msgid "نقدی"
+msgstr "نقدی"
+
+#: includes/class-admin.php:1381 includes/class-admin.php:1847 includes/class-frontend.php:391 includes/class-rest.php:1055
+msgid "نقدی در مطب"
+msgstr "نقدی در مطب"
+
+#: includes/class-admin.php:267 includes/class-admin.php:422 includes/class-admin.php:462
+msgid "نمایش"
+msgstr "نمایش"
+
+#: includes/class-admin.php:932
+msgid "نمایش آرشیو پزشکان"
+msgstr "نمایش آرشیو پزشکان"
+
+#: includes/class-admin.php:1755
+msgid "نمایش تخصص‌ها با لینک به آرشیو فیلترشده همان تخصص."
+msgstr "نمایش تخصص‌ها با لینک به آرشیو فیلترشده همان تخصص."
+
+#: includes/class-frontend.php:277
+msgid "نمایش نوبت‌ها"
+msgstr "نمایش نوبت‌ها"
+
+#: includes/class-post-types.php:30
+msgid "نمایش پزشک"
+msgstr "نمایش پزشک"
+
+#: includes/class-admin.php:1743
+msgid "نمایش کارت پزشکان؛ قابل محدود کردن بر اساس تخصص."
+msgstr "نمایش کارت پزشکان؛ قابل محدود کردن بر اساس تخصص."
+
+#: includes/class-admin.php:661 includes/class-admin.php:856
+msgid "نوبت"
+msgstr "نوبت"
+
+#: includes/class-frontend.php:42
+msgid "نوبت آزادی پیدا نشد."
+msgstr "نوبت آزادی پیدا نشد."
+
+#: includes/class-admin.php:1140
+msgid "نوبت به‌روزرسانی شد."
+msgstr "نوبت به‌روزرسانی شد."
+
+#: includes/class-admin.php:1120
+msgid "نوبت ثبت شد."
+msgstr "نوبت ثبت شد."
+
+#: includes/class-frontend.php:44
+msgid "نوبت قفل شد. لطفاً قبل از پایان زمان رزرو پرداخت را کامل کنید."
+msgstr "نوبت قفل شد. لطفاً قبل از پایان زمان رزرو پرداخت را کامل کنید."
+
+#: includes/class-booking.php:631
+msgid "نوبت لغوشده یا منقضی‌شده قابل تغییر نیست."
+msgstr "نوبت لغوشده یا منقضی‌شده قابل تغییر نیست."
+
+#: includes/class-booking.php:246 includes/class-booking.php:580 includes/class-booking.php:625 includes/class-booking.php:664
+msgid "نوبت پیدا نشد."
+msgstr "نوبت پیدا نشد."
+
+#: includes/class-admin.php:710
+msgid "نوبت/تراکنش"
+msgstr "نوبت/تراکنش"
+
+#: includes/class-admin.php:567
+msgid "نوبتی یافت نشد."
+msgstr "نوبتی یافت نشد."
+
+#: templates/single-saas-doctors.php:128
+msgid "نوبت‌دهی اینترنتی %s"
+msgstr "نوبت‌دهی اینترنتی %s"
+
+#: includes/class-admin.php:37
+msgid "نوبت‌دهی وب‌تنان"
+msgstr "نوبت‌دهی وب‌تنان"
+
+#: includes/class-admin.php:1733
+msgid "نوبت‌دهی پزشکان"
+msgstr "نوبت‌دهی پزشکان"
+
+#: includes/class-admin.php:255
+msgid "نوبت‌دهی:"
+msgstr "نوبت‌دهی:"
+
+#: includes/class-admin.php:50
+msgid "نوبت‌ها"
+msgstr "نوبت‌ها"
+
+#: includes/class-frontend.php:320
+msgid "نوبت‌های آینده"
+msgstr "نوبت‌های آینده"
+
+#: includes/class-admin.php:167
+msgid "نوبت‌های امروز"
+msgstr "نوبت‌های امروز"
+
+#: includes/class-admin.php:168
+msgid "نوبت‌های تاییدشده"
+msgstr "نوبت‌های تاییدشده"
+
+#: includes/class-admin.php:481 includes/class-admin.php:856 includes/class-admin.php:1355
+msgid "نوع"
+msgstr "نوع"
+
+#: includes/class-rest.php:649
+msgid "نوع استثنا معتبر نیست."
+msgstr "نوع استثنا معتبر نیست."
+
+#: includes/class-admin.php:706 includes/class-admin.php:710 includes/class-admin.php:1412
+msgid "نوع رکورد"
+msgstr "نوع رکورد"
+
+#: includes/class-post-types.php:175
+msgid "نوع سهم هزینه نوبت‌دهی"
+msgstr "نوع سهم هزینه نوبت‌دهی"
+
+#: includes/class-admin.php:1263
+msgid "نوع سهم پزشک/منشی از خدمات نوبت‌دهی"
+msgstr "نوع سهم پزشک/منشی از خدمات نوبت‌دهی"
+
+#: includes/class-admin.php:1499
+msgid "نوع پیامک"
+msgstr "نوع پیامک"
+
+#: includes/class-admin.php:710 includes/class-admin.php:1411
+msgid "نوع کاربر"
+msgstr "نوع کاربر"
+
+#: includes/class-admin.php:879
+msgid "نوع کارمزد پیش‌فرض"
+msgstr "نوع کارمزد پیش‌فرض"
+
+#: includes/class-admin.php:814
+msgid "هدف کد ورود"
+msgstr "هدف کد ورود"
+
+#: includes/class-admin.php:1262 includes/class-post-types.php:171 templates/receipt.php:33
+msgid "هزینه خدمات نوبت‌دهی"
+msgstr "هزینه خدمات نوبت‌دهی"
+
+#: includes/class-frontend.php:188 templates/archive-saas-doctors.php:124
+msgid "هزینه نوبت‌دهی:"
+msgstr "هزینه نوبت‌دهی:"
+
+#: includes/class-admin.php:241
+msgid "هزینه‌ها"
+msgstr "هزینه‌ها"
+
+#: includes/class-admin.php:815
+msgid "همه"
+msgstr "همه"
+
+#: includes/class-admin.php:222 templates/archive-saas-doctors.php:75
+msgid "همه تخصص‌ها"
+msgstr "همه تخصص‌ها"
+
+#: templates/archive-saas-doctors.php:81
+msgid "همه روش‌های پرداخت"
+msgstr "همه روش‌های پرداخت"
+
+#: includes/class-admin.php:850
+msgid "همه نوع پیامک‌ها"
+msgstr "همه نوع پیامک‌ها"
+
+#: includes/class-admin.php:704
+msgid "همه نوع کاربران"
+msgstr "همه نوع کاربران"
+
+#: includes/class-admin.php:548
+msgid "همه وضعیت نوبت‌ها"
+msgstr "همه وضعیت نوبت‌ها"
+
+#: includes/class-admin.php:228 includes/class-admin.php:405 includes/class-admin.php:754
+msgid "همه وضعیت‌ها"
+msgstr "همه وضعیت‌ها"
+
+#: includes/class-admin.php:549
+msgid "همه پرداخت‌ها"
+msgstr "همه پرداخت‌ها"
+
+#: includes/class-admin.php:545 includes/class-admin.php:605 includes/class-admin.php:654 includes/class-admin.php:753 includes/class-admin.php:1615
+msgid "همه پزشکان"
+msgstr "همه پزشکان"
+
+#: includes/class-admin.php:330
+msgid "هنوز کاربری با نقش منشی وب‌تنان وجود ندارد."
+msgstr "هنوز کاربری با نقش منشی وب‌تنان وجود ندارد."
+
+#: includes/class-admin.php:1313
+msgid "والد"
+msgstr "والد"
+
+#: templates/archive-saas-doctors.php:59
+msgid "وب‌تنان بوکینگ"
+msgstr "وب‌تنان بوکینگ"
+
+#: includes/class-frontend.php:100
+msgid "ورود"
+msgstr "ورود"
+
+#: includes/class-admin.php:1727
+msgid "ورود / حساب بیمار"
+msgstr "ورود / حساب بیمار"
+
+#: includes/class-frontend.php:85
+msgid "ورود امن"
+msgstr "ورود امن"
+
+#: includes/class-sms.php:19
+msgid "ورود با کد تایید"
+msgstr "ورود با کد تایید"
+
+#: includes/class-frontend.php:86
+msgid "ورود به سامانه نوبت‌دهی"
+msgstr "ورود به سامانه نوبت‌دهی"
+
+#: includes/class-admin.php:1724
+msgid "ورود بیمار با OTP"
+msgstr "ورود بیمار با OTP"
+
+#: includes/class-admin.php:242 includes/class-admin.php:412 includes/class-admin.php:471 includes/class-admin.php:554 includes/class-admin.php:661 includes/class-admin.php:767 includes/class-admin.php:851 includes/class-admin.php:856
+msgid "وضعیت"
+msgstr "وضعیت"
+
+#: includes/class-admin.php:1253
+msgid "وضعیت انتشار پروفایل"
+msgstr "وضعیت انتشار پروفایل"
+
+#: includes/class-admin.php:656
+msgid "وضعیت تراکنش"
+msgstr "وضعیت تراکنش"
+
+#: includes/class-sms.php:30
+msgid "وضعیت تسویه"
+msgstr "وضعیت تسویه"
+
+#: includes/class-admin.php:1189 includes/class-admin.php:1193
+msgid "وضعیت تسویه به‌روزرسانی شد."
+msgstr "وضعیت تسویه به‌روزرسانی شد."
+
+#: includes/class-admin.php:1173 includes/class-booking.php:917
+msgid "وضعیت تسویه نامعتبر است."
+msgstr "وضعیت تسویه نامعتبر است."
+
+#: includes/class-booking.php:611
+msgid "وضعیت نوبت معتبر نیست."
+msgstr "وضعیت نوبت معتبر نیست."
+
+#: includes/class-admin.php:1381 includes/class-frontend.php:389
+msgid "وضعیت پرداخت"
+msgstr "وضعیت پرداخت"
+
+#: includes/class-booking.php:587
+msgid "وضعیت پرداخت آنلاین از داشبورد مطب قابل تغییر نیست."
+msgstr "وضعیت پرداخت آنلاین از داشبورد مطب قابل تغییر نیست."
+
+#: includes/class-booking.php:566
+msgid "وضعیت پرداخت معتبر نیست."
+msgstr "وضعیت پرداخت معتبر نیست."
+
+#: includes/class-admin.php:265 includes/class-admin.php:421 includes/class-admin.php:474 includes/class-admin.php:484
+msgid "ویرایش"
+msgstr "ویرایش"
+
+#: includes/class-admin.php:1306
+msgid "ویرایش تخصص"
+msgstr "ویرایش تخصص"
+
+#: includes/class-admin.php:268
+msgid "ویرایش محتوای پروفایل"
+msgstr "ویرایش محتوای پروفایل"
+
+#: includes/class-admin.php:1246 includes/class-post-types.php:29
+msgid "ویرایش پزشک"
+msgstr "ویرایش پزشک"
+
+#: includes/class-frontend.php:189 templates/archive-saas-doctors.php:126
+msgid "ویزیت اعلامی:"
+msgstr "ویزیت اعلامی:"
+
+#: includes/class-admin.php:259
+msgid "ویزیت نمایشی:"
+msgstr "ویزیت نمایشی:"
+
+#: includes/class-admin.php:856
+msgid "پاسخ سرویس‌دهنده"
+msgstr "پاسخ سرویس‌دهنده"
+
+#: includes/class-admin.php:471 includes/class-admin.php:481 includes/class-admin.php:1334 includes/class-admin.php:1357
+msgid "پایان"
+msgstr "پایان"
+
+#: includes/class-admin.php:856
+msgid "پترن"
+msgstr "پترن"
+
+#: includes/class-admin.php:554 includes/class-admin.php:1394
+msgid "پرداخت"
+msgstr "پرداخت"
+
+#: includes/class-admin.php:1294 includes/class-admin.php:1847 includes/class-frontend.php:181 includes/class-rest.php:1052 templates/archive-saas-doctors.php:82 templates/archive-saas-doctors.php:117 templates/single-saas-doctors.php:102
+msgid "پرداخت آنلاین"
+msgstr "پرداخت آنلاین"
+
+#: includes/class-admin.php:1475
+msgid "پرداخت آنلاین با آقای پرداخت فعال باشد"
+msgstr "پرداخت آنلاین با آقای پرداخت فعال باشد"
+
+#: includes/class-payment-gateways.php:54
+msgid "پرداخت آنلاین برای این پزشک فعال نیست."
+msgstr "پرداخت آنلاین برای این پزشک فعال نیست."
+
+#: includes/class-admin.php:1847 includes/class-rest.php:1057
+msgid "پرداخت از کیف پول"
+msgstr "پرداخت از کیف پول"
+
+#: includes/class-aqayepardakht-gateway.php:172
+msgid "پرداخت تایید شد."
+msgstr "پرداخت تایید شد."
+
+#: includes/class-admin.php:1295 includes/class-admin.php:1843 includes/class-frontend.php:182 includes/class-rest.php:1067 templates/archive-saas-doctors.php:83 templates/archive-saas-doctors.php:118 templates/single-saas-doctors.php:103
+msgid "پرداخت در مطب"
+msgstr "پرداخت در مطب"
+
+#: includes/class-booking.php:431
+msgid "پرداخت در مطب برای این پزشک فعال نیست."
+msgstr "پرداخت در مطب برای این پزشک فعال نیست."
+
+#: includes/class-sms.php:25
+msgid "پرداخت دیرهنگام به کیف پول منتقل شد"
+msgstr "پرداخت دیرهنگام به کیف پول منتقل شد"
+
+#: includes/class-admin.php:1851
+msgid "پرداخت شده"
+msgstr "پرداخت شده"
+
+#: includes/class-rest.php:1053 includes/class-sms.php:27
+msgid "پرداخت ناموفق"
+msgstr "پرداخت ناموفق"
+
+#: includes/class-booking.php:376
+msgid "پرداخت نوبت از کیف پول بیمار."
+msgstr "پرداخت نوبت از کیف پول بیمار."
+
+#: includes/class-booking.php:250
+msgid "پرداخت پس از رزرو شدن دوباره این زمان برگشت خورد."
+msgstr "پرداخت پس از رزرو شدن دوباره این زمان برگشت خورد."
+
+#: includes/class-admin.php:1381 includes/class-admin.php:1395 includes/class-admin.php:1847 includes/class-frontend.php:393 includes/class-rest.php:1051
+msgid "پرداخت‌نشده"
+msgstr "پرداخت‌نشده"
+
+#: templates/single-saas-doctors.php:101
+msgid "پروفایل تاییدشده"
+msgstr "پروفایل تاییدشده"
+
+#: includes/class-admin.php:931
+msgid "پروفایل هر پزشک از لینک خود پست‌تایپ پزشک نمایش داده می‌شود. آرشیو پزشکان نیز از مسیر آرشیو saas_doctors در دسترس است."
+msgstr "پروفایل هر پزشک از لینک خود پست‌تایپ پزشک نمایش داده می‌شود. آرشیو پزشکان نیز از مسیر آرشیو saas_doctors در دسترس است."
+
+#: includes/class-admin.php:238 includes/class-admin.php:554 includes/class-admin.php:767 includes/class-admin.php:1374 includes/class-admin.php:1428 includes/class-admin.php:1855 includes/class-frontend.php:370 includes/class-post-types.php:27 includes/class-rest.php:1022
+msgid "پزشک"
+msgstr "پزشک"
+
+#: includes/class-admin.php:978
+msgid "پزشک ذخیره شد."
+msgstr "پزشک ذخیره شد."
+
+#: includes/class-admin.php:1151
+msgid "پزشک و مبلغ تسویه الزامی است."
+msgstr "پزشک و مبلغ تسویه الزامی است."
+
+#: includes/class-roles.php:16
+msgid "پزشک وب‌تنان"
+msgstr "پزشک وب‌تنان"
+
+#: includes/class-booking.php:864 includes/class-booking.php:933 includes/class-frontend.php:158 includes/class-rest.php:298
+msgid "پزشک پیدا نشد."
+msgstr "پزشک پیدا نشد."
+
+#: templates/archive-saas-doctors.php:61
+msgid "پزشک، تخصص یا روش پرداخت را انتخاب کنید و نزدیک‌ترین زمان‌های آزاد را ببینید."
+msgstr "پزشک، تخصص یا روش پرداخت را انتخاب کنید و نزدیک‌ترین زمان‌های آزاد را ببینید."
+
+#: includes/class-admin.php:46 includes/class-admin.php:166 includes/class-post-types.php:26 templates/single-saas-doctors.php:72
+msgid "پزشکان"
+msgstr "پزشکان"
+
+#: templates/archive-saas-doctors.php:90
+msgid "پزشکان فعال و تاییدشده"
+msgstr "پزشکان فعال و تاییدشده"
+
+#: templates/archive-saas-doctors.php:89
+msgid "پزشکان قابل نوبت‌دهی"
+msgstr "پزشکان قابل نوبت‌دهی"
+
+#: includes/class-admin.php:313
+msgid "پزشکان مجاز"
+msgstr "پزشکان مجاز"
+
+#: templates/archive-saas-doctors.php:95
+msgid "پزشکی با این فیلتر پیدا نشد."
+msgstr "پزشکی با این فیلتر پیدا نشد."
+
+#: includes/class-admin.php:247
+msgid "پزشکی یافت نشد."
+msgstr "پزشکی یافت نشد."
+
+#: includes/class-admin.php:352
+msgid "پزشک‌های مجاز"
+msgstr "پزشک‌های مجاز"
+
+#: includes/class-admin.php:1855
+msgid "پلتفرم"
+msgstr "پلتفرم"
+
+#: includes/class-admin.php:1837
+msgid "پنجشنبه"
+msgstr "پنجشنبه"
+
+#: includes/class-admin.php:1772 includes/class-admin.php:1775 includes/class-frontend.php:316
+msgid "پنل بیمار"
+msgstr "پنل بیمار"
+
+#: includes/class-admin.php:1779
+msgid "پنل فرانت‌اند مطب برای پزشک و منشی‌های مجاز."
+msgstr "پنل فرانت‌اند مطب برای پزشک و منشی‌های مجاز."
+
+#: includes/class-admin.php:1781
+msgid "پنل مطب"
+msgstr "پنل مطب"
+
+#: includes/class-admin.php:916
+msgid "پیشنهاد صفحه"
+msgstr "پیشنهاد صفحه"
+
+#: includes/class-frontend.php:354
+msgid "پیش‌خوان امروز"
+msgstr "پیش‌خوان امروز"
+
+#: includes/class-admin.php:1253
+msgid "پیش‌نویس"
+msgstr "پیش‌نویس"
+
+#: includes/class-aqayepardakht-gateway.php:70
+msgid "پین آقای پرداخت تنظیم نشده است."
+msgstr "پین آقای پرداخت تنظیم نشده است."
+
+#: includes/class-admin.php:1477
+msgid "پین درگاه"
+msgstr "پین درگاه"
+
+#: includes/class-admin.php:661
+msgid "پیگیری"
+msgstr "پیگیری"
+
+#: includes/class-admin.php:767
+msgid "پیگیری بانکی"
+msgstr "پیگیری بانکی"
+
+#: includes/class-admin.php:1836
+msgid "چهارشنبه"
+msgstr "چهارشنبه"
+
+#: includes/class-admin.php:239 includes/class-admin.php:610 includes/class-admin.php:710
+msgid "کاربر"
+msgstr "کاربر"
+
+#: includes/class-booking.php:207 includes/class-booking.php:546
+msgid "کاربر دیگری زودتر این زمان را انتخاب کرده است."
+msgstr "کاربر دیگری زودتر این زمان را انتخاب کرده است."
+
+#: includes/class-admin.php:989
+msgid "کاربر منشی معتبر نیست."
+msgstr "کاربر منشی معتبر نیست."
+
+#: includes/class-admin.php:1254 includes/class-post-types.php:114
+msgid "کاربر وردپرس پزشک"
+msgstr "کاربر وردپرس پزشک"
+
+#: includes/class-admin.php:914
+msgid "کاربرد"
+msgstr "کاربرد"
+
+#: includes/class-admin.php:1748 includes/class-admin.php:1751
+msgid "کارت پزشک"
+msgstr "کارت پزشک"
+
+#: includes/Elementor/class-doctor-card-widget.php:18
+msgid "کارت پزشک وب‌تنان"
+msgstr "کارت پزشک وب‌تنان"
+
+#: includes/class-admin.php:1769
+msgid "کارت یا پروفایل پزشک"
+msgstr "کارت یا پروفایل پزشک"
+
+#: includes/class-admin.php:1749
+msgid "کارت یک پزشک با تصویر، تخصص، هزینه نوبت‌دهی و اولین نوبت آزاد از REST."
+msgstr "کارت یک پزشک با تصویر، تخصص، هزینه نوبت‌دهی و اولین نوبت آزاد از REST."
+
+#: includes/class-admin.php:1381 includes/class-admin.php:1395 includes/class-admin.php:1847 includes/class-frontend.php:392
+msgid "کارت‌خوان"
+msgstr "کارت‌خوان"
+
+#: includes/class-rest.php:1056
+msgid "کارت‌خوان در مطب"
+msgstr "کارت‌خوان در مطب"
+
+#: includes/class-admin.php:1412
+msgid "کاهش اعتبار"
+msgstr "کاهش اعتبار"
+
+#: includes/class-admin.php:661
+msgid "کد"
+msgstr "کد"
+
+#: includes/class-frontend.php:97
+msgid "کد تایید"
+msgstr "کد تایید"
+
+#: includes/class-admin.php:657
+msgid "کد تراکنش، transid، پیگیری"
+msgstr "کد تراکنش، transid، پیگیری"
+
+#: includes/class-admin.php:610 includes/class-admin.php:1379 includes/class-frontend.php:283 includes/class-frontend.php:387
+msgid "کد ملی"
+msgstr "کد ملی"
+
+#: templates/single-saas-doctors.php:51
+msgid "کد نظام پزشکی"
+msgstr "کد نظام پزشکی"
+
+#: templates/single-saas-doctors.php:96
+msgid "کد نظام پزشکی:"
+msgstr "کد نظام پزشکی:"
+
+#: templates/receipt.php:25
+msgid "کد نوبت"
+msgstr "کد نوبت"
+
+#: includes/class-otp.php:108
+msgid "کد ورود اشتباه است."
+msgstr "کد ورود اشتباه است."
+
+#: includes/class-otp.php:82
+msgid "کد ورود معتبر نیست."
+msgstr "کد ورود معتبر نیست."
+
+#: includes/class-otp.php:98
+msgid "کد ورود منقضی شده یا وجود ندارد."
+msgstr "کد ورود منقضی شده یا وجود ندارد."
+
+#: includes/class-admin.php:1499
+msgid "کد پترن"
+msgstr "کد پترن"
+
+#: includes/class-ippanel-sms-service.php:24
+msgid "کد پترن پیامک خالی است."
+msgstr "کد پترن پیامک خالی است."
+
+#: includes/class-admin.php:1498
+msgid "کد پترن‌ها"
+msgstr "کد پترن‌ها"
+
+#: includes/class-admin.php:1256 includes/class-post-types.php:140
+msgid "کد پزشک"
+msgstr "کد پزشک"
+
+#: templates/receipt.php:41
+msgid "کد پیگیری بانکی"
+msgstr "کد پیگیری بانکی"
+
+#: includes/class-admin.php:554
+msgid "کد/زمان"
+msgstr "کد/زمان"
+
+#: includes/class-admin.php:1494
+msgid "کلید API"
+msgstr "کلید API"
+
+#: includes/class-ippanel-sms-service.php:28 includes/class-ippanel-sms-service.php:95
+msgid "کلید API آی‌پی‌پنل خالی است."
+msgstr "کلید API آی‌پی‌پنل خالی است."
+
+#: includes/class-admin.php:53 includes/class-admin.php:610 includes/class-frontend.php:322
+msgid "کیف پول"
+msgstr "کیف پول"
+
+#: includes/class-admin.php:698
+msgid "کیف پول و دفتر کل"
+msgstr "کیف پول و دفتر کل"
+
+#: includes/class-frontend.php:359
+msgid "کیف پول و مالی"
+msgstr "کیف پول و مالی"
+
+#: includes/class-admin.php:1282 templates/single-saas-doctors.php:166
+msgid "گالری مطب"
+msgstr "گالری مطب"
+
+#: includes/class-admin.php:1496 includes/class-sms.php:26
+msgid "یادآوری نوبت"
+msgstr "یادآوری نوبت"
+
+#: includes/class-admin.php:767 includes/class-admin.php:1446
+msgid "یادداشت"
+msgstr "یادداشت"
+
+#: includes/class-admin.php:1431
+msgid "یادداشت مدیر"
+msgstr "یادداشت مدیر"
+
+#: includes/class-admin.php:1833
+msgid "یکشنبه"
+msgstr "یکشنبه"
+
