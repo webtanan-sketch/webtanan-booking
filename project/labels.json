@@ -1,0 +1,87 @@
+[
+  {
+    "name": "type: feature",
+    "color": "0E8A16",
+    "description": "New feature or major enhancement"
+  },
+  {
+    "name": "type: bug",
+    "color": "D73A4A",
+    "description": "Bug fix"
+  },
+  {
+    "name": "type: security",
+    "color": "B60205",
+    "description": "Security-related task"
+  },
+  {
+    "name": "type: ui-ux",
+    "color": "FBCA04",
+    "description": "User interface or user experience"
+  },
+  {
+    "name": "type: api",
+    "color": "1D76DB",
+    "description": "REST API or integration task"
+  },
+  {
+    "name": "type: payment",
+    "color": "F9D0C4",
+    "description": "Payment gateway or transaction task"
+  },
+  {
+    "name": "type: sms",
+    "color": "BFDADC",
+    "description": "SMS and notification task"
+  },
+  {
+    "name": "type: database",
+    "color": "5319E7",
+    "description": "Database or migration task"
+  },
+  {
+    "name": "type: documentation",
+    "color": "0075CA",
+    "description": "Documentation task"
+  },
+  {
+    "name": "priority: high",
+    "color": "B60205",
+    "description": "High priority"
+  },
+  {
+    "name": "priority: medium",
+    "color": "FBCA04",
+    "description": "Medium priority"
+  },
+  {
+    "name": "priority: low",
+    "color": "0E8A16",
+    "description": "Low priority"
+  },
+  {
+    "name": "phase: calendar",
+    "color": "C5DEF5",
+    "description": "Persian calendar and booking UX phase"
+  },
+  {
+    "name": "phase: dashboard",
+    "color": "D4C5F9",
+    "description": "Doctor and secretary dashboard phase"
+  },
+  {
+    "name": "phase: finance",
+    "color": "F9D0C4",
+    "description": "Finance, refund, and settlement phase"
+  },
+  {
+    "name": "phase: seo",
+    "color": "BFD4F2",
+    "description": "Elementor and SEO phase"
+  },
+  {
+    "name": "phase: hardening",
+    "color": "D93F0B",
+    "description": "Production hardening phase"
+  }
+]

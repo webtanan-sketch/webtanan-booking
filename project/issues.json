@@ -1,0 +1,226 @@
+[
+  {
+    "title": "📅 Implement Real Jalali Calendar Picker",
+    "milestone": "v0.7.0 - Persian Calendar & Booking UX",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "priority: high",
+      "phase: calendar"
+    ],
+    "body": "## Goal\nReplace browser-native date inputs with a real Persian/Jalali date picker.\n\n## Requirements\n- Full RTL support\n- Jalali month and day names\n- Today button\n- Previous/next month navigation\n- Mobile-friendly layout\n- Works inside doctor profile page\n- Works inside doctor/secretary dashboard\n- Works inside admin appointment filters\n- Does not break WordPress admin styles\n\n## Acceptance Criteria\n- User can select a Jalali date without browser date input.\n- Selected date is internally converted to Gregorian format for database/API usage.\n- UI remains fully Persian and RTL."
+  },
+  {
+    "title": "📅 Build Appointment Slot Calendar UI",
+    "milestone": "v0.7.0 - Persian Calendar & Booking UX",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "type: api",
+      "priority: high",
+      "phase: calendar"
+    ],
+    "body": "## Goal\nCreate a professional slot selection interface for doctor booking pages.\n\n## Requirements\n- Load slots from REST API\n- Show available, locked, booked and expired states\n- Show first available appointment\n- Show loading state while fetching slots\n- Show empty state when no slots are available\n- Avoid rendering live slot data in cached HTML\n\n## Acceptance Criteria\n- Slots are loaded dynamically after page load.\n- Cached doctor pages do not display stale appointment data.\n- Patient can clearly understand which slots are available."
+  },
+  {
+    "title": "🔐 Improve OTP Flow During Booking",
+    "milestone": "v0.7.0 - Persian Calendar & Booking UX",
+    "labels": [
+      "type: feature",
+      "type: security",
+      "type: ui-ux",
+      "priority: high",
+      "phase: calendar"
+    ],
+    "body": "## Goal\nMake patient OTP login smooth inside the booking flow.\n\n## Requirements\n- Mobile number input\n- Send OTP button\n- Countdown timer\n- Resend OTP after timeout\n- Error message for invalid OTP\n- Auto-login after successful verification\n- Continue booking after login without losing selected slot\n\n## Acceptance Criteria\n- Patient does not lose selected slot after OTP verification.\n- OTP errors are displayed in Persian.\n- Rate limits remain active."
+  },
+  {
+    "title": "🧾 Redesign Appointment Receipt Page",
+    "milestone": "v0.7.0 - Persian Calendar & Booking UX",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "priority: medium",
+      "phase: calendar"
+    ],
+    "body": "## Goal\nCreate a professional printable receipt for confirmed appointments.\n\n## Requirements\n- Appointment code\n- Doctor name\n- Specialty\n- Patient name\n- Patient mobile\n- Appointment date and time\n- Payment method\n- Payment status\n- Tracking number if available\n- Clinic address\n- Print button\n- Mobile-friendly design\n\n## Acceptance Criteria\n- Receipt is readable on mobile and desktop.\n- Receipt can be printed cleanly.\n- Private receipt access is protected by ownership check."
+  },
+  {
+    "title": "🧑‍⚕️ Redesign Doctor Dashboard UI",
+    "milestone": "v0.8.0 - Doctor and Secretary Dashboard",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "priority: high",
+      "phase: dashboard"
+    ],
+    "body": "## Goal\nUpgrade the doctor dashboard to a modern SaaS-style interface.\n\n## Requirements\n- Professional sidebar\n- Today summary cards\n- Appointment statistics\n- Daily appointment list\n- Calendar view\n- Wallet summary\n- Settlement summary\n- Mobile responsive layout\n- Persian RTL interface\n\n## Acceptance Criteria\n- Doctor can manage daily clinic operations without WordPress admin.\n- Dashboard feels like a real SaaS panel, not a basic shortcode page."
+  },
+  {
+    "title": "🧑‍💼 Build Secretary Assignment Admin Screen",
+    "milestone": "v0.8.0 - Doctor and Secretary Dashboard",
+    "labels": [
+      "type: feature",
+      "type: security",
+      "priority: high",
+      "phase: dashboard"
+    ],
+    "body": "## Goal\nAllow admins to assign secretaries to one or more doctors.\n\n## Requirements\n- Select secretary user\n- Select assigned doctors\n- Save doctor IDs into user meta\n- Manage finance permission\n- Show current assignments\n- Prevent secretary from accessing unauthorized doctors\n\n## Technical Notes\nUse:\n- `webtanan_assigned_doctor_ids`\n- `webtanan_secretary_can_view_finance`\n\n## Acceptance Criteria\n- Secretary can only access assigned doctors.\n- Secretary cannot access financial data unless permission is enabled."
+  },
+  {
+    "title": "📋 Improve Walk-in Appointment Creation",
+    "milestone": "v0.8.0 - Doctor and Secretary Dashboard",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "priority: medium",
+      "phase: dashboard"
+    ],
+    "body": "## Goal\nImprove the UX for registering appointments from the clinic dashboard.\n\n## Requirements\n- Select doctor\n- Select Jalali date\n- Select available slot\n- Enter patient details\n- Select payment status\n- Support cash_at_clinic\n- Support pos_at_clinic\n- Support unpaid\n- Register platform commission debt if needed\n\n## Acceptance Criteria\n- Doctor or secretary can register walk-in appointments quickly.\n- Pay-at-clinic commission is reflected in wallet ledger."
+  },
+  {
+    "title": "📊 Add Printable Daily Appointment Report",
+    "milestone": "v0.8.0 - Doctor and Secretary Dashboard",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "priority: medium",
+      "phase: dashboard"
+    ],
+    "body": "## Goal\nAllow clinic staff to print daily appointment lists.\n\n## Requirements\n- Filter by doctor\n- Filter by Jalali date\n- Show patient name\n- Show mobile\n- Show time\n- Show payment status\n- Show attendance status\n- Print-friendly layout\n\n## Acceptance Criteria\n- Secretary can print a clean daily appointment list."
+  },
+  {
+    "title": "💸 Implement Cancellation and Refund Rules",
+    "milestone": "v0.9.0 - Finance, Refund and Settlement",
+    "labels": [
+      "type: feature",
+      "type: payment",
+      "priority: high",
+      "phase: finance"
+    ],
+    "body": "## Goal\nAllow admins to define cancellation and refund policies.\n\n## Requirements\n- Cancellation allowed until X hours before appointment\n- Full refund rule\n- Partial refund rule\n- No refund rule\n- Full refund when cancelled by doctor\n- Full refund when cancelled by admin\n- Refund to patient wallet\n- Ledger entry for every refund\n\n## Acceptance Criteria\n- Cancellation result is calculated based on admin settings.\n- Every refund has a wallet ledger record."
+  },
+  {
+    "title": "👛 Add Patient Wallet Transaction History",
+    "milestone": "v0.9.0 - Finance, Refund and Settlement",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "type: payment",
+      "priority: medium",
+      "phase: finance"
+    ],
+    "body": "## Goal\nAllow patients to view wallet activity.\n\n## Requirements\n- Show credit entries\n- Show debit entries\n- Show refund entries\n- Show wallet payment entries\n- Show related appointment code\n- Show date and description\n- Mobile-friendly table/cards\n\n## Acceptance Criteria\n- Patient can clearly understand wallet balance changes."
+  },
+  {
+    "title": "🧾 Complete Doctor Settlement Workflow",
+    "milestone": "v0.9.0 - Finance, Refund and Settlement",
+    "labels": [
+      "type: feature",
+      "type: payment",
+      "priority: high",
+      "phase: finance"
+    ],
+    "body": "## Goal\nMake doctor settlement production-ready.\n\n## Requirements\n- Doctor settlement request\n- Admin approval\n- Admin rejection with reason\n- Mark settlement as paid\n- Store bank tracking number\n- Create negative settlement ledger entry\n- Show settlement history to doctor\n- Prevent settlement above withdrawable balance\n\n## Acceptance Criteria\n- Settlement changes are traceable in ledger.\n- Doctor can see settlement status.\n- Admin can audit settlement history."
+  },
+  {
+    "title": "📊 Add Financial Reports for Admin",
+    "milestone": "v0.9.0 - Finance, Refund and Settlement",
+    "labels": [
+      "type: feature",
+      "type: payment",
+      "priority: medium",
+      "phase: finance"
+    ],
+    "body": "## Goal\nProvide platform-level financial reports.\n\n## Requirements\n- Total platform commission\n- Doctor earnings\n- Patient wallet balances\n- Pay-at-clinic commission debt\n- Successful payments\n- Failed payments\n- Late callback wallet credits\n- Settlement report\n\n## Acceptance Criteria\n- Admin can review financial health of the platform."
+  },
+  {
+    "title": "🧩 Build Elementor Doctor Card Widget",
+    "milestone": "v1.0.0 - Elementor, SEO and Public Release",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "priority: high",
+      "phase: seo"
+    ],
+    "body": "## Goal\nCreate an Elementor widget for displaying doctor cards.\n\n## Requirements\n- Doctor image\n- Name\n- Specialty\n- Clinic location\n- First available appointment via AJAX\n- Online/pay-at-clinic badges\n- View profile button\n- Book appointment button\n\n## Acceptance Criteria\n- Widget can be used inside Elementor pages.\n- First available slot is loaded dynamically."
+  },
+  {
+    "title": "🔍 Build Advanced Doctor Search Widget",
+    "milestone": "v1.0.0 - Elementor, SEO and Public Release",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "type: api",
+      "priority: high",
+      "phase: seo"
+    ],
+    "body": "## Goal\nCreate a public doctor search and filtering widget.\n\n## Requirements\n- Search by doctor name\n- Filter by specialty\n- Filter by city\n- Filter by province\n- Filter by payment method\n- Sort by first available appointment\n- AJAX results loading\n\n## Acceptance Criteria\n- Users can find doctors quickly.\n- Search results remain SEO/cache friendly where possible."
+  },
+  {
+    "title": "🧑‍⚕️ Improve Public Doctor Profile Template",
+    "milestone": "v1.0.0 - Elementor, SEO and Public Release",
+    "labels": [
+      "type: feature",
+      "type: ui-ux",
+      "priority: high",
+      "phase: seo"
+    ],
+    "body": "## Goal\nCreate a professional public doctor profile layout.\n\n## Requirements\n- Doctor hero section\n- Verified badge\n- Specialty\n- Clinic location\n- Doctor biography\n- Services section\n- Appointment booking panel\n- Patient reviews section\n- Clinic map section\n- SEO-friendly content area\n- Mobile-first design\n\n## Acceptance Criteria\n- Doctor profile looks professional and trustworthy.\n- Dynamic booking data is loaded through REST API."
+  },
+  {
+    "title": "🧬 Add Doctor Schema Markup",
+    "milestone": "v1.0.0 - Elementor, SEO and Public Release",
+    "labels": [
+      "type: feature",
+      "type: documentation",
+      "priority: medium",
+      "phase: seo"
+    ],
+    "body": "## Goal\nImprove SEO for public doctor profiles.\n\n## Requirements\n- Add structured data for doctor profile\n- Include name, specialty, address, phone if public, image and profile URL\n- Avoid exposing private data\n- Keep compatibility with SEO plugins\n\n## Acceptance Criteria\n- Doctor pages include valid schema markup.\n- Private pages remain noindex."
+  },
+  {
+    "title": "🔒 Perform REST API Security Audit",
+    "milestone": "v1.1.0 - Production Hardening",
+    "labels": [
+      "type: security",
+      "type: api",
+      "priority: high",
+      "phase: hardening"
+    ],
+    "body": "## Goal\nReview all REST endpoints for permission and ownership checks.\n\n## Requirements\n- Patient ownership check\n- Doctor ownership check\n- Secretary assigned doctor check\n- Admin capability check\n- Nonce validation for authenticated routes\n- Sanitize all input\n- Escape all output\n\n## Acceptance Criteria\n- Unauthorized users cannot access private data.\n- Secretary cannot access unassigned doctors."
+  },
+  {
+    "title": "⚔️ Test Appointment Race Conditions",
+    "milestone": "v1.1.0 - Production Hardening",
+    "labels": [
+      "type: security",
+      "type: database",
+      "priority: high",
+      "phase: hardening"
+    ],
+    "body": "## Goal\nEnsure overbooking cannot happen under concurrent requests.\n\n## Requirements\n- Simulate multiple users locking same slot\n- Verify unique index behavior\n- Verify transaction rollback behavior\n- Verify expired lock replacement\n- Verify payment confirmation idempotency\n\n## Acceptance Criteria\n- Only one user can confirm a specific doctor/date/time slot."
+  },
+  {
+    "title": "💳 Test Payment Callback Idempotency",
+    "milestone": "v1.1.0 - Production Hardening",
+    "labels": [
+      "type: security",
+      "type: payment",
+      "priority: high",
+      "phase: hardening"
+    ],
+    "body": "## Goal\nEnsure repeated callbacks do not duplicate financial effects.\n\n## Requirements\n- Repeat successful callback\n- Repeat verify\n- Refresh payment result page\n- Trigger late callback twice\n- Check wallet ledger\n- Check appointment status\n\n## Acceptance Criteria\n- No duplicate wallet credit.\n- No duplicate doctor earning.\n- No duplicate platform commission."
+  },
+  {
+    "title": "🚀 Cache Compatibility Testing",
+    "milestone": "v1.1.0 - Production Hardening",
+    "labels": [
+      "type: bug",
+      "type: ui-ux",
+      "priority: medium",
+      "phase: hardening"
+    ],
+    "body": "## Goal\nEnsure WP cache plugins do not break appointment availability.\n\n## Requirements\n- Test with WP Rocket\n- Test with LiteSpeed Cache\n- Test cached doctor profile page\n- Verify slots load from REST API\n- Verify first available appointment updates dynamically\n\n## Acceptance Criteria\n- Cached pages never show stale slot availability."
+  }
+]
