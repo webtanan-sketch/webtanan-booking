@@ -14,6 +14,8 @@ global $wpdb;
 
 $search = isset($_GET['doctor_search']) ? sanitize_text_field(wp_unslash($_GET['doctor_search'])) : '';
 $specialty_id = isset($_GET['specialty_id']) ? absint($_GET['specialty_id']) : 0;
+$province_id = isset($_GET['province_id']) ? absint($_GET['province_id']) : 0;
+$city_id = isset($_GET['city_id']) ? absint($_GET['city_id']) : 0;
 $payment_filter = isset($_GET['payment_filter']) ? sanitize_key(wp_unslash($_GET['payment_filter'])) : '';
 $where = "d.is_active = 1 AND d.is_verified = 1 AND p.post_status = 'publish'";
 $params = array();
@@ -27,6 +29,16 @@ if ($search) {
 if ($specialty_id > 0) {
     $where .= ' AND d.specialty_id = %d';
     $params[] = $specialty_id;
+}
+
+if ($province_id > 0) {
+    $where .= ' AND d.province_id = %d';
+    $params[] = $province_id;
+}
+
+if ($city_id > 0) {
+    $where .= ' AND d.city_id = %d';
+    $params[] = $city_id;
 }
 
 if ('online' === $payment_filter) {
@@ -77,6 +89,8 @@ get_header();
                     <option value="<?php echo esc_attr((string) $specialty['id']); ?>" <?php selected($specialty_id, (int) $specialty['id']); ?>><?php echo esc_html($specialty['name']); ?></option>
                 <?php endforeach; ?>
             </select>
+            <input type="number" min="0" name="province_id" value="<?php echo esc_attr((string) $province_id); ?>" placeholder="<?php esc_attr_e('شناسه استان', 'webtanan-booking'); ?>">
+            <input type="number" min="0" name="city_id" value="<?php echo esc_attr((string) $city_id); ?>" placeholder="<?php esc_attr_e('شناسه شهر', 'webtanan-booking'); ?>">
             <select name="payment_filter">
                 <option value=""><?php esc_html_e('همه روش‌های پرداخت', 'webtanan-booking'); ?></option>
                 <option value="online" <?php selected($payment_filter, 'online'); ?>><?php esc_html_e('پرداخت آنلاین', 'webtanan-booking'); ?></option>

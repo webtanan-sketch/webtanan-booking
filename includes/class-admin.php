@@ -46,12 +46,13 @@ final class Admin {
         add_submenu_page('webtanan-booking', __('پزشکان', 'webtanan-booking'), __('پزشکان', 'webtanan-booking'), 'webtanan_manage_doctors', 'webtanan-booking-doctors', array(__CLASS__, 'render_doctors'));
         add_submenu_page('webtanan-booking', __('منشی‌ها', 'webtanan-booking'), __('منشی‌ها', 'webtanan-booking'), 'webtanan_manage_doctors', 'webtanan-booking-secretaries', array(__CLASS__, 'render_secretaries'));
         add_submenu_page('webtanan-booking', __('تخصص‌ها', 'webtanan-booking'), __('تخصص‌ها', 'webtanan-booking'), 'webtanan_manage_doctors', 'webtanan-booking-specialties', array(__CLASS__, 'render_specialties'));
-        add_submenu_page('webtanan-booking', __('برنامه کاری', 'webtanan-booking'), __('برنامه کاری', 'webtanan-booking'), 'webtanan_manage_doctors', 'webtanan-booking-schedules', array(__CLASS__, 'render_schedules'));
+        add_submenu_page('webtanan-booking', __('برنامه کاری و استثناها', 'webtanan-booking'), __('برنامه کاری و استثناها', 'webtanan-booking'), 'webtanan_manage_doctors', 'webtanan-booking-schedules', array(__CLASS__, 'render_schedules'));
         add_submenu_page('webtanan-booking', __('نوبت‌ها', 'webtanan-booking'), __('نوبت‌ها', 'webtanan-booking'), 'webtanan_manage_booking', 'webtanan-booking-appointments', array(__CLASS__, 'render_appointments'));
         add_submenu_page('webtanan-booking', __('بیماران', 'webtanan-booking'), __('بیماران', 'webtanan-booking'), 'webtanan_manage_booking', 'webtanan-booking-patients', array(__CLASS__, 'render_patients'));
         add_submenu_page('webtanan-booking', __('تراکنش‌ها', 'webtanan-booking'), __('تراکنش‌ها', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-transactions', array(__CLASS__, 'render_transactions'));
-        add_submenu_page('webtanan-booking', __('کیف پول', 'webtanan-booking'), __('کیف پول', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-wallet', array(__CLASS__, 'render_wallet'));
+        add_submenu_page('webtanan-booking', __('دفتر کل کیف پول', 'webtanan-booking'), __('دفتر کل کیف پول', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-wallet', array(__CLASS__, 'render_wallet'));
         add_submenu_page('webtanan-booking', __('تسویه پزشکان', 'webtanan-booking'), __('تسویه پزشکان', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-settlements', array(__CLASS__, 'render_settlements'));
+        add_submenu_page('webtanan-booking', __('لاگ پیامک/OTP', 'webtanan-booking'), __('لاگ پیامک/OTP', 'webtanan-booking'), 'webtanan_manage_settings', 'webtanan-booking-logs', array(__CLASS__, 'render_logs_overview'));
         add_submenu_page('webtanan-booking', __('لاگ OTP', 'webtanan-booking'), __('لاگ OTP', 'webtanan-booking'), 'webtanan_manage_settings', 'webtanan-booking-otp-logs', array(__CLASS__, 'render_otp_logs'));
         add_submenu_page('webtanan-booking', __('لاگ پیامک', 'webtanan-booking'), __('لاگ پیامک', 'webtanan-booking'), 'webtanan_manage_settings', 'webtanan-booking-sms-logs', array(__CLASS__, 'render_sms_logs'));
         add_submenu_page('webtanan-booking', __('تنظیمات', 'webtanan-booking'), __('تنظیمات', 'webtanan-booking'), 'webtanan_manage_settings', 'webtanan-booking-settings', array(__CLASS__, 'render_settings'));
@@ -543,8 +544,9 @@ final class Admin {
                     <form method="get" class="webtanan-filter-bar">
                         <input type="hidden" name="page" value="webtanan-booking-appointments">
                         <?php self::doctor_select('doctor_id', $doctor_id, __('همه پزشکان', 'webtanan-booking')); ?>
-                        <input type="date" name="date_from" value="<?php echo esc_attr($from); ?>">
-                        <input type="date" name="date_to" value="<?php echo esc_attr($to); ?>">
+                        <input type="date" class="webtanan-jalali-input" name="date_from" value="<?php echo esc_attr($from); ?>" aria-label="<?php esc_attr_e('از تاریخ', 'webtanan-booking'); ?>">
+                        <input type="date" class="webtanan-jalali-input" name="date_to" value="<?php echo esc_attr($to); ?>" aria-label="<?php esc_attr_e('تا تاریخ', 'webtanan-booking'); ?>">
+                        <span class="description"><?php esc_html_e('تاریخ‌ها در رابط ادمین شمسی نمایش داده می‌شوند؛ مقدار ذخیره‌شده برای کوئری Gregorian است.', 'webtanan-booking'); ?></span>
                         <?php self::select_from_map('appointment_status', self::appointment_statuses(), self::request_key('appointment_status'), __('همه وضعیت نوبت‌ها', 'webtanan-booking')); ?>
                         <?php self::select_from_map('payment_status', self::payment_statuses(), self::request_key('payment_status'), __('همه پرداخت‌ها', 'webtanan-booking')); ?>
                         <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="<?php esc_attr_e('نام، موبایل، کد ملی یا کد نوبت', 'webtanan-booking'); ?>">
@@ -775,6 +777,60 @@ final class Admin {
                 </div>
                 <div class="webtanan-admin-side">
                     <?php self::render_settlement_form(); ?>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    public static function render_logs_overview(): void {
+        global $wpdb;
+
+        $otp_rows = $wpdb->get_results(
+            'SELECT id, mobile, purpose, attempt_count, is_used, created_at, used_at FROM ' . DB::table('otp_logs') . ' ORDER BY id DESC LIMIT 30',
+            ARRAY_A
+        );
+        $sms_rows = $wpdb->get_results(
+            'SELECT id, mobile, message_type, pattern_code, status, related_appointment_id, created_at FROM ' . DB::table('sms_logs') . ' ORDER BY id DESC LIMIT 30',
+            ARRAY_A
+        );
+
+        ?>
+        <div class="wrap webtanan-admin" dir="rtl">
+            <h1><?php esc_html_e('لاگ پیامک و OTP', 'webtanan-booking'); ?></h1>
+            <?php self::render_notice(); ?>
+            <div class="webtanan-admin-cards">
+                <div class="webtanan-admin-card">
+                    <strong><?php echo esc_html(number_format_i18n((int) $wpdb->get_var('SELECT COUNT(*) FROM ' . DB::table('otp_logs')))); ?></strong>
+                    <span><?php esc_html_e('کل OTPها', 'webtanan-booking'); ?></span>
+                </div>
+                <div class="webtanan-admin-card">
+                    <strong><?php echo esc_html(number_format_i18n((int) $wpdb->get_var('SELECT COUNT(*) FROM ' . DB::table('sms_logs')))); ?></strong>
+                    <span><?php esc_html_e('کل پیامک‌ها', 'webtanan-booking'); ?></span>
+                </div>
+                <div class="webtanan-admin-card">
+                    <strong><?php echo esc_html(number_format_i18n((int) $wpdb->get_var('SELECT COUNT(*) FROM ' . DB::table('sms_logs') . " WHERE status IN ('failed','error')"))); ?></strong>
+                    <span><?php esc_html_e('پیامک‌های ناموفق', 'webtanan-booking'); ?></span>
+                </div>
+            </div>
+            <div class="webtanan-admin-layout">
+                <div class="webtanan-admin-main">
+                    <div class="webtanan-admin-panel">
+                        <h2><?php esc_html_e('آخرین پیامک‌ها', 'webtanan-booking'); ?></h2>
+                        <p>
+                            <a class="button" href="<?php echo esc_url(self::page_url('webtanan-booking-sms-logs')); ?>"><?php esc_html_e('فیلتر کامل لاگ پیامک', 'webtanan-booking'); ?></a>
+                        </p>
+                        <?php self::render_simple_table($sms_rows, array('id', 'mobile', 'message_type', 'pattern_code', 'status', 'related_appointment_id', 'created_at'), __('لاگ پیامکی یافت نشد.', 'webtanan-booking')); ?>
+                    </div>
+                </div>
+                <div class="webtanan-admin-side">
+                    <div class="webtanan-admin-panel">
+                        <h2><?php esc_html_e('آخرین OTPها', 'webtanan-booking'); ?></h2>
+                        <p>
+                            <a class="button" href="<?php echo esc_url(self::page_url('webtanan-booking-otp-logs')); ?>"><?php esc_html_e('فیلتر کامل لاگ OTP', 'webtanan-booking'); ?></a>
+                        </p>
+                        <?php self::render_simple_table($otp_rows, array('id', 'mobile', 'purpose', 'attempt_count', 'is_used', 'created_at', 'used_at'), __('لاگ OTP یافت نشد.', 'webtanan-booking')); ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1256,6 +1312,8 @@ final class Admin {
                 <p><label><?php esc_html_e('کد پزشک', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[doctor_code]" value="<?php echo esc_attr($doctor['doctor_code'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('شماره نظام پزشکی', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[medical_system_number]" value="<?php echo esc_attr($doctor['medical_system_number'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('تخصص', 'webtanan-booking'); ?></label><?php self::specialty_select('doctor[specialty_id]', (int) ($doctor['specialty_id'] ?? 0)); ?></p>
+                <p><label><?php esc_html_e('شناسه استان', 'webtanan-booking'); ?></label><input type="number" min="0" class="widefat" name="doctor[province_id]" value="<?php echo esc_attr((string) ($doctor['province_id'] ?? 0)); ?>"><span class="description"><?php esc_html_e('برای فیلتر عمومی و ویجت المنتور استفاده می‌شود.', 'webtanan-booking'); ?></span></p>
+                <p><label><?php esc_html_e('شناسه شهر', 'webtanan-booking'); ?></label><input type="number" min="0" class="widefat" name="doctor[city_id]" value="<?php echo esc_attr((string) ($doctor['city_id'] ?? 0)); ?>"><span class="description"><?php esc_html_e('در نسخه‌های بعد می‌تواند به جدول شهرها متصل شود.', 'webtanan-booking'); ?></span></p>
                 <p><label><?php esc_html_e('نام مطب', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[clinic_name]" value="<?php echo esc_attr($doctor['clinic_name'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('تلفن مطب', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[clinic_phone]" value="<?php echo esc_attr($doctor['clinic_phone'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('آدرس مطب', 'webtanan-booking'); ?></label><textarea class="widefat" rows="3" name="doctor[clinic_address]"><?php echo esc_textarea($doctor['clinic_address'] ?? ''); ?></textarea></p>
@@ -1263,8 +1321,8 @@ final class Admin {
                 <p><label><?php esc_html_e('نوع سهم پزشک/منشی از خدمات نوبت‌دهی', 'webtanan-booking'); ?></label><select class="widefat" name="doctor[booking_fee_share_type]"><option value="percent" <?php selected($doctor['booking_fee_share_type'] ?? 'percent', 'percent'); ?>><?php esc_html_e('درصدی', 'webtanan-booking'); ?></option><option value="fixed" <?php selected($doctor['booking_fee_share_type'] ?? '', 'fixed'); ?>><?php esc_html_e('مبلغ ثابت', 'webtanan-booking'); ?></option></select></p>
                 <p><label><?php esc_html_e('مقدار سهم پزشک/منشی', 'webtanan-booking'); ?></label><input type="number" min="0" step="1000" class="widefat" name="doctor[booking_fee_share_value]" value="<?php echo esc_attr((string) ($doctor['booking_fee_share_value'] ?? 0)); ?>"><span class="description"><?php esc_html_e('باقی‌مانده هزینه نوبت‌دهی به عنوان درآمد پلتفرم ثبت می‌شود.', 'webtanan-booking'); ?></span></p>
                 <p><label><?php esc_html_e('تعرفه ویزیت نمایشی (اختیاری)', 'webtanan-booking'); ?></label><input type="number" min="0" step="1000" class="widefat" name="doctor[visit_price]" value="<?php echo esc_attr((string) ($doctor['visit_price'] ?? 0)); ?>"><span class="description"><?php esc_html_e('این مبلغ فقط در پروفایل نمایش داده می‌شود و توسط سایت دریافت نمی‌شود.', 'webtanan-booking'); ?></span></p>
-                <input type="hidden" name="doctor[platform_commission_type]" value="<?php echo esc_attr($doctor['platform_commission_type'] ?? $settings['default_commission_type']); ?>">
-                <input type="hidden" name="doctor[platform_commission_value]" value="<?php echo esc_attr((string) ($doctor['platform_commission_value'] ?? $settings['default_commission_value'])); ?>">
+                <p><label><?php esc_html_e('نوع کارمزد پلتفرم', 'webtanan-booking'); ?></label><select class="widefat" name="doctor[platform_commission_type]"><option value="percent" <?php selected($doctor['platform_commission_type'] ?? $settings['default_commission_type'], 'percent'); ?>><?php esc_html_e('درصدی', 'webtanan-booking'); ?></option><option value="fixed" <?php selected($doctor['platform_commission_type'] ?? $settings['default_commission_type'], 'fixed'); ?>><?php esc_html_e('مبلغ ثابت', 'webtanan-booking'); ?></option></select></p>
+                <p><label><?php esc_html_e('مقدار کارمزد پلتفرم', 'webtanan-booking'); ?></label><input type="number" min="0" step="1000" class="widefat" name="doctor[platform_commission_value]" value="<?php echo esc_attr((string) ($doctor['platform_commission_value'] ?? $settings['default_commission_value'])); ?>"><span class="description"><?php esc_html_e('برای گزارش مالی و بدهی پرداخت حضوری استفاده می‌شود. در حالت درصدی، مقدار را به درصد وارد کنید.', 'webtanan-booking'); ?></span></p>
                 <p><label><?php esc_html_e('شبا', 'webtanan-booking'); ?></label><input type="text" class="widefat" dir="ltr" name="doctor[iban]" value="<?php echo esc_attr($doctor['iban'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('صاحب حساب', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[bank_account_owner]" value="<?php echo esc_attr($doctor['bank_account_owner'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('خلاصه پروفایل', 'webtanan-booking'); ?></label><textarea class="widefat" rows="2" name="doctor[profile_excerpt]"><?php echo esc_textarea($post ? $post->post_excerpt : ''); ?></textarea></p>
@@ -1437,7 +1495,7 @@ final class Admin {
 
     private static function render_settlement_actions(array $row): void {
         ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="webtanan-row-actions">
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="webtanan-row-actions webtanan-settlement-actions" data-current-status="<?php echo esc_attr((string) $row['status']); ?>">
             <?php wp_nonce_field('webtanan_booking_update_settlement'); ?>
             <input type="hidden" name="action" value="webtanan_booking_update_settlement">
             <input type="hidden" name="settlement_id" value="<?php echo esc_attr((string) $row['id']); ?>">
@@ -1445,6 +1503,7 @@ final class Admin {
             <input type="text" name="bank_tracking_number" value="<?php echo esc_attr($row['bank_tracking_number'] ?? ''); ?>" placeholder="<?php esc_attr_e('شماره پیگیری بانکی', 'webtanan-booking'); ?>">
             <input type="text" name="admin_note" value="<?php echo esc_attr($row['admin_note']); ?>" placeholder="<?php esc_attr_e('یادداشت', 'webtanan-booking'); ?>">
             <?php submit_button(__('ذخیره', 'webtanan-booking'), 'secondary small', '', false); ?>
+            <span class="description"><?php esc_html_e('ثبت paid فقط با شماره پیگیری معتبر انجام می‌شود و ledger تسویه فقط یک بار ساخته می‌شود.', 'webtanan-booking'); ?></span>
         </form>
         <?php
     }
@@ -1734,14 +1793,14 @@ final class Admin {
             ),
             array(
                 'title' => __('جستجوی پزشکان', 'webtanan-booking'),
-                'description' => __('جستجوی Ajax/REST بر اساس نام، تخصص یا آدرس.', 'webtanan-booking'),
-                'shortcode' => '[webtanan_booking_doctor_search]',
+                'description' => __('جستجوی Ajax/REST بر اساس نام، تخصص، آدرس، شهر، استان، روش پرداخت و نزدیک‌ترین نوبت آزاد.', 'webtanan-booking'),
+                'shortcode' => '[webtanan_booking_doctor_search per_page="12" specialty_id="0" province_id="0" city_id="0" payment_filter="" sort=""]',
                 'page' => __('جستجوی پزشک', 'webtanan-booking'),
             ),
             array(
                 'title' => __('لیست پزشکان', 'webtanan-booking'),
-                'description' => __('نمایش کارت پزشکان؛ قابل محدود کردن بر اساس تخصص.', 'webtanan-booking'),
-                'shortcode' => '[webtanan_booking_doctor_list per_page="12" specialty_id="0"]',
+                'description' => __('نمایش کارت پزشکان؛ قابل محدود کردن بر اساس تخصص، شهر، استان و روش پرداخت.', 'webtanan-booking'),
+                'shortcode' => '[webtanan_booking_doctor_list per_page="12" specialty_id="0" province_id="0" city_id="0" payment_filter="" sort=""]',
                 'page' => __('لیست پزشکان', 'webtanan-booking'),
             ),
             array(

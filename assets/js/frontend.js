@@ -199,10 +199,14 @@
     function initDoctorList(el, search = '') {
         const perPage = el.dataset.perPage || '12';
         const specialtyId = el.dataset.specialtyId || '';
+        const cityId = el.dataset.cityId || '';
+        const provinceId = el.dataset.provinceId || '';
+        const paymentFilter = el.dataset.paymentFilter || '';
+        const sort = el.dataset.sort || '';
         const online = el.dataset.online || '';
         const payAtClinic = el.dataset.payAtClinic || '';
         el.innerHTML = panel(cfg.strings && cfg.strings.loading || 'در حال بارگذاری...');
-        request(`/doctors?${qs({ per_page: perPage, search, specialty_id: specialtyId, online, pay_at_clinic: payAtClinic })}`)
+        request(`/doctors?${qs({ per_page: perPage, search, specialty_id: specialtyId, city_id: cityId, province_id: provinceId, payment_filter: paymentFilter, sort, online, pay_at_clinic: payAtClinic })}`)
             .then((doctors) => {
                 if (!Array.isArray(doctors) || !doctors.length) {
                     el.innerHTML = panel('پزشکی برای نمایش پیدا نشد.');
@@ -220,17 +224,37 @@
     function initDoctorSearch(el) {
         const input = el.querySelector('.webtanan-doctor-search-input');
         const button = el.querySelector('.webtanan-search-button');
+        const specialty = el.querySelector('.webtanan-doctor-specialty-filter');
+        const payment = el.querySelector('.webtanan-doctor-payment-filter');
+        const sort = el.querySelector('.webtanan-doctor-sort-filter');
         const results = el.querySelector('.webtanan-doctor-results');
         if (results && el.dataset.perPage) {
             results.dataset.perPage = el.dataset.perPage;
         }
-        const run = () => initDoctorList(results, input ? input.value : '');
+        const syncFilters = () => {
+            if (!results) {
+                return;
+            }
+
+            results.dataset.specialtyId = specialty ? specialty.value : (el.dataset.specialtyId || '');
+            results.dataset.cityId = el.dataset.cityId || '';
+            results.dataset.provinceId = el.dataset.provinceId || '';
+            results.dataset.paymentFilter = payment ? payment.value : (el.dataset.paymentFilter || '');
+            results.dataset.sort = sort ? sort.value : (el.dataset.sort || '');
+        };
+        const run = () => {
+            syncFilters();
+            initDoctorList(results, input ? input.value : '');
+        };
         button && button.addEventListener('click', run);
         input && input.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 run();
             }
+        });
+        [specialty, payment, sort].forEach((field) => {
+            field && field.addEventListener('change', run);
         });
         run();
     }
@@ -426,6 +450,303 @@
         loadButton && loadButton.addEventListener('click', loadSlots);
         loadPaymentGateways();
         loadSlots();
+    }
+
+    function initBookingModal(modal) {
+        const doctorId = modal.dataset.doctorId;
+        const panelEl = modal.querySelector('.webtanan-booking-modal-panel');
+        const stepsEl = modal.querySelector('.webtanan-booking-modal-steps');
+        const dayStrip = modal.querySelector('.webtanan-booking-day-strip');
+        const slotsEl = modal.querySelector('.webtanan-booking-modal-slots');
+        const patientForm = modal.querySelector('.webtanan-booking-modal-patient');
+        const otpForm = modal.querySelector('.webtanan-booking-modal-otp');
+        const paymentEl = modal.querySelector('.webtanan-booking-modal-payment');
+        const messageEl = modal.querySelector('.webtanan-booking-modal-message');
+        const resendOtp = modal.querySelector('.webtanan-booking-resend-otp');
+        const state = {
+            date: cfg.today,
+            selectedSlot: null,
+            patient: {},
+            lock: null,
+            otpSent: false,
+            gateways: [],
+            walletBalance: null
+        };
+
+        if (!doctorId || doctorId === '0') {
+            return;
+        }
+
+        function setMessage(message, tone = '') {
+            messageEl.textContent = message || '';
+            messageEl.dataset.tone = tone;
+        }
+
+        function setStep(step) {
+            stepsEl.innerHTML = ['day', 'patient', 'otp', 'payment'].map((item) => {
+                const labels = { day: 'انتخاب زمان', patient: 'اطلاعات بیمار', otp: 'ورود با موبایل', payment: 'پرداخت' };
+                return `<span data-active="${item === step ? 'true' : 'false'}">${esc(labels[item])}</span>`;
+            }).join('');
+        }
+
+        function openModal() {
+            modal.hidden = false;
+            document.documentElement.classList.add('webtanan-modal-open');
+            setStep('day');
+            renderDays();
+            loadSlots(state.date);
+            setTimeout(() => panelEl && panelEl.focus && panelEl.focus(), 30);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.documentElement.classList.remove('webtanan-modal-open');
+        }
+
+        function renderDays() {
+            const days = Array.from({ length: 14 }, (_, index) => addDaysISO(cfg.today, index));
+            dayStrip.innerHTML = days.map((date, index) => {
+                const active = date === state.date;
+                const label = displayDate(date, false);
+                const weekday = displayDate(date, true).replace(label, '').trim();
+                return `<button type="button" class="webtanan-booking-day" data-date="${esc(date)}" data-active="${active ? 'true' : 'false'}">
+                    <span>${index === 0 ? 'امروز' : esc(weekday || label.split(' ')[0] || '')}</span>
+                    <strong>${esc(label)}</strong>
+                </button>`;
+            }).join('');
+        }
+
+        function resetAfterDateChange() {
+            state.selectedSlot = null;
+            state.lock = null;
+            state.otpSent = false;
+            patientForm.hidden = true;
+            otpForm.hidden = true;
+            paymentEl.hidden = true;
+            paymentEl.innerHTML = '';
+            setMessage('');
+        }
+
+        function loadSlots(date) {
+            resetAfterDateChange();
+            setStep('day');
+            slotsEl.innerHTML = panel(cfg.strings && cfg.strings.loading || 'در حال بارگذاری...');
+            request(`/doctors/${doctorId}/slots?date=${encodeURIComponent(date)}`)
+                .then((slots) => {
+                    if (!Array.isArray(slots) || !slots.length) {
+                        slotsEl.innerHTML = panel(cfg.strings && cfg.strings.noSlots || 'نوبت آزادی پیدا نشد.');
+                        return;
+                    }
+
+                    slotsEl.innerHTML = `<div class="webtanan-booking-modal-legend">
+                        <span data-status="available">آزاد</span>
+                        <span data-status="locked">در حال رزرو</span>
+                        <span data-status="booked">رزروشده</span>
+                    </div>
+                    <div class="webtanan-booking-modal-slot-grid">${slots.map((slot) => {
+                        const disabled = slot.status !== 'available' ? 'disabled' : '';
+                        return `<button type="button" class="webtanan-booking-modal-slot" data-status="${esc(slot.status)}" data-date="${esc(slot.date)}" data-start="${esc(slot.start_time)}" ${disabled}>
+                            <strong>${esc(slot.start_time)}</strong>
+                            <span>${esc(statusLabel(slot.status))}</span>
+                        </button>`;
+                    }).join('')}</div>`;
+                })
+                .catch((error) => {
+                    slotsEl.innerHTML = panel(error.message);
+                });
+        }
+
+        function showPatientStep() {
+            setStep('patient');
+            patientForm.hidden = false;
+            otpForm.hidden = true;
+            paymentEl.hidden = true;
+            setMessage('این زمان پس از ثبت اطلاعات برای ۱۵ دقیقه قفل می‌شود.');
+            const first = patientForm.querySelector('input');
+            first && first.focus();
+        }
+
+        function lockSelectedSlot() {
+            const payload = Object.assign({}, state.patient, {
+                doctor_id: doctorId,
+                appointment_date: state.selectedSlot.date,
+                start_time: state.selectedSlot.start,
+                payment_method: 'online'
+            });
+            setMessage('در حال قفل کردن نوبت...');
+            return request('/appointments/lock', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            }).then((lock) => {
+                state.lock = lock;
+                setMessage(`نوبت تا ${lock.locked_until || '۱۵ دقیقه آینده'} برای شما فریز شد.`, 'success');
+                return lock;
+            });
+        }
+
+        function sendOtp() {
+            if (!state.patient.patient_mobile) {
+                return Promise.reject(new Error('شماره موبایل وارد نشده است.'));
+            }
+            setStep('otp');
+            patientForm.hidden = true;
+            paymentEl.hidden = true;
+            otpForm.hidden = false;
+            otpForm.querySelector('p').textContent = `کد ورود برای ${state.patient.patient_mobile} ارسال می‌شود. نوبت lock شده حفظ می‌شود.`;
+            setMessage('در حال ارسال کد ورود...');
+            return request('/auth/send-otp', {
+                method: 'POST',
+                body: JSON.stringify({ mobile: state.patient.patient_mobile, purpose: 'login' })
+            }).then((result) => {
+                state.otpSent = true;
+                const debug = result.debug_otp ? ` کد تست: ${result.debug_otp}` : '';
+                setMessage(`کد ورود ارسال شد.${debug}`, 'success');
+                const input = otpForm.querySelector('input[name="otp"]');
+                input && input.focus();
+            });
+        }
+
+        function verifyOtp() {
+            const otp = new FormData(otpForm).get('otp') || '';
+            setMessage('در حال تایید کد ورود...');
+            return request('/auth/verify-otp', {
+                method: 'POST',
+                body: JSON.stringify({ mobile: state.patient.patient_mobile, otp, purpose: 'login' })
+            }).then((result) => {
+                if (result.nonce) {
+                    cfg.nonce = result.nonce;
+                }
+                cfg.isLoggedIn = true;
+                setMessage('ورود انجام شد. نوبت فریز شده آماده پرداخت است.', 'success');
+                return showPaymentStep();
+            });
+        }
+
+        function loadPaymentData() {
+            const gatewaysPromise = request('/payment/gateways').catch(() => []);
+            const walletPromise = request('/wallet/balance?user_type=patient').catch(() => ({ balance: 0 }));
+
+            return Promise.all([gatewaysPromise, walletPromise]).then(([gateways, wallet]) => {
+                state.gateways = Array.isArray(gateways) ? gateways : [];
+                state.walletBalance = Number(wallet && wallet.balance || 0);
+            });
+        }
+
+        function showPaymentStep() {
+            setStep('payment');
+            patientForm.hidden = true;
+            otpForm.hidden = true;
+            paymentEl.hidden = false;
+            paymentEl.innerHTML = panel(cfg.strings && cfg.strings.loading || 'در حال بارگذاری...');
+            return loadPaymentData().then(() => {
+                const amount = Number(state.lock && state.lock.amount || 0);
+                const walletDisabled = state.walletBalance < amount ? 'disabled' : '';
+                const walletText = state.walletBalance < amount ? 'موجودی کافی نیست' : 'پرداخت از کیف پول';
+                const gateways = state.gateways.map((gateway) => `<button type="button" class="webtanan-payment-option" data-method="online" data-gateway="${esc(gateway.id)}">
+                    <strong>${esc(gateway.title || gateway.id)}</strong>
+                    <span>${gateway.sandbox ? 'حالت تست' : 'درگاه آنلاین'}</span>
+                </button>`).join('');
+
+                paymentEl.innerHTML = `<div class="webtanan-payment-summary">
+                    <span>مبلغ قابل پرداخت</span>
+                    <strong>${money(amount)} تومان</strong>
+                    <small>زمان انتخابی: ${esc(displayDate(state.selectedSlot.date, false))} ساعت ${esc(state.selectedSlot.start)}</small>
+                </div>
+                <div class="webtanan-payment-options">
+                    <button type="button" class="webtanan-payment-option" data-method="wallet" ${walletDisabled}>
+                        <strong>${walletText}</strong>
+                        <span>موجودی: ${money(state.walletBalance)} تومان</span>
+                    </button>
+                    ${gateways || '<div class="webtanan-panel">درگاه آنلاینی فعال نیست.</div>'}
+                </div>`;
+            });
+        }
+
+        function pay(method, gateway = '') {
+            if (!state.lock) {
+                return;
+            }
+            setMessage(method === 'wallet' ? 'در حال پرداخت از کیف پول...' : (cfg.strings && cfg.strings.redirectingToGateway || 'در حال انتقال به درگاه پرداخت...'));
+            request('/appointments/pay', {
+                method: 'POST',
+                body: JSON.stringify({
+                    appointment_id: state.lock.appointment_id,
+                    lock_token: state.lock.lock_token,
+                    method,
+                    gateway
+                })
+            }).then((result) => {
+                if (result && result.checkout_url) {
+                    window.location.href = result.checkout_url;
+                    return;
+                }
+                paymentEl.innerHTML = `<div class="webtanan-booking-success"><strong>نوبت با موفقیت ثبت شد.</strong><span>کد نوبت: ${esc(result && (result.appointment_code || result.appointment_id) || '')}</span></div>`;
+                setMessage('رزرو تکمیل شد.', 'success');
+            }).catch((error) => {
+                setMessage(error.message, 'error');
+            });
+        }
+
+        document.querySelectorAll('[data-webtanan-booking-open]').forEach((button) => {
+            if (String(button.dataset.doctorId || '') === String(doctorId)) {
+                button.addEventListener('click', openModal);
+            }
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target.closest('[data-webtanan-booking-close]')) {
+                closeModal();
+                return;
+            }
+            const day = event.target.closest('.webtanan-booking-day');
+            if (day) {
+                state.date = day.dataset.date;
+                renderDays();
+                loadSlots(state.date);
+                return;
+            }
+            const slot = event.target.closest('.webtanan-booking-modal-slot');
+            if (slot && slot.dataset.status === 'available') {
+                modal.querySelectorAll('.webtanan-booking-modal-slot').forEach((item) => {
+                    item.dataset.selected = 'false';
+                });
+                slot.dataset.selected = 'true';
+                state.selectedSlot = { date: slot.dataset.date, start: slot.dataset.start };
+                showPatientStep();
+                return;
+            }
+            const paymentOption = event.target.closest('.webtanan-payment-option');
+            if (paymentOption && !paymentOption.disabled) {
+                pay(paymentOption.dataset.method, paymentOption.dataset.gateway || '');
+            }
+        });
+
+        patientForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!state.selectedSlot) {
+                setMessage('ابتدا یک ساعت آزاد انتخاب کنید.', 'error');
+                return;
+            }
+            state.patient = formObject(patientForm);
+            lockSelectedSlot()
+                .then(() => (cfg.isLoggedIn ? showPaymentStep() : sendOtp()))
+                .catch((error) => setMessage(error.message, 'error'));
+        });
+
+        otpForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            verifyOtp().catch((error) => setMessage(error.message, 'error'));
+        });
+
+        resendOtp && resendOtp.addEventListener('click', () => {
+            sendOtp().catch((error) => setMessage(error.message, 'error'));
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
     }
 
     function initNextAvailable(el) {
@@ -1110,6 +1431,7 @@
         document.querySelectorAll('[data-webtanan-widget="doctor-list"]').forEach((el) => initDoctorList(el));
         document.querySelectorAll('[data-webtanan-widget="doctor-search"]').forEach(initDoctorSearch);
         document.querySelectorAll('[data-webtanan-widget="calendar"]').forEach(initCalendar);
+        document.querySelectorAll('[data-webtanan-widget="booking-modal"]').forEach(initBookingModal);
         document.querySelectorAll('[data-webtanan-widget="next-available"]').forEach(initNextAvailable);
         document.querySelectorAll('[data-webtanan-widget="patient-panel"]').forEach(initPatientPanel);
         document.querySelectorAll('[data-webtanan-widget="doctor-dashboard"]').forEach(initDoctorDashboard);

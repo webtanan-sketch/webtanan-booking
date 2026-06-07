@@ -933,6 +933,12 @@ final class Booking {
             return new \WP_Error('webtanan_doctor_not_found', __('پزشک پیدا نشد.', 'webtanan-booking'), array('status' => 404));
         }
 
+        if ('paid' === $row['status'] && 'paid' !== $status) {
+            DB::rollback();
+
+            return new \WP_Error('webtanan_settlement_paid_locked', __('تسویه پرداخت‌شده قابل تغییر به وضعیت دیگر نیست؛ برای اصلاح مالی باید رکورد دفترکل جداگانه ثبت شود.', 'webtanan-booking'), array('status' => 409));
+        }
+
         $now = DB::now();
         if ('paid' === $status && 'paid' !== $row['status']) {
             if ('' === trim($bank_tracking_number) && empty($row['bank_tracking_number'])) {

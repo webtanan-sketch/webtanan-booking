@@ -156,6 +156,14 @@ final class Post_Types {
                 </select>
             </p>
             <p>
+                <label><?php esc_html_e('شناسه استان', 'webtanan-booking'); ?></label>
+                <input type="number" min="0" name="webtanan_doctor[province_id]" value="<?php echo esc_attr((string) $field('province_id', 0)); ?>" class="widefat">
+            </p>
+            <p>
+                <label><?php esc_html_e('شناسه شهر', 'webtanan-booking'); ?></label>
+                <input type="number" min="0" name="webtanan_doctor[city_id]" value="<?php echo esc_attr((string) $field('city_id', 0)); ?>" class="widefat">
+            </p>
+            <p>
                 <label><?php esc_html_e('نام مطب', 'webtanan-booking'); ?></label>
                 <input type="text" name="webtanan_doctor[clinic_name]" value="<?php echo esc_attr($field('clinic_name')); ?>" class="widefat">
             </p>
@@ -236,6 +244,8 @@ final class Post_Types {
             'doctor_code' => isset($raw['doctor_code']) ? sanitize_text_field($raw['doctor_code']) : '',
             'medical_system_number' => isset($raw['medical_system_number']) ? sanitize_text_field($raw['medical_system_number']) : '',
             'specialty_id' => isset($raw['specialty_id']) ? absint($raw['specialty_id']) : 0,
+            'city_id' => isset($raw['city_id']) ? absint($raw['city_id']) : 0,
+            'province_id' => isset($raw['province_id']) ? absint($raw['province_id']) : 0,
             'clinic_name' => isset($raw['clinic_name']) ? sanitize_text_field($raw['clinic_name']) : '',
             'clinic_address' => isset($raw['clinic_address']) ? sanitize_textarea_field($raw['clinic_address']) : '',
             'clinic_phone' => isset($raw['clinic_phone']) ? sanitize_text_field($raw['clinic_phone']) : '',

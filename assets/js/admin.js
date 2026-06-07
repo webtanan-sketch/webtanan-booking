@@ -80,4 +80,31 @@
         $($(this).data('target')).val('');
         $($(this).data('preview')).empty();
     });
+
+    const syncSettlementTracking = function ($form) {
+        const status = $form.find('select[name="status"]').val();
+        const $tracking = $form.find('input[name="bank_tracking_number"]');
+        const required = status === 'paid';
+
+        $tracking.prop('required', required);
+        $tracking.toggleClass('webtanan-required-field', required);
+    };
+
+    $(document).on('change', '.webtanan-settlement-actions select[name="status"]', function () {
+        syncSettlementTracking($(this).closest('.webtanan-settlement-actions'));
+    });
+
+    $(document).on('submit', '.webtanan-settlement-actions', function (event) {
+        const $form = $(this);
+        syncSettlementTracking($form);
+
+        if ($form.find('select[name="status"]').val() === 'paid' && !$form.find('input[name="bank_tracking_number"]').val().trim()) {
+            event.preventDefault();
+            $form.find('input[name="bank_tracking_number"]').trigger('focus');
+        }
+    });
+
+    $('.webtanan-settlement-actions').each(function () {
+        syncSettlementTracking($(this));
+    });
 })(jQuery);

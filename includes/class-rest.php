@@ -240,6 +240,10 @@ final class REST {
         $limit = max(1, min(50, absint($request->get_param('per_page') ?: 20)));
         $search = sanitize_text_field((string) $request->get_param('search'));
         $specialty_id = absint($request->get_param('specialty_id'));
+        $city_id = absint($request->get_param('city_id'));
+        $province_id = absint($request->get_param('province_id'));
+        $payment_filter = sanitize_key((string) ($request->get_param('payment_filter') ?: $request->get_param('payment_method')));
+        $sort = sanitize_key((string) ($request->get_param('sort') ?: $request->get_param('orderby')));
         $online = sanitize_key((string) $request->get_param('online'));
         $pay_at_clinic = sanitize_key((string) $request->get_param('pay_at_clinic'));
         $where = "d.is_active = 1 AND d.is_verified = 1 AND p.post_status = 'publish'";
@@ -259,11 +263,21 @@ final class REST {
             $params[] = $specialty_id;
         }
 
-        if (in_array($online, array('1', 'yes', 'true'), true)) {
+        if ($city_id > 0) {
+            $where .= ' AND d.city_id = %d';
+            $params[] = $city_id;
+        }
+
+        if ($province_id > 0) {
+            $where .= ' AND d.province_id = %d';
+            $params[] = $province_id;
+        }
+
+        if ('online' === $payment_filter || in_array($online, array('1', 'yes', 'true'), true)) {
             $where .= ' AND d.allow_online_payment = 1';
         }
 
-        if (in_array($pay_at_clinic, array('1', 'yes', 'true'), true)) {
+        if (in_array($payment_filter, array('clinic', 'pay_at_clinic'), true) || in_array($pay_at_clinic, array('1', 'yes', 'true'), true)) {
             $where .= ' AND d.allow_pay_at_clinic = 1';
         }
 
@@ -277,6 +291,21 @@ final class REST {
         $params[] = $limit;
 
         $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+        if ('first_available' === $sort && is_array($rows)) {
+            foreach ($rows as &$row) {
+                $next = Booking::next_available((int) $row['id'], 1);
+                $row['_next_available_slot'] = $next[0] ?? null;
+                $row['_next_available_sort'] = $row['_next_available_slot'] ? $row['_next_available_slot']['date'] . ' ' . $row['_next_available_slot']['start_time'] : '9999-12-31 23:59';
+            }
+            unset($row);
+
+            usort(
+                $rows,
+                static function (array $a, array $b): int {
+                    return strcmp((string) $a['_next_available_sort'], (string) $b['_next_available_sort']);
+                }
+            );
+        }
 
         return rest_ensure_response(array_map(array(__CLASS__, 'format_doctor'), $rows));
     }
@@ -321,6 +350,8 @@ final class REST {
         $method = sanitize_key((string) $request->get_param('method'));
         $gateway = sanitize_key((string) ($request->get_param('gateway') ?: $request->get_param('gateway_name')));
 
+        self::attach_current_user_to_locked_appointment($appointment_id, $lock_token);
+
         if ('wallet' === $method) {
             $result = Wallet::pay_for_appointment($appointment_id, $lock_token);
         } elseif ('pay_at_clinic' === $method) {
@@ -330,6 +361,26 @@ final class REST {
         }
 
         return is_wp_error($result) ? $result : rest_ensure_response($result);
+    }
+
+    private static function attach_current_user_to_locked_appointment(int $appointment_id, string $lock_token): void {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        if ($appointment_id <= 0 || '' === $lock_token || $user_id <= 0) {
+            return;
+        }
+
+        $wpdb->query(
+            $wpdb->prepare(
+                'UPDATE ' . DB::table('appointments') . ' SET patient_user_id = %d, updated_at = %s WHERE id = %d AND patient_user_id = 0 AND appointment_status = %s AND lock_token = %s',
+                $user_id,
+                DB::now(),
+                $appointment_id,
+                'locked',
+                $lock_token
+            )
+        );
     }
 
     public static function payment_gateways(\WP_REST_Request $request): \WP_REST_Response {
@@ -995,6 +1046,8 @@ final class REST {
             'permalink' => get_permalink($post_id),
             'specialty_id' => (int) $row['specialty_id'],
             'specialty_name' => $row['specialty_name'] ?? '',
+            'city_id' => (int) ($row['city_id'] ?? 0),
+            'province_id' => (int) ($row['province_id'] ?? 0),
             'clinic_name' => $row['clinic_name'] ?? '',
             'clinic_address' => $row['clinic_address'] ?? '',
             'clinic_phone' => $row['clinic_phone'] ?? '',
@@ -1008,6 +1061,7 @@ final class REST {
             'allow_pay_at_clinic' => (bool) $row['allow_pay_at_clinic'],
             'thumbnail' => get_the_post_thumbnail_url($post_id, 'medium') ?: '',
             'gallery' => self::doctor_gallery_urls($post_id),
+            'next_available' => $row['_next_available_slot'] ?? null,
         );
     }
 

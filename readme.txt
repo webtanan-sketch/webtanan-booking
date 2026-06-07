@@ -4,7 +4,7 @@ Tags: booking, doctors, appointments, saas, elementor
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.0
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,11 +37,19 @@ Version 0.8.0 adds stronger cancellation/refund policy controls, settlement trac
 
 Version 0.9.0 refreshes the user-facing UI: archive and profile layouts, doctor cards, booking widget, OTP login, patient panel, doctor/secretary dashboard, receipt view and dynamic AJAX-rendered cards now share a cleaner RTL medical SaaS design.
 
+Version 1.0.0 completes the first Elementor and SEO release layer: doctor search/list widgets expose specialty, city, province, payment and first-available sorting controls; public doctor filters use the same REST contract; doctor profiles include richer Physician schema markup.
+
+Version 1.0.1 polishes the plugin appearance across the public archive, doctor profile, booking calendar, patient/clinic panels, receipt and WordPress admin screens with a cleaner medical SaaS visual system.
+
+Version 1.0.2 adds the public doctor booking popup: first available slots and appointment availability are loaded through REST, Jalali days are shown in a horizontal modal, OTP stays inside the modal, and locked guest appointments are attached to the verified patient before payment.
+
+Version 1.0.3 completes the Persian backend admin phase with clearer booking/ledger menus, a combined SMS/OTP log screen, Jalali appointment date filtering, visible platform commission fields on doctor forms, and idempotent settlement payment handling with required bank tracking numbers.
+
 == Shortcodes ==
 
-* `[webtanan_booking_doctor_search]`
+* `[webtanan_booking_doctor_search per_page="12" specialty_id="0" province_id="0" city_id="0" payment_filter="" sort=""]`
 * `[webtanan_booking_doctors_archive per_page="12"]`
-* `[webtanan_booking_doctor_list per_page="12" specialty_id="0"]`
+* `[webtanan_booking_doctor_list per_page="12" specialty_id="0" province_id="0" city_id="0" payment_filter="" sort=""]`
 * `[webtanan_booking_specialty_list show_count="yes"]`
 * `[webtanan_booking_calendar doctor_id="1"]`
 * `[webtanan_booking_next_available doctor_id="1"]`

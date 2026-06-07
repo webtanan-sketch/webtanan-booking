@@ -12,6 +12,11 @@ namespace:
 
 - `search`
 - `per_page`
+- `specialty_id`
+- `province_id`
+- `city_id`
+- `payment_filter`: مقدارهای `online` یا `clinic`
+- `sort`: مقدار `first_available` برای مرتب‌سازی بر اساس نزدیک‌ترین نوبت آزاد
 
 خروجی: لیست پزشکان فعال.
 
@@ -77,6 +82,8 @@ namespace:
 خروجی پرداخت آنلاین شامل `checkout_url` است و بیمار باید به آن منتقل شود.
 
 برای کیف پول، `method` برابر `wallet` است. برای پرداخت در مطب، `method` برابر `pay_at_clinic` است.
+
+نکته modal رزرو: اگر اسلات قبل از OTP توسط کاربر مهمان lock شده باشد، این endpoint پس از ورود موفق با OTP و قبل از پرداخت، رکورد locked معتبر را به `current_user_id` وصل می‌کند؛ شرط اتصال، تطابق `appointment_id`، `lock_token` و وضعیت `locked` است.
 
 ### `GET /payment/gateways`
 
