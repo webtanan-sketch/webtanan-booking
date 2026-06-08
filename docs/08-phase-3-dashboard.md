@@ -67,12 +67,20 @@ namespace:
 
 بخش‌های اضافه‌شده:
 
-- خلاصه نوبت‌ها
 - نوبت‌های آینده
 - سوابق نوبت
 - کیف پول
 - لغو نوبت‌های مجاز
 - مشاهده رسید
+
+به‌روزرسانی 1.0.5:
+
+- شورت‌کد `[webtanan_booking_patient_panel]` پنل را با سه تب اصلی «نوبت‌های آینده»، «سوابق نوبت» و «کیف پول» نمایش می‌دهد.
+- تب نوبت‌های آینده از `GET /patient-panel/appointments?scope=upcoming` استفاده می‌کند و برای نوبت‌های مجاز دکمه لغو نشان می‌دهد.
+- لغو نوبت از طریق مودال تایید انجام می‌شود و سپس فقط `appointment_id` و `reason` به `POST /appointments/cancel` ارسال می‌شود؛ سمت سرور مالکیت بیمار و قوانین refund را محاسبه می‌کند.
+- تب سوابق از `GET /patient-panel/appointments?scope=history` استفاده می‌کند و رسید هر نوبت از endpoint مالکیت‌دار `GET /appointments/{id}/receipt` باز می‌شود.
+- تب کیف پول از `GET /patient-panel/wallet` استفاده می‌کند و ledger را به صورت جدول شامل نوع entry، مبلغ، `balance_after`، توضیح و `appointment_code` مرتبط نمایش می‌دهد.
+- endpoint کیف پول بیمار ledger را از جدول اختصاصی `wp_saas_wallets_ledger` می‌خواند و برای نمایش کد نوبت فقط روی جدول اختصاصی نوبت‌ها join می‌زند.
 
 APIهای بیمار:
 
@@ -80,9 +88,9 @@ APIهای بیمار:
 - `GET /patient-panel/appointments`
 - `GET /patient-panel/wallet`
 - `GET /appointments/{id}/receipt`
+- `POST /appointments/cancel`
 
 ## محدودیت‌های باقی‌مانده
 
 - UI تقویم هنوز input تاریخ مرورگر است؛ نمایش عنوان روز با تقویم فارسی انجام می‌شود، ولی انتخابگر شمسی اختصاصی باید در فاز بعدی اضافه شود.
-- سطح دسترسی مالی منشی با user meta کنترل می‌شود و هنوز صفحه مدیریت اختصاصی برای assign کردن منشی ساخته نشده است.
 - تست همزمانی و تست مرورگر واقعی باید روی نصب وردپرس مقصد انجام شود.

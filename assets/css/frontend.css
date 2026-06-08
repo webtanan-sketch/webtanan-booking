@@ -74,6 +74,35 @@
     text-align: center;
 }
 
+.webtanan-loading-state {
+    min-height: 96px;
+    border: 1px solid var(--wb-border);
+    border-radius: var(--wb-radius);
+    background: var(--wb-card);
+    color: var(--wb-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px;
+    box-shadow: var(--wb-shadow-soft);
+}
+
+.webtanan-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #dbeafe;
+    border-top-color: var(--wb-primary);
+    border-radius: 50%;
+    animation: webtanan-spin 0.72s linear infinite;
+}
+
+@keyframes webtanan-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .webtanan-kicker {
     display: inline-flex;
     align-items: center;
@@ -483,6 +512,14 @@
     gap: 14px;
 }
 
+.webtanan-doctor-grid-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
+}
+
+.webtanan-doctor-grid-list {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .webtanan-public-doctor-card,
 .webtanan-doctor-card,
 .webtanan-doctor-card-shortcode {
@@ -684,6 +721,12 @@
 .webtanan-next-card strong {
     font-size: 0.84rem;
     line-height: 1.5;
+}
+
+.webtanan-next-card-empty {
+    border-color: var(--wb-border-soft);
+    background: #f8fafc;
+    color: var(--wb-muted);
 }
 
 .webtanan-specialty-list {
@@ -1821,6 +1864,40 @@
 .wb-badge-no_show {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.wb-badge-credit,
+.wb-badge-refund {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.wb-badge-debit,
+.wb-badge-wallet_payment,
+.wb-badge-settlement {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.wb-badge-commission,
+.wb-badge-manual_adjustment {
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+.wb-wallet-table code {
+    direction: ltr;
+    unicode-bidi: plaintext;
+}
+
+.wb-money-credit {
+    color: var(--wb-success);
+    font-weight: 800;
+}
+
+.wb-money-debit {
+    color: var(--wb-danger);
+    font-weight: 800;
 }
 
 .wb-slot-grid {

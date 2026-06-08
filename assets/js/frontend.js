@@ -70,6 +70,10 @@
         return `<div class="webtanan-panel">${esc(message)}</div>`;
     }
 
+    function loadingPanel(message) {
+        return `<div class="webtanan-loading-state"><span class="webtanan-spinner" aria-hidden="true"></span><span>${esc(message || (cfg.strings && cfg.strings.loading) || 'در حال بارگذاری...')}</span></div>`;
+    }
+
     const statusLabels = {
         available: 'آزاد',
         locked: 'در حال رزرو',
@@ -165,6 +169,16 @@
         return slot.status || 'available';
     }
 
+    function doctorNextAvailableMarkup(slot) {
+        if (!slot) {
+            return `<div class="webtanan-next-card webtanan-next-card-empty"><span>اولین نوبت آزاد</span><strong>فعلا نوبت آزادی ثبت نشده است</strong></div>`;
+        }
+
+        const date = slot.date || slot.appointment_date || '';
+        const time = slot.start_time || '';
+        return `<div class="webtanan-next-card"><span>اولین نوبت آزاد</span><strong>${esc(displayDate(date, false))}${time ? ` - ${esc(time)}` : ''}</strong></div>`;
+    }
+
     function doctorCard(doctor) {
         const title = doctor.title || doctor.clinic_name || 'پزشک';
         const image = doctor.thumbnail
@@ -176,6 +190,10 @@
             doctor.allow_online_payment ? 'پرداخت آنلاین' : '',
             doctor.allow_pay_at_clinic ? 'پرداخت در مطب' : ''
         ].filter(Boolean).map((label) => `<span>${esc(label)}</span>`).join('');
+        const hasInlineNextAvailable = Object.prototype.hasOwnProperty.call(doctor, 'next_available');
+        const nextAvailable = hasInlineNextAvailable
+            ? doctorNextAvailableMarkup(doctor.next_available)
+            : `<div class="webtanan-next-available" data-webtanan-widget="next-available" data-doctor-id="${esc(doctor.id || 0)}"></div>`;
 
         return `<article class="webtanan-public-doctor-card webtanan-public-doctor-card-compact">
             <a class="webtanan-public-doctor-photo" href="${esc(doctor.permalink || '#')}">${image}</a>
@@ -190,7 +208,7 @@
                 </div>
                 <div class="webtanan-public-actions">
                     <a class="webtanan-button webtanan-button-primary" href="${esc(doctor.permalink || '#')}">مشاهده و دریافت نوبت</a>
-                    <div class="webtanan-next-available" data-webtanan-widget="next-available" data-doctor-id="${esc(doctor.id || 0)}"></div>
+                    ${nextAvailable}
                 </div>
             </div>
         </article>`;
@@ -203,17 +221,18 @@
         const provinceId = el.dataset.provinceId || '';
         const paymentFilter = el.dataset.paymentFilter || '';
         const sort = el.dataset.sort || '';
+        const layout = el.dataset.layout === 'list' ? 'list' : 'grid';
         const online = el.dataset.online || '';
         const payAtClinic = el.dataset.payAtClinic || '';
-        el.innerHTML = panel(cfg.strings && cfg.strings.loading || 'در حال بارگذاری...');
+        el.innerHTML = loadingPanel(cfg.strings && cfg.strings.loading || 'در حال بارگذاری...');
         request(`/doctors?${qs({ per_page: perPage, search, specialty_id: specialtyId, city_id: cityId, province_id: provinceId, payment_filter: paymentFilter, sort, online, pay_at_clinic: payAtClinic })}`)
             .then((doctors) => {
                 if (!Array.isArray(doctors) || !doctors.length) {
-                    el.innerHTML = panel('پزشکی برای نمایش پیدا نشد.');
+                    el.innerHTML = `<div class="webtanan-empty-state">پزشکی با این فیلترها پیدا نشد.</div>`;
                     return;
                 }
 
-                el.innerHTML = `<div class="webtanan-doctor-grid">${doctors.map(doctorCard).join('')}</div>`;
+                el.innerHTML = `<div class="webtanan-result-head"><strong>${money(doctors.length)} پزشک</strong><span>مرتب‌سازی پویا بر اساس نوبت‌های آزاد</span></div><div class="webtanan-doctor-grid webtanan-doctor-grid-${esc(layout)}">${doctors.map(doctorCard).join('')}</div>`;
                 el.querySelectorAll('[data-webtanan-widget="next-available"]').forEach(initNextAvailable);
             })
             .catch((error) => {
@@ -222,14 +241,18 @@
     }
 
     function initDoctorSearch(el) {
+        const form = el.querySelector('.webtanan-doctor-search-form');
         const input = el.querySelector('.webtanan-doctor-search-input');
         const button = el.querySelector('.webtanan-search-button');
         const specialty = el.querySelector('.webtanan-doctor-specialty-filter');
+        const province = el.querySelector('.webtanan-doctor-province-filter');
+        const city = el.querySelector('.webtanan-doctor-city-filter');
         const payment = el.querySelector('.webtanan-doctor-payment-filter');
         const sort = el.querySelector('.webtanan-doctor-sort-filter');
         const results = el.querySelector('.webtanan-doctor-results');
         if (results && el.dataset.perPage) {
             results.dataset.perPage = el.dataset.perPage;
+            results.dataset.layout = el.dataset.layout || 'grid';
         }
         const syncFilters = () => {
             if (!results) {
@@ -237,23 +260,25 @@
             }
 
             results.dataset.specialtyId = specialty ? specialty.value : (el.dataset.specialtyId || '');
-            results.dataset.cityId = el.dataset.cityId || '';
-            results.dataset.provinceId = el.dataset.provinceId || '';
+            results.dataset.cityId = city ? city.value : (el.dataset.cityId || '');
+            results.dataset.provinceId = province ? province.value : (el.dataset.provinceId || '');
             results.dataset.paymentFilter = payment ? payment.value : (el.dataset.paymentFilter || '');
-            results.dataset.sort = sort ? sort.value : (el.dataset.sort || '');
+            results.dataset.sort = sort ? sort.value : (el.dataset.sort || 'first_available');
         };
-        const run = () => {
+        const run = (event) => {
+            event && event.preventDefault();
             syncFilters();
             initDoctorList(results, input ? input.value : '');
         };
-        button && button.addEventListener('click', run);
+        form && form.addEventListener('submit', run);
+        button && !form && button.addEventListener('click', run);
         input && input.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 run();
             }
         });
-        [specialty, payment, sort].forEach((field) => {
+        [specialty, province, city, payment, sort].forEach((field) => {
             field && field.addEventListener('change', run);
         });
         run();
@@ -1325,7 +1350,7 @@
 
         const content = el.querySelector('.wb-content');
         const todayLabels = el.querySelectorAll('.wb-today-label');
-        const state = { view: 'patient-overview' };
+        const state = { view: 'patient-appointments' };
 
         todayLabels.forEach((node) => {
             node.textContent = faDate(cfg.today);
@@ -1362,9 +1387,22 @@
             content.innerHTML = panel('در حال بارگذاری');
             request('/patient-panel/wallet')
                 .then((wallet) => {
+                    const rows = Array.isArray(wallet.ledger) ? wallet.ledger : [];
                     content.innerHTML = `<div class="wb-page-head"><div><h2>کیف پول</h2></div></div>
                         <div class="wb-stats-grid">${statCard('موجودی', money(wallet.balance), 'تومان')}</div>
-                        <div class="wb-list">${wallet.ledger.map((item) => `<div class="wb-list-row"><strong>${esc(ledgerLabel(item.entry_type))}</strong><span>${money(item.amount)} تومان</span><span>${esc(item.created_at)}</span></div>`).join('') || 'گردشی ثبت نشده است.'}</div>`;
+                        ${rows.length ? `<div class="wb-table-wrap">
+                            <table class="wb-table wb-wallet-table">
+                                <thead><tr><th>تاریخ</th><th>نوع</th><th>مبلغ</th><th>مانده بعد</th><th>نوبت</th><th>توضیح</th></tr></thead>
+                                <tbody>${rows.map((item) => `<tr>
+                                    <td>${esc(displayDate((item.created_at || '').slice(0, 10), false))}<br><span>${esc(item.created_at || '')}</span></td>
+                                    <td>${badge(ledgerLabel(item.entry_type), item.entry_type)}</td>
+                                    <td class="${Number(item.amount || 0) >= 0 ? 'wb-money-credit' : 'wb-money-debit'}">${money(item.amount)} تومان</td>
+                                    <td>${money(item.balance_after)} تومان</td>
+                                    <td><code>${esc(item.appointment_code || item.related_appointment_id || '-')}</code></td>
+                                    <td>${esc(item.description || '-')}</td>
+                                </tr>`).join('')}</tbody>
+                            </table>
+                        </div>` : panel('گردشی برای کیف پول ثبت نشده است.')}`;
                 })
                 .catch((error) => {
                     content.innerHTML = panel(error.message);
@@ -1417,7 +1455,7 @@
                     }
                     request('/appointments/cancel', {
                         method: 'POST',
-                        body: JSON.stringify({ appointment_id: action.dataset.id, cancelled_by: 'patient', reason: result.reason })
+                        body: JSON.stringify({ appointment_id: action.dataset.id, reason: result.reason })
                     }).then(render).catch((error) => alert(error.message));
                 });
             }

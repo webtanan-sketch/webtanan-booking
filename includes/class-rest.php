@@ -911,12 +911,29 @@ final class REST {
     }
 
     public static function patient_panel_wallet(\WP_REST_Request $request): \WP_REST_Response {
+        global $wpdb;
+
         $user_id = get_current_user_id();
+        $ledger_table = DB::table('wallets_ledger');
+        $appointments_table = DB::table('appointments');
+        $ledger = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT l.*, a.appointment_code
+                FROM $ledger_table l
+                LEFT JOIN $appointments_table a ON a.id = l.related_appointment_id
+                WHERE l.user_id = %d AND l.user_type = %s
+                ORDER BY l.id DESC
+                LIMIT 100",
+                $user_id,
+                'patient'
+            ),
+            ARRAY_A
+        );
 
         return rest_ensure_response(
             array(
                 'balance' => Wallet::balance($user_id, 'patient'),
-                'ledger' => Wallet::ledger($user_id, 'patient', 100),
+                'ledger' => $ledger,
             )
         );
     }
@@ -1056,7 +1073,7 @@ final class REST {
     private static function format_doctor(array $row): array {
         $post_id = (int) $row['post_id'];
 
-        return array(
+        $doctor = array(
             'id' => (int) $row['id'],
             'post_id' => $post_id,
             'title' => html_entity_decode(get_the_title($post_id), ENT_QUOTES, get_bloginfo('charset')),
@@ -1078,8 +1095,13 @@ final class REST {
             'allow_pay_at_clinic' => (bool) $row['allow_pay_at_clinic'],
             'thumbnail' => get_the_post_thumbnail_url($post_id, 'medium') ?: '',
             'gallery' => self::doctor_gallery_urls($post_id),
-            'next_available' => $row['_next_available_slot'] ?? null,
         );
+
+        if (array_key_exists('_next_available_slot', $row)) {
+            $doctor['next_available'] = $row['_next_available_slot'];
+        }
+
+        return $doctor;
     }
 
     private static function format_doctor_for_dashboard(array $row): array {

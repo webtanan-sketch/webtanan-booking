@@ -114,46 +114,69 @@ final class Frontend {
         $atts = shortcode_atts(
             array(
                 'per_page' => 12,
+                'default_search' => '',
+                'search_placeholder' => __('نام پزشک، تخصص یا آدرس مطب', 'webtanan-booking'),
                 'specialty_id' => 0,
                 'city_id' => 0,
                 'province_id' => 0,
                 'payment_filter' => '',
-                'sort' => '',
+                'sort' => 'first_available',
+                'layout' => 'grid',
                 'show_filters' => 'yes',
+                'show_sort' => 'yes',
             ),
             $atts,
             'webtanan_booking_doctor_search'
         );
         $show_filters = 'no' !== strtolower((string) $atts['show_filters']);
+        $show_sort = 'no' !== strtolower((string) $atts['show_sort']);
         $specialties = $show_filters ? $wpdb->get_results('SELECT id, name FROM ' . DB::table('specialties') . ' WHERE is_active = 1 ORDER BY sort_order ASC, name ASC LIMIT 300', ARRAY_A) : array();
+        $provinces = $show_filters ? $wpdb->get_results('SELECT DISTINCT province_id AS id FROM ' . DB::table('doctors') . ' WHERE province_id > 0 AND is_active = 1 AND is_verified = 1 ORDER BY province_id ASC LIMIT 300', ARRAY_A) : array();
+        $cities = $show_filters ? $wpdb->get_results('SELECT DISTINCT city_id AS id FROM ' . DB::table('doctors') . ' WHERE city_id > 0 AND is_active = 1 AND is_verified = 1 ORDER BY city_id ASC LIMIT 300', ARRAY_A) : array();
         $payment_filter = sanitize_key((string) $atts['payment_filter']);
         $sort = sanitize_key((string) $atts['sort']);
+        $layout = 'list' === sanitize_key((string) $atts['layout']) ? 'list' : 'grid';
+        $default_search = sanitize_text_field((string) $atts['default_search']);
 
         ob_start();
         ?>
-        <div class="webtanan-booking webtanan-doctor-search" data-webtanan-widget="doctor-search" data-per-page="<?php echo esc_attr((string) absint($atts['per_page'])); ?>" data-specialty-id="<?php echo esc_attr((string) absint($atts['specialty_id'])); ?>" data-city-id="<?php echo esc_attr((string) absint($atts['city_id'])); ?>" data-province-id="<?php echo esc_attr((string) absint($atts['province_id'])); ?>" data-payment-filter="<?php echo esc_attr($payment_filter); ?>" data-sort="<?php echo esc_attr($sort); ?>" dir="rtl">
-            <div class="webtanan-toolbar">
+        <div class="webtanan-booking webtanan-doctor-search" data-webtanan-widget="doctor-search" data-per-page="<?php echo esc_attr((string) absint($atts['per_page'])); ?>" data-specialty-id="<?php echo esc_attr((string) absint($atts['specialty_id'])); ?>" data-city-id="<?php echo esc_attr((string) absint($atts['city_id'])); ?>" data-province-id="<?php echo esc_attr((string) absint($atts['province_id'])); ?>" data-payment-filter="<?php echo esc_attr($payment_filter); ?>" data-sort="<?php echo esc_attr($sort ?: 'first_available'); ?>" data-layout="<?php echo esc_attr($layout); ?>" dir="rtl">
+            <form class="webtanan-toolbar webtanan-doctor-search-form" action="#" method="get">
                 <span class="screen-reader-text"><?php esc_html_e('جستجوی پزشک', 'webtanan-booking'); ?></span>
-                <input type="search" class="webtanan-doctor-search-input" placeholder="<?php esc_attr_e('نام پزشک، تخصص یا شهر', 'webtanan-booking'); ?>">
+                <input type="search" class="webtanan-doctor-search-input" name="search" value="<?php echo esc_attr($default_search); ?>" placeholder="<?php echo esc_attr((string) $atts['search_placeholder']); ?>">
                 <?php if ($show_filters) : ?>
-                    <select class="webtanan-doctor-specialty-filter" aria-label="<?php esc_attr_e('تخصص', 'webtanan-booking'); ?>">
+                    <select class="webtanan-doctor-specialty-filter" name="specialty_id" aria-label="<?php esc_attr_e('تخصص', 'webtanan-booking'); ?>">
                         <option value="0"><?php esc_html_e('همه تخصص‌ها', 'webtanan-booking'); ?></option>
                         <?php foreach ($specialties as $specialty) : ?>
                             <option value="<?php echo esc_attr((string) $specialty['id']); ?>" <?php selected(absint($atts['specialty_id']), (int) $specialty['id']); ?>><?php echo esc_html($specialty['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <select class="webtanan-doctor-payment-filter" aria-label="<?php esc_attr_e('روش پرداخت', 'webtanan-booking'); ?>">
+                    <select class="webtanan-doctor-province-filter" name="province_id" aria-label="<?php esc_attr_e('استان', 'webtanan-booking'); ?>">
+                        <option value="0"><?php esc_html_e('همه استان‌ها', 'webtanan-booking'); ?></option>
+                        <?php foreach ($provinces as $province) : ?>
+                            <option value="<?php echo esc_attr((string) $province['id']); ?>" <?php selected(absint($atts['province_id']), (int) $province['id']); ?>><?php echo esc_html(sprintf(__('استان #%d', 'webtanan-booking'), (int) $province['id'])); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select class="webtanan-doctor-city-filter" name="city_id" aria-label="<?php esc_attr_e('شهر', 'webtanan-booking'); ?>">
+                        <option value="0"><?php esc_html_e('همه شهرها', 'webtanan-booking'); ?></option>
+                        <?php foreach ($cities as $city) : ?>
+                            <option value="<?php echo esc_attr((string) $city['id']); ?>" <?php selected(absint($atts['city_id']), (int) $city['id']); ?>><?php echo esc_html(sprintf(__('شهر #%d', 'webtanan-booking'), (int) $city['id'])); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select class="webtanan-doctor-payment-filter" name="payment_filter" aria-label="<?php esc_attr_e('روش پرداخت', 'webtanan-booking'); ?>">
                         <option value="" <?php selected($payment_filter, ''); ?>><?php esc_html_e('همه روش‌های پرداخت', 'webtanan-booking'); ?></option>
                         <option value="online" <?php selected($payment_filter, 'online'); ?>><?php esc_html_e('پرداخت آنلاین', 'webtanan-booking'); ?></option>
                         <option value="clinic" <?php selected($payment_filter, 'clinic'); ?>><?php esc_html_e('پرداخت در مطب', 'webtanan-booking'); ?></option>
                     </select>
-                    <select class="webtanan-doctor-sort-filter" aria-label="<?php esc_attr_e('مرتب‌سازی', 'webtanan-booking'); ?>">
-                        <option value="" <?php selected($sort, ''); ?>><?php esc_html_e('پیش‌فرض', 'webtanan-booking'); ?></option>
-                        <option value="first_available" <?php selected($sort, 'first_available'); ?>><?php esc_html_e('نزدیک‌ترین نوبت آزاد', 'webtanan-booking'); ?></option>
-                    </select>
+                    <?php if ($show_sort) : ?>
+                        <select class="webtanan-doctor-sort-filter" name="sort" aria-label="<?php esc_attr_e('مرتب‌سازی', 'webtanan-booking'); ?>">
+                            <option value="first_available" <?php selected($sort ?: 'first_available', 'first_available'); ?>><?php esc_html_e('نزدیک‌ترین نوبت آزاد', 'webtanan-booking'); ?></option>
+                            <option value="" <?php selected($sort, ''); ?>><?php esc_html_e('پیش‌فرض', 'webtanan-booking'); ?></option>
+                        </select>
+                    <?php endif; ?>
                 <?php endif; ?>
-                <button type="button" class="webtanan-button webtanan-search-button"><?php esc_html_e('جستجو', 'webtanan-booking'); ?></button>
-            </div>
+                <button type="submit" class="webtanan-button webtanan-search-button"><?php esc_html_e('جستجو', 'webtanan-booking'); ?></button>
+            </form>
             <div class="webtanan-doctor-results" aria-live="polite"></div>
         </div>
         <?php
@@ -352,8 +375,7 @@ final class Frontend {
                     <span><?php esc_html_e('پنل بیمار', 'webtanan-booking'); ?></span>
                 </div>
                 <nav class="wb-nav" aria-label="<?php esc_attr_e('ناوبری پنل بیمار', 'webtanan-booking'); ?>">
-                    <button type="button" class="wb-nav-item is-active" data-wb-view="patient-overview"><span><?php esc_html_e('خانه', 'webtanan-booking'); ?></span></button>
-                    <button type="button" class="wb-nav-item" data-wb-view="patient-appointments"><span><?php esc_html_e('نوبت‌های آینده', 'webtanan-booking'); ?></span></button>
+                    <button type="button" class="wb-nav-item is-active" data-wb-view="patient-appointments"><span><?php esc_html_e('نوبت‌های آینده', 'webtanan-booking'); ?></span></button>
                     <button type="button" class="wb-nav-item" data-wb-view="patient-history"><span><?php esc_html_e('سوابق نوبت', 'webtanan-booking'); ?></span></button>
                     <button type="button" class="wb-nav-item" data-wb-view="patient-wallet"><span><?php esc_html_e('کیف پول', 'webtanan-booking'); ?></span></button>
                 </nav>

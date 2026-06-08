@@ -4,7 +4,7 @@ Tags: booking, doctors, appointments, saas, elementor
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,8 @@ Version 1.0.2 adds the public doctor booking popup: first available slots and ap
 Version 1.0.3 completes the Persian backend admin phase with clearer booking/ledger menus, a combined SMS/OTP log screen, Jalali appointment date filtering, visible platform commission fields on doctor forms, and idempotent settlement payment handling with required bank tracking numbers.
 
 Version 1.0.4 hardens secretary access control and cancellation refunds: assigned secretaries can only see doctors saved in `webtanan_assigned_doctor_ids`, finance endpoints require `webtanan_secretary_can_view_finance`, and appointment cancellation creates at most one patient wallet refund ledger entry.
+
+Version 1.0.5 completes the AJAX Elementor doctor search widget, upgrades the patient panel wallet history with related appointment codes, and adds optimized admin financial reports for platform commission, withdrawable earnings, clinic-payment debt and patient wallet balances.
 
 == Shortcodes ==
 

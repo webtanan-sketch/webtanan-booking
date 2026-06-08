@@ -242,6 +242,7 @@ Allow admins to define cancellation and refund policies.
 
 **Milestone:** `v0.9.0 - Finance, Refund and Settlement`  
 **Labels:** `type: feature, type: ui-ux, type: payment, priority: medium, phase: finance`
+**Status:** Done
 
 ## Goal
 Allow patients to view wallet activity.
@@ -291,6 +292,7 @@ Make doctor settlement production-ready.
 
 **Milestone:** `v0.9.0 - Finance, Refund and Settlement`  
 **Labels:** `type: feature, type: payment, priority: medium, phase: finance`
+**Status:** Done
 
 ## Goal
 Provide platform-level financial reports.
@@ -340,6 +342,7 @@ Create an Elementor widget for displaying doctor cards.
 
 **Milestone:** `v1.0.0 - Elementor, SEO and Public Release`  
 **Labels:** `type: feature, type: ui-ux, type: api, priority: high, phase: seo`
+**Status:** Done
 
 ## Goal
 Create a public doctor search and filtering widget.

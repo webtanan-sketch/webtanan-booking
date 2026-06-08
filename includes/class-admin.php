@@ -51,6 +51,7 @@ final class Admin {
         add_submenu_page('webtanan-booking', __('بیماران', 'webtanan-booking'), __('بیماران', 'webtanan-booking'), 'webtanan_manage_booking', 'webtanan-booking-patients', array(__CLASS__, 'render_patients'));
         add_submenu_page('webtanan-booking', __('تراکنش‌ها', 'webtanan-booking'), __('تراکنش‌ها', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-transactions', array(__CLASS__, 'render_transactions'));
         add_submenu_page('webtanan-booking', __('دفتر کل کیف پول', 'webtanan-booking'), __('دفتر کل کیف پول', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-wallet', array(__CLASS__, 'render_wallet'));
+        add_submenu_page('webtanan-booking', __('گزارش‌های مالی', 'webtanan-booking'), __('گزارش‌های مالی', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-financial-reports', array(__CLASS__, 'render_financial_reports'));
         add_submenu_page('webtanan-booking', __('تسویه پزشکان', 'webtanan-booking'), __('تسویه پزشکان', 'webtanan-booking'), 'webtanan_manage_finance', 'webtanan-booking-settlements', array(__CLASS__, 'render_settlements'));
         add_submenu_page('webtanan-booking', __('لاگ پیامک/OTP', 'webtanan-booking'), __('لاگ پیامک/OTP', 'webtanan-booking'), 'webtanan_manage_settings', 'webtanan-booking-logs', array(__CLASS__, 'render_logs_overview'));
         add_submenu_page('webtanan-booking', __('لاگ OTP', 'webtanan-booking'), __('لاگ OTP', 'webtanan-booking'), 'webtanan_manage_settings', 'webtanan-booking-otp-logs', array(__CLASS__, 'render_otp_logs'));
@@ -722,6 +723,123 @@ final class Admin {
                 <div class="webtanan-admin-side">
                     <?php self::render_wallet_adjustment_form(); ?>
                 </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    public static function render_financial_reports(): void {
+        global $wpdb;
+
+        $ledger = DB::table('wallets_ledger');
+        $transactions = DB::table('transactions');
+        $appointments = DB::table('appointments');
+        $doctors = DB::table('doctors');
+
+        $platform_commission = (float) $wpdb->get_var("SELECT COALESCE(SUM(amount), 0) FROM $ledger WHERE user_type = 'platform' AND entry_type = 'commission' AND amount > 0");
+        $doctor_withdrawable = (float) $wpdb->get_var(
+            "SELECT COALESCE(SUM(CASE WHEN l.balance_after > 0 THEN l.balance_after ELSE 0 END), 0)
+            FROM $ledger l
+            INNER JOIN (
+                SELECT user_id, user_type, MAX(id) AS max_id
+                FROM $ledger
+                WHERE user_type IN ('doctor','secretary')
+                GROUP BY user_id, user_type
+            ) latest ON latest.max_id = l.id"
+        );
+        $pay_at_clinic_debt = (float) $wpdb->get_var(
+            "SELECT COALESCE(SUM(CASE WHEN l.balance_after < 0 THEN ABS(l.balance_after) ELSE 0 END), 0)
+            FROM $ledger l
+            INNER JOIN (
+                SELECT user_id, user_type, MAX(id) AS max_id
+                FROM $ledger
+                WHERE user_type IN ('doctor','secretary')
+                GROUP BY user_id, user_type
+            ) latest ON latest.max_id = l.id"
+        );
+        $patient_wallets = (float) $wpdb->get_var(
+            "SELECT COALESCE(SUM(CASE WHEN l.balance_after > 0 THEN l.balance_after ELSE 0 END), 0)
+            FROM $ledger l
+            INNER JOIN (
+                SELECT user_id, user_type, MAX(id) AS max_id
+                FROM $ledger
+                WHERE user_type = 'patient'
+                GROUP BY user_id, user_type
+            ) latest ON latest.max_id = l.id"
+        );
+
+        $recent_success = $wpdb->get_results(
+            "SELECT t.*, a.appointment_code, p.post_title AS doctor_title
+            FROM $transactions t
+            LEFT JOIN $appointments a ON a.id = t.appointment_id
+            LEFT JOIN $doctors d ON d.id = t.doctor_id
+            LEFT JOIN $wpdb->posts p ON p.ID = d.post_id
+            WHERE t.status IN ('verified','paid')
+            ORDER BY COALESCE(t.verified_at, t.updated_at, t.created_at) DESC, t.id DESC
+            LIMIT 20",
+            ARRAY_A
+        );
+        $late_wallet_credits = $wpdb->get_results(
+            "SELECT t.*, a.appointment_code, l.balance_after
+            FROM $transactions t
+            LEFT JOIN $appointments a ON a.id = t.appointment_id
+            LEFT JOIN $ledger l ON l.related_transaction_id = t.id AND l.user_type = 'patient' AND l.entry_type = 'credit'
+            WHERE t.status = 'expired_lock_wallet_charged'
+            ORDER BY t.id DESC
+            LIMIT 20",
+            ARRAY_A
+        );
+
+        ?>
+        <div class="wrap webtanan-admin" dir="rtl">
+            <h1><?php esc_html_e('گزارش‌های مالی پلتفرم', 'webtanan-booking'); ?></h1>
+            <?php self::render_notice(); ?>
+            <div class="webtanan-admin-cards">
+                <div class="webtanan-admin-card"><strong><?php echo esc_html(number_format_i18n($platform_commission)); ?></strong><span><?php esc_html_e('کل کارمزد ثبت‌شده پلتفرم', 'webtanan-booking'); ?></span></div>
+                <div class="webtanan-admin-card"><strong><?php echo esc_html(number_format_i18n($doctor_withdrawable)); ?></strong><span><?php esc_html_e('درآمد قابل برداشت پزشکان/منشی‌ها', 'webtanan-booking'); ?></span></div>
+                <div class="webtanan-admin-card"><strong><?php echo esc_html(number_format_i18n($pay_at_clinic_debt)); ?></strong><span><?php esc_html_e('بدهی کمیسیون پرداخت در مطب', 'webtanan-booking'); ?></span></div>
+                <div class="webtanan-admin-card"><strong><?php echo esc_html(number_format_i18n($patient_wallets)); ?></strong><span><?php esc_html_e('موجودی کیف پول بیماران', 'webtanan-booking'); ?></span></div>
+            </div>
+
+            <div class="webtanan-admin-panel">
+                <h2><?php esc_html_e('پرداخت‌های موفق اخیر', 'webtanan-booking'); ?></h2>
+                <table class="widefat striped">
+                    <thead><tr><th><?php esc_html_e('کد تراکنش', 'webtanan-booking'); ?></th><th><?php esc_html_e('نوبت', 'webtanan-booking'); ?></th><th><?php esc_html_e('پزشک', 'webtanan-booking'); ?></th><th><?php esc_html_e('درگاه', 'webtanan-booking'); ?></th><th><?php esc_html_e('مبلغ', 'webtanan-booking'); ?></th><th><?php esc_html_e('پیگیری', 'webtanan-booking'); ?></th><th><?php esc_html_e('تاریخ تایید', 'webtanan-booking'); ?></th></tr></thead>
+                    <tbody>
+                    <?php foreach ($recent_success as $row) : ?>
+                        <tr>
+                            <td><code><?php echo esc_html($row['transaction_code']); ?></code></td>
+                            <td><?php echo esc_html($row['appointment_code'] ?: (string) $row['appointment_id']); ?></td>
+                            <td><?php echo esc_html($row['doctor_title'] ?: '-'); ?></td>
+                            <td><?php echo esc_html($row['gateway_name']); ?></td>
+                            <td><?php echo esc_html(number_format_i18n((float) $row['amount'])); ?></td>
+                            <td dir="ltr"><?php echo esc_html($row['gateway_tracking_number'] ?: $row['gateway_ref_id']); ?></td>
+                            <td><?php echo esc_html($row['verified_at'] ?: $row['updated_at']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$recent_success) : ?><tr><td colspan="7"><?php esc_html_e('پرداخت موفقی ثبت نشده است.', 'webtanan-booking'); ?></td></tr><?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="webtanan-admin-panel">
+                <h2><?php esc_html_e('شارژ کیف پول بابت بازگشت دیرهنگام', 'webtanan-booking'); ?></h2>
+                <table class="widefat striped">
+                    <thead><tr><th><?php esc_html_e('کد تراکنش', 'webtanan-booking'); ?></th><th><?php esc_html_e('کاربر', 'webtanan-booking'); ?></th><th><?php esc_html_e('نوبت', 'webtanan-booking'); ?></th><th><?php esc_html_e('مبلغ', 'webtanan-booking'); ?></th><th><?php esc_html_e('مانده بعد', 'webtanan-booking'); ?></th><th><?php esc_html_e('تاریخ', 'webtanan-booking'); ?></th></tr></thead>
+                    <tbody>
+                    <?php foreach ($late_wallet_credits as $row) : ?>
+                        <tr>
+                            <td><code><?php echo esc_html($row['transaction_code']); ?></code></td>
+                            <td><?php echo esc_html((string) $row['user_id']); ?></td>
+                            <td><?php echo esc_html($row['appointment_code'] ?: (string) $row['appointment_id']); ?></td>
+                            <td><?php echo esc_html(number_format_i18n((float) $row['amount'])); ?></td>
+                            <td><?php echo esc_html(null !== $row['balance_after'] ? number_format_i18n((float) $row['balance_after']) : '-'); ?></td>
+                            <td><?php echo esc_html($row['updated_at']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$late_wallet_credits) : ?><tr><td colspan="6"><?php esc_html_e('بازگشت دیرهنگام شارژشده‌ای ثبت نشده است.', 'webtanan-booking'); ?></td></tr><?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
         <?php
