@@ -4,7 +4,7 @@ Tags: booking, doctors, appointments, saas, elementor
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,8 @@ Version 1.0.1 polishes the plugin appearance across the public archive, doctor p
 Version 1.0.2 adds the public doctor booking popup: first available slots and appointment availability are loaded through REST, Jalali days are shown in a horizontal modal, OTP stays inside the modal, and locked guest appointments are attached to the verified patient before payment.
 
 Version 1.0.3 completes the Persian backend admin phase with clearer booking/ledger menus, a combined SMS/OTP log screen, Jalali appointment date filtering, visible platform commission fields on doctor forms, and idempotent settlement payment handling with required bank tracking numbers.
+
+Version 1.0.4 hardens secretary access control and cancellation refunds: assigned secretaries can only see doctors saved in `webtanan_assigned_doctor_ids`, finance endpoints require `webtanan_secretary_can_view_finance`, and appointment cancellation creates at most one patient wallet refund ledger entry.
 
 == Shortcodes ==
 

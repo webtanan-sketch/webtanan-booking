@@ -362,6 +362,7 @@ final class DB {
             'cancellation_policy' => array(
                 'patient_cancel_until_hours' => 0,
                 'full_refund_hours' => 24,
+                'full_refund_percent' => 100,
                 'partial_refund_hours' => 6,
                 'partial_refund_percent' => 50,
                 'late_refund_percent' => 0,

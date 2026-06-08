@@ -403,13 +403,32 @@ final class REST {
 
     public static function cancel_appointment(\WP_REST_Request $request) {
         $appointment_id = absint($request->get_param('appointment_id'));
-        if (!Booking::can_current_user_manage_appointment($appointment_id)) {
+        $appointment = Booking::get_appointment($appointment_id);
+        if (!$appointment || !Booking::can_current_user_manage_appointment($appointment_id)) {
             return new \WP_Error('webtanan_forbidden', __('شما اجازه لغو این نوبت را ندارید.', 'webtanan-booking'), array('status' => 403));
         }
 
-        $result = Booking::cancel_appointment($appointment_id, sanitize_key((string) $request->get_param('cancelled_by') ?: 'patient'), sanitize_textarea_field((string) $request->get_param('reason')));
+        $result = Booking::cancel_appointment($appointment_id, self::cancellation_actor_for_current_user($appointment), sanitize_textarea_field((string) $request->get_param('reason')));
 
         return is_wp_error($result) ? $result : rest_ensure_response($result);
+    }
+
+    private static function cancellation_actor_for_current_user(array $appointment): string {
+        $user_id = get_current_user_id();
+
+        if ($user_id > 0 && (int) $appointment['patient_user_id'] === $user_id) {
+            return 'patient';
+        }
+
+        if (current_user_can('webtanan_manage_booking') || current_user_can('manage_options')) {
+            return 'admin';
+        }
+
+        if (Booking::current_user_can_access_doctor((int) $appointment['doctor_id'])) {
+            return Booking::current_user_is_secretary() ? 'secretary' : 'doctor';
+        }
+
+        return 'patient';
     }
 
     public static function wallet_balance(\WP_REST_Request $request): \WP_REST_Response {
@@ -956,27 +975,21 @@ final class REST {
         $params = array();
 
         if (!current_user_can('webtanan_manage_booking') && !current_user_can('manage_options')) {
-            $assigned = get_user_meta($user_id, 'webtanan_assigned_doctor_ids', true);
-            if (is_string($assigned)) {
-                $assigned = array_filter(array_map('absint', explode(',', $assigned)));
-            }
-            if (!is_array($assigned)) {
-                $assigned = array();
-            }
+            if (Booking::current_user_is_secretary()) {
+                $assigned = Booking::assigned_doctor_ids_for_user($user_id);
+                if (!$assigned) {
+                    return array();
+                }
 
-            $clauses = array('d.user_id = %d', 'd.secretary_user_id = %d');
-            $params[] = $user_id;
-            $params[] = $user_id;
-
-            if ($assigned) {
                 $placeholders = implode(',', array_fill(0, count($assigned), '%d'));
-                $clauses[] = "d.id IN ($placeholders)";
+                $where = "d.id IN ($placeholders)";
                 foreach ($assigned as $assigned_id) {
                     $params[] = (int) $assigned_id;
                 }
+            } else {
+                $where = 'd.user_id = %d';
+                $params[] = $user_id;
             }
-
-            $where = '(' . implode(' OR ', $clauses) . ')';
         }
 
         $sql = "SELECT d.*, s.name AS specialty_name
@@ -1016,12 +1029,16 @@ final class REST {
             return true;
         }
 
+        if (!Booking::current_user_can_access_doctor($doctor_id)) {
+            return false;
+        }
+
         $user_id = get_current_user_id();
         if ($user_id > 0 && (int) $doctor['user_id'] === $user_id) {
             return true;
         }
 
-        return 'yes' === get_user_meta($user_id, 'webtanan_secretary_can_view_finance', true);
+        return Booking::current_user_is_secretary() && 'yes' === get_user_meta($user_id, 'webtanan_secretary_can_view_finance', true);
     }
 
     private static function current_user_can_view_appointment(array $appointment): bool {

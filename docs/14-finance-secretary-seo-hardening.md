@@ -67,3 +67,18 @@
 - اطمینان از عدم ایجاد ledger تکراری برای تسویه paid
 - ورود منشی و بررسی محدود بودن پزشک‌های قابل مشاهده
 - تست noindex روی برگه‌های پنل و Schema روی صفحه پزشک
+
+## تکمیل نسخه 1.0.4: Assignment و Refund Engine
+
+در این نسخه دسترسی منشی و منطق refund لغو نوبت سخت‌گیرتر شد:
+
+- صفحه مدیریت منشی‌ها همچنان زیر منوی Webtanan Booking قرار دارد و assignment را در `webtanan_assigned_doctor_ids` ذخیره می‌کند.
+- مقدار `webtanan_secretary_can_view_finance` تنها toggle معتبر مشاهده کیف پول و تسویه برای منشی است.
+- در middleware داشبورد REST، کاربر دارای نقش `webtanan_secretary` فقط پزشک‌های موجود در `webtanan_assigned_doctor_ids` را می‌بیند.
+- فیلد `secretary_user_id` در جدول پزشکان برای سهم/گیرنده مالی استفاده می‌شود و به‌تنهایی مجوز دسترسی داشبورد نیست.
+- لغو بیمار از policy backend استفاده می‌کند: مهلت لغو، بازه استرداد کامل، درصد استرداد کامل، درصد میانی و درصد دیرهنگام.
+- backend مبلغ refund را از رکورد اصلی `wp_saas_appointments` محاسبه می‌کند و به محاسبه کلاینت اعتماد نمی‌کند.
+- عملیات لغو با `START TRANSACTION`، `SELECT ... FOR UPDATE` روی نوبت، update وضعیت به `cancelled` و ثبت ledger انجام می‌شود.
+- رکورد refund در `wp_saas_wallets_ledger` با `entry_type=refund`، `user_type=patient` و `related_appointment_id` ثبت می‌شود.
+- قبل از insert، وجود refund قبلی برای همان نوبت بررسی می‌شود؛ بنابراین refresh یا درخواست تکراری نمی‌تواند کیف پول بیمار را دوبار شارژ کند.
+- بعد از commit، پیامک‌های لغو و action hook با نام `saas_appointment_cancelled` اجرا می‌شوند.

@@ -664,7 +664,18 @@ final class Booking {
             return new \WP_Error('webtanan_appointment_not_found', __('نوبت پیدا نشد.', 'webtanan-booking'), array('status' => 404));
         }
 
-        if (in_array($appointment['appointment_status'], array('cancelled', 'expired', 'completed'), true)) {
+        if ('cancelled' === $appointment['appointment_status']) {
+            $existing_refund = self::existing_refund_amount($appointment_id);
+            DB::rollback();
+
+            return array(
+                'status' => 'cancelled',
+                'refund_amount' => $existing_refund,
+                'already_cancelled' => true,
+            );
+        }
+
+        if (in_array($appointment['appointment_status'], array('expired', 'completed'), true)) {
             DB::rollback();
 
             return new \WP_Error('webtanan_appointment_not_cancellable', __('این نوبت قابل لغو نیست.', 'webtanan-booking'), array('status' => 409));
@@ -690,29 +701,51 @@ final class Booking {
         );
 
         $refund_amount = (float) $preview['refund_amount'];
+        $existing_refund = self::existing_refund_amount($appointment_id);
         if ($refund_amount > 0 && (int) $appointment['patient_user_id'] > 0) {
-            Wallet::add_entry(
-                array(
-                    'user_id' => (int) $appointment['patient_user_id'],
-                    'user_type' => 'patient',
-                    'related_appointment_id' => $appointment_id,
-                    'related_transaction_id' => (int) $appointment['transaction_id'],
-                    'entry_type' => 'refund',
-                    'amount' => $refund_amount,
-                    'description' => __('استرداد بابت لغو نوبت.', 'webtanan-booking'),
-                )
-            );
-            self::record_cancellation_reversal($appointment, $refund_amount);
+            if ($existing_refund > 0) {
+                $refund_amount = $existing_refund;
+            } else {
+                $ledger = Wallet::add_entry(
+                    array(
+                        'user_id' => (int) $appointment['patient_user_id'],
+                        'user_type' => 'patient',
+                        'related_appointment_id' => $appointment_id,
+                        'related_transaction_id' => (int) $appointment['transaction_id'],
+                        'entry_type' => 'refund',
+                        'amount' => $refund_amount,
+                        'description' => __('استرداد بابت لغو نوبت.', 'webtanan-booking'),
+                    )
+                );
+                if (is_wp_error($ledger)) {
+                    DB::rollback();
+
+                    return $ledger;
+                }
+
+                $reversal = self::record_cancellation_reversal($appointment, $refund_amount);
+                if (is_wp_error($reversal)) {
+                    DB::rollback();
+
+                    return $reversal;
+                }
+            }
         }
 
         $clinic_commission_booking = 'pay_at_clinic' === $appointment['appointment_status'] || in_array($appointment['payment_status'], array('cash_at_clinic', 'pos_at_clinic'), true);
         if ($clinic_commission_booking) {
-            self::record_pay_at_clinic_debt_reversal($appointment);
+            $debt_reversal = self::record_pay_at_clinic_debt_reversal($appointment);
+            if (is_wp_error($debt_reversal)) {
+                DB::rollback();
+
+                return $debt_reversal;
+            }
         }
 
         DB::commit();
         SMS::send_pattern($appointment['patient_mobile'], 'appointment_cancelled', array('code' => $appointment['appointment_code']), $appointment_id);
         SMS::send_staff_appointment_notification($appointment_id, 'staff_appointment_cancelled');
+        do_action('saas_appointment_cancelled', $appointment_id, $appointment, $refund_amount);
 
         return array('status' => 'cancelled', 'refund_amount' => $refund_amount, 'policy' => $preview);
     }
@@ -759,14 +792,19 @@ final class Booking {
         }
 
         $user_id = get_current_user_id();
+        if (self::current_user_is_secretary()) {
+            return in_array($doctor_id, self::assigned_doctor_ids_for_user($user_id), true);
+        }
+
         if ($user_id > 0 && (int) $doctor['user_id'] === $user_id) {
             return true;
         }
-        if ($user_id > 0 && !empty($doctor['secretary_user_id']) && (int) $doctor['secretary_user_id'] === $user_id) {
-            return true;
-        }
 
-        $assigned = get_user_meta($user_id, 'webtanan_assigned_doctor_ids', true);
+        return false;
+    }
+
+    public static function assigned_doctor_ids_for_user(int $user_id): array {
+        $assigned = $user_id > 0 ? get_user_meta($user_id, 'webtanan_assigned_doctor_ids', true) : array();
         if (is_string($assigned)) {
             $assigned = array_filter(array_map('absint', explode(',', $assigned)));
         }
@@ -774,7 +812,13 @@ final class Booking {
             $assigned = array();
         }
 
-        return in_array($doctor_id, array_map('absint', $assigned), true);
+        return array_values(array_unique(array_filter(array_map('absint', $assigned))));
+    }
+
+    public static function current_user_is_secretary(): bool {
+        $user = wp_get_current_user();
+
+        return $user && in_array('webtanan_secretary', (array) $user->roles, true) && !current_user_can('webtanan_manage_booking') && !current_user_can('manage_options');
     }
 
     public static function get_appointment(int $appointment_id): ?array {
@@ -1190,7 +1234,7 @@ final class Booking {
         $hours = ($appointment_ts - current_time('timestamp')) / HOUR_IN_SECONDS;
 
         if ($hours >= (int) ($policy['full_refund_hours'] ?? 24)) {
-            return $amount;
+            return round($amount * ((float) ($policy['full_refund_percent'] ?? 100) / 100), 2);
         }
 
         if ($hours >= (int) ($policy['partial_refund_hours'] ?? 6)) {
@@ -1198,6 +1242,19 @@ final class Booking {
         }
 
         return round($amount * ((float) ($policy['late_refund_percent'] ?? 0) / 100), 2);
+    }
+
+    private static function existing_refund_amount(int $appointment_id): float {
+        global $wpdb;
+
+        return (float) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COALESCE(SUM(amount), 0) FROM ' . DB::table('wallets_ledger') . ' WHERE related_appointment_id = %d AND user_type = %s AND entry_type = %s',
+                $appointment_id,
+                'patient',
+                'refund'
+            )
+        );
     }
 
     private static function acquire_settlement_lock(int $doctor_id) {
@@ -1334,10 +1391,10 @@ final class Booking {
         );
     }
 
-    private static function record_pay_at_clinic_debt_reversal(array $appointment): void {
+    private static function record_pay_at_clinic_debt_reversal(array $appointment) {
         $doctor = self::get_doctor((int) $appointment['doctor_id']);
         if (!$doctor) {
-            return;
+            return true;
         }
 
         $amount = self::appointment_charge_amount($appointment);
@@ -1346,11 +1403,11 @@ final class Booking {
         $settings = DB::get_settings();
 
         if ($platform_share <= 0) {
-            return;
+            return true;
         }
 
         if ($recipient['user_id'] > 0) {
-            Wallet::add_entry(
+            $recipient_entry = Wallet::add_entry(
                 array(
                     'user_id' => $recipient['user_id'],
                     'user_type' => $recipient['user_type'],
@@ -1360,9 +1417,12 @@ final class Booking {
                     'description' => __('برگشت بدهی خدمات نوبت‌دهی پرداخت در مطب پس از لغو.', 'webtanan-booking'),
                 )
             );
+            if (is_wp_error($recipient_entry)) {
+                return $recipient_entry;
+            }
         }
 
-        Wallet::add_entry(
+        $platform_entry = Wallet::add_entry(
             array(
                 'user_id' => (int) $settings['platform_wallet_user_id'],
                 'user_type' => 'platform',
@@ -1372,13 +1432,15 @@ final class Booking {
                 'description' => __('برگشت طلب خدمات نوبت‌دهی پرداخت در مطب پس از لغو.', 'webtanan-booking'),
             )
         );
+
+        return is_wp_error($platform_entry) ? $platform_entry : true;
     }
 
-    private static function record_cancellation_reversal(array $appointment, float $refund_amount): void {
+    private static function record_cancellation_reversal(array $appointment, float $refund_amount) {
         $doctor = self::get_doctor((int) $appointment['doctor_id']);
         $amount = self::appointment_charge_amount($appointment);
         if (!$doctor || $amount <= 0) {
-            return;
+            return true;
         }
 
         $ratio = min(1, $refund_amount / $amount);
@@ -1388,7 +1450,7 @@ final class Booking {
         $settings = DB::get_settings();
 
         if ($recipient['user_id'] > 0 && $recipient_share > 0) {
-            Wallet::add_entry(
+            $recipient_entry = Wallet::add_entry(
                 array(
                     'user_id' => $recipient['user_id'],
                     'user_type' => $recipient['user_type'],
@@ -1399,10 +1461,13 @@ final class Booking {
                     'description' => __('برگشت سهم گیرنده خدمات نوبت‌دهی پس از لغو.', 'webtanan-booking'),
                 )
             );
+            if (is_wp_error($recipient_entry)) {
+                return $recipient_entry;
+            }
         }
 
         if ($platform_share > 0) {
-            Wallet::add_entry(
+            $platform_entry = Wallet::add_entry(
                 array(
                     'user_id' => (int) $settings['platform_wallet_user_id'],
                     'user_type' => 'platform',
@@ -1413,7 +1478,12 @@ final class Booking {
                     'description' => __('برگشت درآمد خدمات نوبت‌دهی پلتفرم پس از لغو.', 'webtanan-booking'),
                 )
             );
+            if (is_wp_error($platform_entry)) {
+                return $platform_entry;
+            }
         }
+
+        return true;
     }
 
     private static function is_valid_date(string $date): bool {

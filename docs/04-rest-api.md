@@ -101,6 +101,8 @@ callback عمومی آقای پرداخت است. پارامترهای `transid`
 
 لغو با ownership check انجام می‌شود.
 
+از نسخه `1.0.4`، endpoint مقدار `cancelled_by` ارسال‌شده از کلاینت را مبنای تصمیم مالی قرار نمی‌دهد. backend actor را بر اساس مالکیت بیمار، ادمین بودن، پزشک مالک یا منشی assign شده تشخیص می‌دهد. استرداد فقط در `wp_saas_wallets_ledger` با `entry_type=refund` ثبت می‌شود و قبل از insert، وجود refund قبلی همان `appointment_id` بررسی می‌شود.
+
 ## OTP
 
 ### `POST /auth/send-otp`
