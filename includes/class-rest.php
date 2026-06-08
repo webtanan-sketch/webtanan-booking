@@ -956,16 +956,30 @@ final class REST {
         );
     }
 
-    public static function logged_in(): bool {
-        return is_user_logged_in();
+    public static function logged_in(?\WP_REST_Request $request = null): bool {
+        return is_user_logged_in() && self::valid_rest_nonce($request);
     }
 
-    public static function finance_permission(): bool {
-        return current_user_can('webtanan_manage_finance') || current_user_can('manage_options');
+    public static function finance_permission(?\WP_REST_Request $request = null): bool {
+        return self::logged_in($request) && (current_user_can('webtanan_manage_finance') || current_user_can('manage_options'));
     }
 
-    public static function doctor_dashboard_permission(): bool {
-        return is_user_logged_in() && (current_user_can('webtanan_access_doctor_dashboard') || current_user_can('webtanan_access_secretary_dashboard') || current_user_can('webtanan_manage_booking') || current_user_can('manage_options'));
+    public static function doctor_dashboard_permission(?\WP_REST_Request $request = null): bool {
+        return self::logged_in($request) && (current_user_can('webtanan_access_doctor_dashboard') || current_user_can('webtanan_access_secretary_dashboard') || current_user_can('webtanan_manage_booking') || current_user_can('manage_options'));
+    }
+
+    private static function valid_rest_nonce(?\WP_REST_Request $request = null): bool {
+        $nonce = '';
+        if ($request) {
+            $nonce = sanitize_text_field((string) ($request->get_header('X-WP-Nonce') ?: $request->get_header('x_wp_nonce')));
+            if ('' === $nonce) {
+                $nonce = sanitize_text_field((string) $request->get_param('_wpnonce'));
+            }
+        } elseif (isset($_SERVER['HTTP_X_WP_NONCE'])) {
+            $nonce = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_WP_NONCE']));
+        }
+
+        return '' !== $nonce && (bool) wp_verify_nonce($nonce, 'wp_rest');
     }
 
     private static function current_dashboard_doctor_id(\WP_REST_Request $request): int {

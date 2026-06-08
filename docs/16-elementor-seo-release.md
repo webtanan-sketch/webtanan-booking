@@ -20,6 +20,14 @@
 - نتیجه‌ها در DOM با کارت پزشک، تصویر، تخصص، badgeهای پرداخت و تایید، هزینه نوبت‌دهی و مقدار `next_available` پاسخ REST رندر می‌شوند.
 - حالت loading spinner و empty state اضافه شد تا تجربه کاربر در صفحات Elementor کش‌شده هم شفاف بماند.
 
+## به‌روزرسانی 1.1.0: JSON-LD پزشک
+
+- خروجی JSON-LD از hook `wp_head` در `Frontend::render_doctor_schema_markup()` ساخته می‌شود و دیگر داخل بدنه قالب `single-saas-doctors.php` چاپ نمی‌شود.
+- نوع schema برابر `Physician` است و فیلدهای `name`، `url`، `description`، `image`، `telephone`، `medicalSpecialty`، `priceRange`، `address`، `identifier` و `availableService` را در صورت وجود مقدار معتبر خروجی می‌دهد.
+- `priceRange` ابتدا از `booking_fee` و اگر موجود نبود از `visit_price` ساخته می‌شود.
+- فیلدهای خالی با helper داخلی حذف می‌شوند تا JSON-LD شامل کلیدهای empty/null نباشد.
+- اگر برای دیدگاه‌های تاییدشده comment meta امتیاز معتبر وجود داشته باشد، `aggregateRating` با `ratingValue`، `reviewCount`، `bestRating` و `worstRating` اضافه می‌شود.
+
 ## نکات نگهداری
 
 - فیلدهای شهر و استان فعلاً عددی هستند تا با ساختار فعلی دیتابیس سازگار بمانند. در نسخه‌های بعد می‌توان آن‌ها را به جدول/تاکسونومی شهر و استان متصل کرد.

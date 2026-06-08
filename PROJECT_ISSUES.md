@@ -395,6 +395,7 @@ Create a professional public doctor profile layout.
 
 **Milestone:** `v1.0.0 - Elementor, SEO and Public Release`  
 **Labels:** `type: feature, type: documentation, priority: medium, phase: seo`
+**Status:** Done
 
 ## Goal
 Improve SEO for public doctor profiles.
@@ -416,6 +417,7 @@ Improve SEO for public doctor profiles.
 
 **Milestone:** `v1.1.0 - Production Hardening`  
 **Labels:** `type: security, type: api, priority: high, phase: hardening`
+**Status:** Done
 
 ## Goal
 Review all REST endpoints for permission and ownership checks.

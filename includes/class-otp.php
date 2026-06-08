@@ -10,6 +10,9 @@ namespace Webtanan\Booking;
 defined('ABSPATH') || exit;
 
 final class OTP {
+    private const DEFAULT_RATE_LIMIT_MAX_SENDS = 3;
+    private const DEFAULT_RATE_LIMIT_WINDOW_MINUTES = 15;
+
     public static function send(string $mobile, string $purpose = 'login') {
         global $wpdb;
 
@@ -21,7 +24,9 @@ final class OTP {
         }
 
         $settings = DB::get_settings();
-        $since = gmdate('Y-m-d H:i:s', current_time('timestamp') - (10 * MINUTE_IN_SECONDS));
+        $max_sends = max(1, (int) ($settings['otp_rate_limit_max_sends'] ?? self::DEFAULT_RATE_LIMIT_MAX_SENDS));
+        $window_minutes = max(1, (int) ($settings['otp_rate_limit_window_minutes'] ?? self::DEFAULT_RATE_LIMIT_WINDOW_MINUTES));
+        $since = gmdate('Y-m-d H:i:s', current_time('timestamp') - ($window_minutes * MINUTE_IN_SECONDS));
         $recent = (int) $wpdb->get_var(
             $wpdb->prepare(
                 'SELECT COUNT(*) FROM ' . DB::table('otp_logs') . ' WHERE mobile = %s AND purpose = %s AND created_at >= %s',
@@ -31,8 +36,16 @@ final class OTP {
             )
         );
 
-        if ($recent >= (int) $settings['otp_max_sends_per_10_minutes']) {
-            return new \WP_Error('webtanan_otp_rate_limited', __('تعداد درخواست‌های کد ورود زیاد است. کمی بعد دوباره تلاش کنید.', 'webtanan-booking'), array('status' => 429));
+        if ($recent >= $max_sends) {
+            return new \WP_Error(
+                'webtanan_otp_rate_limited',
+                sprintf(
+                    /* translators: %d: OTP rate limit window in minutes. */
+                    __('تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً %d دقیقه دیگر تلاش کنید.', 'webtanan-booking'),
+                    $window_minutes
+                ),
+                array('status' => 429)
+            );
         }
 
         $code = (string) random_int(100000, 999999);

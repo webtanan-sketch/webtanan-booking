@@ -273,6 +273,7 @@ final class DB {
             used_at datetime NULL,
             PRIMARY KEY  (id),
             KEY mobile (mobile),
+            KEY mobile_purpose_created (mobile,purpose,created_at),
             KEY purpose (purpose),
             KEY expires_at (expires_at),
             KEY is_used (is_used),
@@ -312,6 +313,8 @@ final class DB {
             'otp_expiration_minutes' => 3,
             'otp_max_attempts' => 3,
             'otp_max_sends_per_10_minutes' => 3,
+            'otp_rate_limit_max_sends' => 3,
+            'otp_rate_limit_window_minutes' => 15,
             'reminder_time_hours' => 24,
             'platform_wallet_user_id' => 0,
             'gateway_settings' => array(

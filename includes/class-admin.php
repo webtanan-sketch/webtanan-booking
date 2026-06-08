@@ -102,6 +102,8 @@ final class Admin {
                 'default_commission_value' => isset($input['default_commission_value']) ? (float) $input['default_commission_value'] : 0,
                 'lock_duration_minutes' => isset($input['lock_duration_minutes']) ? max(1, absint($input['lock_duration_minutes'])) : 15,
                 'otp_expiration_minutes' => isset($input['otp_expiration_minutes']) ? max(1, absint($input['otp_expiration_minutes'])) : 3,
+                'otp_rate_limit_max_sends' => isset($input['otp_rate_limit_max_sends']) ? max(1, absint($input['otp_rate_limit_max_sends'])) : 3,
+                'otp_rate_limit_window_minutes' => isset($input['otp_rate_limit_window_minutes']) ? max(1, absint($input['otp_rate_limit_window_minutes'])) : 15,
                 'platform_wallet_user_id' => isset($input['platform_wallet_user_id']) ? absint($input['platform_wallet_user_id']) : 0,
                 'gateway_settings' => array(
                     'active_gateway' => isset($gateway_input['active_gateway']) ? sanitize_key($gateway_input['active_gateway']) : 'aqayepardakht',
@@ -1055,6 +1057,8 @@ final class Admin {
                     <tr><th scope="row"><?php esc_html_e('مقدار کارمزد پیش‌فرض', 'webtanan-booking'); ?></th><td><input type="number" min="0" step="1000" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[default_commission_value]" value="<?php echo esc_attr((string) $settings['default_commission_value']); ?>"></td></tr>
                     <tr><th scope="row"><?php esc_html_e('مدت قفل نوبت به دقیقه', 'webtanan-booking'); ?></th><td><input type="number" min="1" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[lock_duration_minutes]" value="<?php echo esc_attr((string) $settings['lock_duration_minutes']); ?>"></td></tr>
                     <tr><th scope="row"><?php esc_html_e('انقضای OTP به دقیقه', 'webtanan-booking'); ?></th><td><input type="number" min="1" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[otp_expiration_minutes]" value="<?php echo esc_attr((string) $settings['otp_expiration_minutes']); ?>"></td></tr>
+                    <tr><th scope="row"><?php esc_html_e('حداکثر ارسال OTP در بازه', 'webtanan-booking'); ?></th><td><input type="number" min="1" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[otp_rate_limit_max_sends]" value="<?php echo esc_attr((string) ($settings['otp_rate_limit_max_sends'] ?? 3)); ?>"> <span class="description"><?php esc_html_e('پیش‌فرض: ۳ بار', 'webtanan-booking'); ?></span></td></tr>
+                    <tr><th scope="row"><?php esc_html_e('بازه محدودیت ارسال OTP به دقیقه', 'webtanan-booking'); ?></th><td><input type="number" min="1" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[otp_rate_limit_window_minutes]" value="<?php echo esc_attr((string) ($settings['otp_rate_limit_window_minutes'] ?? 15)); ?>"> <span class="description"><?php esc_html_e('پیش‌فرض: ۱۵ دقیقه', 'webtanan-booking'); ?></span></td></tr>
                     <tr><th scope="row"><?php esc_html_e('شناسه کاربر کیف پول پلتفرم', 'webtanan-booking'); ?></th><td><input type="number" min="0" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[platform_wallet_user_id]" value="<?php echo esc_attr((string) $settings['platform_wallet_user_id']); ?>"></td></tr>
                 </table>
                 <?php self::render_cancellation_settings_fields($settings); ?>

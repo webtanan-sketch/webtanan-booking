@@ -37,43 +37,6 @@ wp_enqueue_style('webtanan-booking-frontend');
 wp_enqueue_script('webtanan-booking-frontend');
 
 get_header();
-
-if ($doctor) {
-    $description = get_the_excerpt($post_id);
-    if (!$description) {
-        $description = wp_trim_words(wp_strip_all_tags((string) get_post_field('post_content', $post_id)), 35);
-    }
-    $schema = array(
-        '@context' => 'https://schema.org',
-        '@type' => 'Physician',
-        '@id' => trailingslashit(get_permalink($post_id)) . '#physician',
-        'name' => wp_strip_all_tags($doctor_title),
-        'url' => get_permalink($post_id),
-        'description' => $description ? wp_strip_all_tags($description) : null,
-        'medicalSpecialty' => !empty($doctor['specialty_name']) ? wp_strip_all_tags($doctor['specialty_name']) : null,
-        'telephone' => !empty($doctor['clinic_phone']) ? wp_strip_all_tags($doctor['clinic_phone']) : null,
-        'image' => $image_url ?: null,
-        'priceRange' => $booking_fee > 0 ? number_format_i18n($booking_fee) . ' ' . __('تومان هزینه نوبت‌دهی', 'webtanan-booking') : null,
-        'availableService' => array(
-            '@type' => 'MedicalProcedure',
-            'name' => __('نوبت‌دهی پزشک', 'webtanan-booking'),
-        ),
-        'identifier' => !empty($doctor['medical_system_number']) ? array(
-            '@type' => 'PropertyValue',
-            'name' => __('کد نظام پزشکی', 'webtanan-booking'),
-            'value' => wp_strip_all_tags($doctor['medical_system_number']),
-        ) : null,
-        'address' => !empty($doctor['clinic_address']) ? array(
-            '@type' => 'PostalAddress',
-            'streetAddress' => wp_strip_all_tags($doctor['clinic_address']),
-            'addressCountry' => 'IR',
-        ) : null,
-    );
-    $schema = array_filter($schema, static function ($value): bool {
-        return null !== $value && '' !== $value;
-    });
-    echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
-}
 ?>
 
 <main class="webtanan-booking webtanan-doctor-public" dir="rtl">

@@ -58,13 +58,23 @@
 
 ## فاز ۵: Elementor و SEO پیشرفته
 
+وضعیت: تکمیل‌شده تا نسخه `1.1.0`
+
 - ویجت جستجوی پیشرفته
 - فیلتر تخصص، شهر، استان و پرداخت
 - اولین نوبت خالی AJAX
 - archive templates
 - schema markup پزشک
 
+موارد انجام‌شده:
+
+- ویجت Elementor جستجوی پیشرفته با خروجی کاملاً AJAX و cache-safe
+- JSON-LD پزشک از نوع `Physician` در `wp_head`
+- حذف فیلدهای خالی از schema و پشتیبانی اختیاری از `aggregateRating`
+
 ## فاز ۶: تست، امنیت و پایداری
+
+وضعیت: شروع hardening در نسخه `1.1.0`
 
 - تست واحد و integration
 - تست همزمانی رزرو
@@ -72,3 +82,9 @@
 - hardening endpointها
 - audit مالی
 - مستندات release و عملیات پشتیبانی
+
+موارد انجام‌شده:
+
+- محدودیت ارسال OTP به صورت ۳ درخواست در ۱۵ دقیقه برای هر شماره و purpose
+- بررسی rate limit با کوئری `COUNT(*)` و ایندکس ترکیبی `mobile_purpose_created`
+- ادامه استفاده از permission callbackهای REST برای مسیرهای authenticated و مالکیت‌سنجی بیمار/پزشک/منشی

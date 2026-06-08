@@ -85,6 +85,18 @@ KEY status (status)
 - `debit`, `wallet_payment`, `settlement` مقدار منفی ایجاد می‌کنند.
 - `balance_after` بعد از هر ردیف ثبت می‌شود.
 
+## جدول OTP
+
+`wp_saas_otp_logs` کد خام را ذخیره نمی‌کند و فقط hash، purpose، زمان انقضا، IP و User Agent را نگه می‌دارد.
+
+برای محدودیت ارسال نسخه `1.1.0`، ایندکس ترکیبی زیر اضافه شده است:
+
+```sql
+KEY mobile_purpose_created (mobile,purpose,created_at)
+```
+
+این ایندکس برای کوئری سریع `COUNT(*)` روی هر موبایل و purpose در بازه زمانی ۱۵ دقیقه استفاده می‌شود.
+
 ## Migration
 
 برای migrationهای بعدی باید نسخه دیتابیس با option زیر کنترل شود:

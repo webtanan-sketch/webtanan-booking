@@ -13,6 +13,7 @@ final class Frontend {
     public static function init(): void {
         add_action('wp_enqueue_scripts', array(__CLASS__, 'register_assets'));
         add_action('wp_head', array(__CLASS__, 'maybe_noindex_private_pages'), 1);
+        add_action('wp_head', array(__CLASS__, 'render_doctor_schema_markup'), 20);
         add_shortcode('webtanan_booking_auth', array(__CLASS__, 'auth_shortcode'));
         add_shortcode('webtanan_booking_doctor_search', array(__CLASS__, 'doctor_search_shortcode'));
         add_shortcode('webtanan_booking_doctor_list', array(__CLASS__, 'doctor_list_shortcode'));
@@ -73,6 +74,83 @@ final class Frontend {
                 return;
             }
         }
+    }
+
+    public static function render_doctor_schema_markup(): void {
+        global $wpdb;
+
+        if (!is_singular('saas_doctors')) {
+            return;
+        }
+
+        $post_id = get_queried_object_id();
+        if (!$post_id) {
+            return;
+        }
+
+        $doctor = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT d.*, s.name AS specialty_name
+                FROM ' . DB::table('doctors') . ' d
+                LEFT JOIN ' . DB::table('specialties') . ' s ON s.id = d.specialty_id
+                WHERE d.post_id = %d AND d.is_active = 1 AND d.is_verified = 1
+                LIMIT 1',
+                $post_id
+            ),
+            ARRAY_A
+        );
+
+        if (!$doctor) {
+            return;
+        }
+
+        $description = get_the_excerpt($post_id);
+        if (!$description) {
+            $description = wp_trim_words(wp_strip_all_tags((string) get_post_field('post_content', $post_id)), 35);
+        }
+
+        $image_url = get_the_post_thumbnail_url($post_id, 'full');
+        $booking_fee = Booking::doctor_booking_fee($doctor);
+        $visit_price = (float) ($doctor['visit_price'] ?? 0);
+        $display_price = $booking_fee > 0 ? $booking_fee : $visit_price;
+        $schema = array(
+            '@context' => 'https://schema.org',
+            '@type' => 'Physician',
+            '@id' => trailingslashit(get_permalink($post_id)) . '#physician',
+            'name' => wp_strip_all_tags(get_the_title($post_id)),
+            'url' => get_permalink($post_id),
+            'description' => $description ? wp_strip_all_tags($description) : '',
+            'image' => $image_url ?: '',
+            'telephone' => !empty($doctor['clinic_phone']) ? wp_strip_all_tags((string) $doctor['clinic_phone']) : '',
+            'medicalSpecialty' => !empty($doctor['specialty_name']) ? wp_strip_all_tags((string) $doctor['specialty_name']) : '',
+            'priceRange' => $display_price > 0 ? number_format_i18n($display_price) . ' ' . __('تومان', 'webtanan-booking') : '',
+            'address' => !empty($doctor['clinic_address']) ? array(
+                '@type' => 'PostalAddress',
+                'streetAddress' => wp_strip_all_tags((string) $doctor['clinic_address']),
+                'addressCountry' => 'IR',
+            ) : array(),
+            'identifier' => !empty($doctor['medical_system_number']) ? array(
+                '@type' => 'PropertyValue',
+                'name' => __('کد نظام پزشکی', 'webtanan-booking'),
+                'value' => wp_strip_all_tags((string) $doctor['medical_system_number']),
+            ) : array(),
+            'availableService' => array(
+                '@type' => 'MedicalProcedure',
+                'name' => __('نوبت‌دهی پزشک', 'webtanan-booking'),
+            ),
+        );
+
+        $rating = self::doctor_aggregate_rating($post_id);
+        if ($rating) {
+            $schema['aggregateRating'] = $rating;
+        }
+
+        $schema = self::compact_schema($schema);
+        if (!$schema) {
+            return;
+        }
+
+        echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
     }
 
     public static function auth_shortcode(): string {
@@ -463,6 +541,57 @@ final class Frontend {
         <?php
 
         return (string) ob_get_clean();
+    }
+
+    private static function doctor_aggregate_rating(int $post_id): array {
+        global $wpdb;
+
+        $rating_meta_keys = array('rating', '_rating', 'webtanan_rating', '_webtanan_rating');
+        $placeholders = implode(',', array_fill(0, count($rating_meta_keys), '%s'));
+        $sql = "SELECT AVG(r.rating) AS avg_rating, COUNT(*) AS rating_count
+            FROM (
+                SELECT c.comment_ID, MAX(CAST(cm.meta_value AS DECIMAL(3,2))) AS rating
+                FROM $wpdb->comments c
+                INNER JOIN $wpdb->commentmeta cm ON cm.comment_id = c.comment_ID
+                WHERE c.comment_post_ID = %d
+                    AND c.comment_approved = '1'
+                    AND cm.meta_key IN ($placeholders)
+                    AND cm.meta_value <> ''
+                GROUP BY c.comment_ID
+            ) r
+            WHERE r.rating BETWEEN 1 AND 5";
+        $params = array_merge(array($post_id), $rating_meta_keys);
+        $row = $wpdb->get_row($wpdb->prepare($sql, $params), ARRAY_A);
+
+        if (!$row || (int) ($row['rating_count'] ?? 0) <= 0) {
+            return array();
+        }
+
+        return array(
+            '@type' => 'AggregateRating',
+            'ratingValue' => round((float) $row['avg_rating'], 2),
+            'reviewCount' => (int) $row['rating_count'],
+            'bestRating' => 5,
+            'worstRating' => 1,
+        );
+    }
+
+    private static function compact_schema(array $schema): array {
+        $compact = array();
+        foreach ($schema as $key => $value) {
+            if (is_array($value)) {
+                $value = self::compact_schema($value);
+                if (!$value) {
+                    continue;
+                }
+            } elseif (null === $value || '' === $value) {
+                continue;
+            }
+
+            $compact[$key] = $value;
+        }
+
+        return $compact;
     }
 
     private static function enqueue(): void {

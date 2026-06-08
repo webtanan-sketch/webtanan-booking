@@ -20,9 +20,12 @@ The plugin already includes:
 - 🛠️ Persian admin management pages
 - 🧑‍⚕️ Front-end doctor/secretary dashboard
 - 👤 Patient panel
-- 🔎 Public doctor profiles and archive foundation
+- 🔎 AJAX Elementor doctor search and public doctor profiles
+- 🧬 Doctor JSON-LD schema generated in `wp_head`
+- 🛡️ OTP send rate limiting with indexed lookup
+- 📊 Admin financial reports
 
-The next work should focus on UI/UX, Persian calendar, production-grade finance flows, Elementor widgets, SEO, and hardening.
+The next work should focus on browser/load testing, race-condition test automation, payment callback replay testing, and cache compatibility verification.
 
 ---
 
@@ -133,6 +136,8 @@ Goal: complete financial operations for real-world use.
 
 Goal: make the public-facing website professional, SEO-ready, and Elementor-friendly.
 
+Status: mostly complete through versions `1.0.0` to `1.1.0`.
+
 ### Issues
 
 - 🧩 Build Elementor Doctor Card Widget
@@ -153,16 +158,21 @@ Goal: make the public-facing website professional, SEO-ready, and Elementor-frie
 
 Goal: test, secure, and stabilize the plugin before real customer deployment.
 
+Status: started in version `1.1.0`.
+
 ### Issues
 
-- 🔒 Perform REST API Security Audit
+- ✅ 🔒 Perform REST API Security Audit
+- ✅ 🧬 Add Doctor Schema Markup
 - ⚔️ Test Appointment Race Conditions
 - 💳 Test Payment Callback Idempotency
 - 🚀 Cache Compatibility Testing
 
 ### Expected Output
 
-- Hardened REST permissions
+- Hardened REST permissions with explicit `wp_rest` nonce checks on authenticated routes
+- OTP rate limiting: 3 sends per mobile/purpose in 15 minutes
+- Doctor JSON-LD schema with empty fields omitted
 - Race condition tests
 - Payment callback idempotency
 - Cache compatibility verification
