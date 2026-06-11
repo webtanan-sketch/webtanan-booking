@@ -104,3 +104,16 @@ KEY mobile_purpose_created (mobile,purpose,created_at)
 `webtanan_booking_db_version`
 
 در نسخه‌های بعدی بهتر است migrationها idempotent باشند و قبل از تغییر index یا column وجود آن بررسی شود.
+# v1.2.2 Tables Added
+
+## `wp_saas_patient_records`
+
+Stores the main medical record for a patient under a doctor. It is keyed by `doctor_id + patient_user_id` and keeps summary, allergies, chronic conditions, current medications, mobile, national code, creator/updater, and timestamps.
+
+## `wp_saas_patient_record_notes`
+
+Stores append-only visit notes for a medical record. Each note can be linked to an appointment and has `visibility=patient|private`.
+
+## `wp_saas_survey_responses`
+
+Stores private survey feedback after an appointment. If the patient allows public display, a pending WordPress comment is also created on the doctor CPT, while this table remains the operational source for reports.

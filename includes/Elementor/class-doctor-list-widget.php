@@ -26,6 +26,14 @@ final class Doctor_List_Widget extends \Elementor\Widget_Base {
         return array('general');
     }
 
+    public function get_style_depends(): array {
+        return array('webtanan-booking-frontend');
+    }
+
+    public function get_script_depends(): array {
+        return array('webtanan-booking-frontend');
+    }
+
     protected function register_controls(): void {
         $this->start_controls_section('content', array('label' => __('محتوا', 'webtanan-booking')));
         $this->add_control(
@@ -33,7 +41,7 @@ final class Doctor_List_Widget extends \Elementor\Widget_Base {
             array(
                 'label' => __('تعداد پزشک در هر صفحه', 'webtanan-booking'),
                 'type' => \Elementor\Controls_Manager::NUMBER,
-                'default' => 12,
+                'default' => 50,
                 'min' => 1,
                 'max' => 50,
             )
@@ -91,6 +99,18 @@ final class Doctor_List_Widget extends \Elementor\Widget_Base {
             )
         );
         $this->add_control(
+            'layout',
+            array(
+                'label' => __('چیدمان کارت‌ها', 'webtanan-booking'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => 'grid',
+                'options' => array(
+                    'grid' => __('شبکه‌ای', 'webtanan-booking'),
+                    'list' => __('لیستی', 'webtanan-booking'),
+                ),
+            )
+        );
+        $this->add_control(
             'online',
             array(
                 'label' => __('فقط پرداخت آنلاین', 'webtanan-booking'),
@@ -114,12 +134,13 @@ final class Doctor_List_Widget extends \Elementor\Widget_Base {
     protected function render(): void {
         $settings = $this->get_settings_for_display();
         echo do_shortcode(
-            '[webtanan_booking_doctor_list per_page="' . absint($settings['per_page'] ?? 12) .
+            '[webtanan_booking_doctor_list per_page="' . absint($settings['per_page'] ?? 50) .
             '" specialty_id="' . absint($settings['specialty_id'] ?? 0) .
             '" province_id="' . absint($settings['province_id'] ?? 0) .
             '" city_id="' . absint($settings['city_id'] ?? 0) .
             '" payment_filter="' . esc_attr($settings['payment_filter'] ?? '') .
             '" sort="' . esc_attr($settings['sort'] ?? '') .
+            '" layout="' . esc_attr($settings['layout'] ?? 'grid') .
             '" online="' . esc_attr($settings['online'] ?? '') .
             '" pay_at_clinic="' . esc_attr($settings['pay_at_clinic'] ?? '') . '"]'
         );

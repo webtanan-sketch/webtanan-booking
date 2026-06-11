@@ -12,6 +12,8 @@ defined('ABSPATH') || exit;
 final class SMS {
     public static function init(): void {
         add_action('webtanan_booking_send_reminders', array(__CLASS__, 'send_24h_reminders'));
+        add_action('webtanan_booking_send_waiting_list_messages', array(__CLASS__, 'send_waiting_list_30m_messages'));
+        add_action('webtanan_booking_send_survey_requests', array(__CLASS__, 'send_survey_requests'));
     }
 
     public static function message_types(): array {
@@ -28,6 +30,10 @@ final class SMS {
             'settlement_requested' => __('درخواست تسویه ثبت شد', 'webtanan-booking'),
             'settlement_paid' => __('تسویه پرداخت شد', 'webtanan-booking'),
             'settlement_status' => __('وضعیت تسویه', 'webtanan-booking'),
+            'appointment_survey' => __('نظرسنجی بعد از نوبت', 'webtanan-booking'),
+            'waiting_list_30m' => __('جایگاه صف انتظار نیم ساعت قبل', 'webtanan-booking'),
+            'bulk_appointment_cancelled' => __('لغو گروهی نوبت‌ها', 'webtanan-booking'),
+            'manual_sms' => __('پیامک معمولی مدیریت', 'webtanan-booking'),
         );
     }
 
@@ -127,8 +133,144 @@ final class SMS {
         return $sent;
     }
 
+    public static function send_waiting_list_30m_messages(): int {
+        global $wpdb;
+
+        $settings = self::settings();
+        if (empty($settings['enabled']) || empty($settings['reminder_enabled'])) {
+            return 0;
+        }
+
+        $now = current_time('timestamp');
+        $from = date('Y-m-d H:i:s', $now + (25 * MINUTE_IN_SECONDS));
+        $to = date('Y-m-d H:i:s', $now + (35 * MINUTE_IN_SECONDS));
+        $appointments = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM " . DB::table('appointments') . "
+                WHERE appointment_status IN ('confirmed','pay_at_clinic')
+                    AND patient_mobile <> ''
+                    AND CONCAT(appointment_date, ' ', start_time) BETWEEN %s AND %s
+                ORDER BY appointment_date ASC, start_time ASC
+                LIMIT 200",
+                $from,
+                $to
+            ),
+            ARRAY_A
+        );
+
+        $sent = 0;
+        foreach ($appointments as $appointment) {
+            if (self::sms_already_sent((int) $appointment['id'], 'waiting_list_30m')) {
+                continue;
+            }
+
+            $snapshot = class_exists(__NAMESPACE__ . '\Booking') ? Booking::waiting_list_snapshot($appointment) : array();
+            $result = self::send_pattern(
+                $appointment['patient_mobile'],
+                'waiting_list_30m',
+                array(
+                    'queue_position' => (string) ($snapshot['queue_position'] ?? 1),
+                    'ahead_count' => (string) ($snapshot['ahead_count'] ?? 0),
+                    'waiting_list_url' => self::waiting_list_url($appointment),
+                ),
+                (int) $appointment['id']
+            );
+
+            if (in_array($result['status'], array('sent', 'test_mode'), true)) {
+                $sent++;
+            }
+        }
+
+        return $sent;
+    }
+
+    public static function send_survey_requests(): int {
+        global $wpdb;
+
+        $settings = self::settings();
+        if (empty($settings['enabled'])) {
+            return 0;
+        }
+
+        $now = current_time('timestamp');
+        $from = date('Y-m-d H:i:s', $now - (2 * HOUR_IN_SECONDS));
+        $to = date('Y-m-d H:i:s', $now - HOUR_IN_SECONDS);
+        $appointments = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM " . DB::table('appointments') . "
+                WHERE appointment_status IN ('confirmed','pay_at_clinic','completed')
+                    AND patient_mobile <> ''
+                    AND CONCAT(appointment_date, ' ', start_time) BETWEEN %s AND %s
+                ORDER BY appointment_date ASC, start_time ASC
+                LIMIT 200",
+                $from,
+                $to
+            ),
+            ARRAY_A
+        );
+
+        $sent = 0;
+        foreach ($appointments as $appointment) {
+            if (self::sms_already_sent((int) $appointment['id'], 'appointment_survey')) {
+                continue;
+            }
+
+            $result = self::send_pattern(
+                $appointment['patient_mobile'],
+                'appointment_survey',
+                array('survey_url' => self::survey_url($appointment)),
+                (int) $appointment['id']
+            );
+
+            if (in_array($result['status'], array('sent', 'test_mode'), true)) {
+                $sent++;
+            }
+        }
+
+        return $sent;
+    }
+
     public static function list_ippanel_patterns(int $page = 1, int $per_page = 100): array {
         return (new IPPanel_SMS_Service())->list_patterns($page, $per_page);
+    }
+
+    public static function send_normal(array $mobiles, string $message, array $variables = array(), int $appointment_id = 0): array {
+        $settings = self::settings();
+        $message = trim(wp_strip_all_tags($message));
+        $mobiles = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static function ($mobile): string {
+                            return IPPanel_SMS_Service::normalize_mobile_e164((string) $mobile);
+                        },
+                        $mobiles
+                    )
+                )
+            )
+        );
+
+        if (!$mobiles || '' === $message) {
+            return array('status' => 'failed', 'provider_response' => array('message' => __('گیرنده یا متن پیامک خالی است.', 'webtanan-booking')));
+        }
+
+        if (empty($settings['enabled'])) {
+            $result = array('success' => false, 'status' => 'disabled', 'message' => 'SMS module is disabled.');
+            foreach ($mobiles as $mobile) {
+                self::log_and_return($mobile, '', 'manual_sms', array_merge($variables, array('message' => $message)), $result, 'disabled', $appointment_id);
+            }
+
+            return array('status' => 'disabled', 'provider_response' => $result, 'recipients' => count($mobiles));
+        }
+
+        $result = (new IPPanel_SMS_Service())->send_normal($mobiles, $message);
+        $status = self::status_from_result($result);
+
+        foreach ($mobiles as $mobile) {
+            self::log_and_return($mobile, '', 'manual_sms', array_merge($variables, array('message' => $message)), $result, $status, $appointment_id);
+        }
+
+        return array('status' => $status, 'provider_response' => $result, 'recipients' => count($mobiles));
     }
 
     public static function send_staff_appointment_notification(int $appointment_id, string $message_type): array {
@@ -287,7 +429,7 @@ final class SMS {
     }
 
     private static function message_type_allowed(string $message_type, array $settings): bool {
-        if (in_array($message_type, array('appointment_confirmed', 'appointment_cancelled', 'wallet_charged', 'late_payment_wallet_charged', 'reminder_24h', 'payment_failed', 'otp'), true)) {
+        if (in_array($message_type, array('appointment_confirmed', 'appointment_cancelled', 'wallet_charged', 'late_payment_wallet_charged', 'reminder_24h', 'payment_failed', 'otp', 'appointment_survey', 'waiting_list_30m'), true)) {
             return !empty($settings['send_to_patient']);
         }
 
@@ -300,6 +442,18 @@ final class SMS {
         }
 
         return true;
+    }
+
+    private static function sms_already_sent(int $appointment_id, string $message_type): bool {
+        global $wpdb;
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COUNT(*) FROM ' . DB::table('sms_logs') . ' WHERE related_appointment_id = %d AND message_type = %s AND status IN ("sent","test_mode","queued")',
+                $appointment_id,
+                $message_type
+            )
+        ) > 0;
     }
 
     private static function mobile_for_user(int $user_id): string {
@@ -364,6 +518,10 @@ final class SMS {
                         'appointment_code' => $appointment['appointment_code'],
                         'code' => $appointment['appointment_code'],
                         'refund_status' => __('استرداد کیف پول طبق قانون لغو محاسبه می‌شود.', 'webtanan-booking'),
+                        'clinic_name' => $doctor['clinic_name'] ?? '',
+                        'clinic_address' => $doctor['clinic_address'] ?? '',
+                        'waiting_list_url' => self::waiting_list_url($appointment),
+                        'survey_url' => self::survey_url($appointment),
                     ),
                     $variables
                 );
@@ -376,5 +534,44 @@ final class SMS {
         }
 
         return IPPanel_SMS_Service::sanitize_params($variables);
+    }
+
+    private static function waiting_list_url(array $appointment): string {
+        return add_query_arg(
+            array(
+                'webtanan_waiting_list' => 1,
+                'appointment_code' => (string) $appointment['appointment_code'],
+                'token' => self::appointment_token($appointment, 'waiting-list'),
+            ),
+            home_url('/')
+        );
+    }
+
+    private static function survey_url(array $appointment): string {
+        return add_query_arg(
+            array(
+                'webtanan_survey' => 1,
+                'appointment_code' => (string) $appointment['appointment_code'],
+                'token' => self::appointment_token($appointment, 'survey'),
+            ),
+            home_url('/')
+        );
+    }
+
+    public static function appointment_token(array $appointment, string $purpose): string {
+        $payload = implode('|', array(
+            sanitize_key($purpose),
+            (int) ($appointment['id'] ?? 0),
+            (string) ($appointment['appointment_code'] ?? ''),
+            (string) ($appointment['patient_mobile'] ?? ''),
+        ));
+
+        return hash_hmac('sha256', $payload, wp_salt('nonce'));
+    }
+
+    public static function verify_appointment_token(array $appointment, string $purpose, string $token): bool {
+        $expected = self::appointment_token($appointment, $purpose);
+
+        return '' !== $token && hash_equals($expected, sanitize_text_field($token));
     }
 }

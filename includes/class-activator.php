@@ -11,6 +11,7 @@ defined('ABSPATH') || exit;
 
 final class Activator {
     public static function activate(): void {
+        add_filter('cron_schedules', array(__NAMESPACE__ . '\Cron', 'schedules'));
         DB::create_tables();
         Roles::add_roles();
         self::seed_specialties();
@@ -23,11 +24,16 @@ final class Activator {
             wp_schedule_event(time() + HOUR_IN_SECONDS, 'hourly', 'webtanan_booking_hourly_cron');
         }
 
+        if (!wp_next_scheduled('webtanan_booking_15m_cron')) {
+            wp_schedule_event(time() + (15 * MINUTE_IN_SECONDS), 'webtanan_booking_15_minutes', 'webtanan_booking_15m_cron');
+        }
+
         flush_rewrite_rules();
     }
 
     public static function deactivate(): void {
         wp_clear_scheduled_hook('webtanan_booking_hourly_cron');
+        wp_clear_scheduled_hook('webtanan_booking_15m_cron');
         flush_rewrite_rules();
     }
 

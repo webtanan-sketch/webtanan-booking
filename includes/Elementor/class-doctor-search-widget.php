@@ -49,7 +49,7 @@ final class Doctor_Search_Widget extends \Elementor\Widget_Base {
             array(
                 'label' => __('تعداد نتیجه', 'webtanan-booking'),
                 'type' => \Elementor\Controls_Manager::NUMBER,
-                'default' => 12,
+                'default' => 50,
                 'min' => 1,
                 'max' => 50,
             )
@@ -177,7 +177,7 @@ final class Doctor_Search_Widget extends \Elementor\Widget_Base {
         $settings = $this->get_settings_for_display();
 
         echo do_shortcode(
-            '[webtanan_booking_doctor_search per_page="' . absint($settings['per_page'] ?? 12) .
+            '[webtanan_booking_doctor_search per_page="' . absint($settings['per_page'] ?? 50) .
             '" default_search="' . esc_attr($settings['default_search'] ?? '') .
             '" search_placeholder="' . esc_attr($settings['search_placeholder'] ?? '') .
             '" specialty_id="' . absint($settings['specialty_id'] ?? 0) .

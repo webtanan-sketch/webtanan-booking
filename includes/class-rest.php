@@ -13,7 +13,41 @@ final class REST {
     private const NS = 'saas/v1';
 
     public static function init(): void {
+        add_action('parse_request', array(__CLASS__, 'normalize_malformed_plain_rest_route'), 0);
         add_action('rest_api_init', array(__CLASS__, 'register_routes'));
+    }
+
+    public static function normalize_malformed_plain_rest_route(\WP $wp): void {
+        $route = '';
+        if (isset($wp->query_vars['rest_route'])) {
+            $route = (string) $wp->query_vars['rest_route'];
+        } elseif (isset($_GET['rest_route'])) {
+            $route = (string) wp_unslash($_GET['rest_route']);
+        }
+
+        if ('' === $route || false === strpos($route, '?')) {
+            return;
+        }
+
+        list($clean_route, $query_string) = explode('?', $route, 2);
+        $clean_route = '/' . ltrim($clean_route, '/');
+        $extra_params = array();
+        parse_str($query_string, $extra_params);
+
+        $wp->query_vars['rest_route'] = $clean_route;
+        $_GET['rest_route'] = $clean_route;
+        $_REQUEST['rest_route'] = $clean_route;
+
+        foreach ($extra_params as $key => $value) {
+            $key = sanitize_key((string) $key);
+            if ('' === $key || isset($_GET[$key])) {
+                continue;
+            }
+
+            $_GET[$key] = is_scalar($value) ? sanitize_text_field((string) $value) : $value;
+            $_REQUEST[$key] = $_GET[$key];
+            $wp->query_vars[$key] = $_GET[$key];
+        }
     }
 
     public static function register_routes(): void {
@@ -98,6 +132,30 @@ final class REST {
             'permission_callback' => array(__CLASS__, 'logged_in'),
         ));
 
+        register_rest_route(self::NS, '/wallet/topup', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(__CLASS__, 'wallet_topup'),
+            'permission_callback' => array(__CLASS__, 'logged_in'),
+        ));
+
+        register_rest_route(self::NS, '/payments/resume/send-otp', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(__CLASS__, 'resume_payment_send_otp'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route(self::NS, '/payments/resume/verify', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(__CLASS__, 'resume_payment_verify'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route(self::NS, '/payments/resume/pay', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(__CLASS__, 'resume_payment_pay'),
+            'permission_callback' => '__return_true',
+        ));
+
         register_rest_route(self::NS, '/auth/send-otp', array(
             'methods' => \WP_REST_Server::CREATABLE,
             'callback' => array(__CLASS__, 'send_otp'),
@@ -139,6 +197,12 @@ final class REST {
                 'callback' => array(__CLASS__, 'doctor_dashboard_create_appointment'),
                 'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
             ),
+        ));
+
+        register_rest_route(self::NS, '/doctor-dashboard/appointments/bulk-cancel', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(__CLASS__, 'doctor_dashboard_bulk_cancel_appointments'),
+            'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
         ));
 
         register_rest_route(self::NS, '/doctor-dashboard/appointments/(?P<id>\d+)/payment', array(
@@ -191,6 +255,25 @@ final class REST {
             'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
         ));
 
+        register_rest_route(self::NS, '/doctor-dashboard/patients/(?P<patient_id>\d+)/record', array(
+            array(
+                'methods' => \WP_REST_Server::READABLE,
+                'callback' => array(__CLASS__, 'doctor_dashboard_patient_record'),
+                'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
+            ),
+            array(
+                'methods' => \WP_REST_Server::CREATABLE,
+                'callback' => array(__CLASS__, 'doctor_dashboard_update_patient_record'),
+                'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
+            ),
+        ));
+
+        register_rest_route(self::NS, '/doctor-dashboard/patients/(?P<patient_id>\d+)/record/notes', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(__CLASS__, 'doctor_dashboard_add_patient_record_note'),
+            'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
+        ));
+
         register_rest_route(self::NS, '/doctor-dashboard/wallet', array(
             'methods' => \WP_REST_Server::READABLE,
             'callback' => array(__CLASS__, 'doctor_dashboard_wallet'),
@@ -206,6 +289,25 @@ final class REST {
         register_rest_route(self::NS, '/doctor-dashboard/settlement-request', array(
             'methods' => \WP_REST_Server::CREATABLE,
             'callback' => array(__CLASS__, 'doctor_dashboard_settlement'),
+            'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
+        ));
+
+        register_rest_route(self::NS, '/doctor-dashboard/profile', array(
+            array(
+                'methods' => \WP_REST_Server::READABLE,
+                'callback' => array(__CLASS__, 'doctor_dashboard_profile'),
+                'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
+            ),
+            array(
+                'methods' => \WP_REST_Server::CREATABLE,
+                'callback' => array(__CLASS__, 'doctor_dashboard_update_profile'),
+                'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
+            ),
+        ));
+
+        register_rest_route(self::NS, '/doctor-dashboard/profile/upload', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(__CLASS__, 'doctor_dashboard_profile_upload'),
             'permission_callback' => array(__CLASS__, 'doctor_dashboard_permission'),
         ));
 
@@ -227,6 +329,31 @@ final class REST {
             'permission_callback' => array(__CLASS__, 'logged_in'),
         ));
 
+        register_rest_route(self::NS, '/patient-panel/medical-records', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'patient_panel_medical_records'),
+            'permission_callback' => array(__CLASS__, 'logged_in'),
+        ));
+
+        register_rest_route(self::NS, '/appointments/(?P<code>[A-Za-z0-9_-]+)/waiting-list', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'appointment_waiting_list'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route(self::NS, '/appointments/(?P<code>[A-Za-z0-9_-]+)/survey', array(
+            array(
+                'methods' => \WP_REST_Server::READABLE,
+                'callback' => array(__CLASS__, 'appointment_survey'),
+                'permission_callback' => '__return_true',
+            ),
+            array(
+                'methods' => \WP_REST_Server::CREATABLE,
+                'callback' => array(__CLASS__, 'submit_appointment_survey'),
+                'permission_callback' => '__return_true',
+            ),
+        ));
+
         register_rest_route(self::NS, '/appointments/(?P<id>\d+)/receipt', array(
             'methods' => \WP_REST_Server::READABLE,
             'callback' => array(__CLASS__, 'appointment_receipt'),
@@ -237,7 +364,7 @@ final class REST {
     public static function doctors(\WP_REST_Request $request): \WP_REST_Response {
         global $wpdb;
 
-        $limit = max(1, min(50, absint($request->get_param('per_page') ?: 20)));
+        $limit = max(1, min(50, absint($request->get_param('per_page') ?: 50)));
         $search = sanitize_text_field((string) $request->get_param('search'));
         $specialty_id = absint($request->get_param('specialty_id'));
         $city_id = absint($request->get_param('city_id'));
@@ -335,11 +462,23 @@ final class REST {
     }
 
     public static function slots(\WP_REST_Request $request): \WP_REST_Response {
-        return rest_ensure_response(Booking::get_slots(absint($request['id']), sanitize_text_field((string) $request->get_param('date'))));
+        $date = self::normalize_rest_date((string) $request->get_param('date'));
+        if (!$date) {
+            return rest_ensure_response(array());
+        }
+
+        return rest_ensure_response(Booking::get_slots(absint($request['id']), $date));
     }
 
     public static function lock_appointment(\WP_REST_Request $request) {
-        $result = Booking::lock_appointment($request->get_params());
+        $params = $request->get_params();
+        $date = self::normalize_rest_date((string) ($params['appointment_date'] ?? ''));
+        if (!$date) {
+            return new \WP_Error('webtanan_invalid_appointment_date', __('تاریخ نوبت معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $params['appointment_date'] = $date;
+        $result = Booking::lock_appointment($params);
 
         return is_wp_error($result) ? $result : rest_ensure_response($result);
     }
@@ -449,6 +588,92 @@ final class REST {
         return is_wp_error($result) ? $result : rest_ensure_response($result);
     }
 
+    public static function wallet_topup(\WP_REST_Request $request) {
+        $amount = (float) $request->get_param('amount');
+        $gateway = sanitize_key((string) ($request->get_param('gateway') ?: $request->get_param('gateway_name')));
+        $settings = DB::get_settings();
+        $min_amount = max(1000, (float) ($settings['wallet_topup_min_amount'] ?? 10000));
+        $max_amount = max($min_amount, (float) ($settings['wallet_topup_max_amount'] ?? 50000000));
+
+        if ($amount < $min_amount || $amount > $max_amount) {
+            return new \WP_Error(
+                'webtanan_wallet_topup_amount_out_of_range',
+                sprintf(__('مبلغ شارژ کیف پول باید بین %s تا %s تومان باشد.', 'webtanan-booking'), number_format_i18n($min_amount), number_format_i18n($max_amount)),
+                array('status' => 400)
+            );
+        }
+
+        $result = Payment_Gateways::initiate_wallet_topup(get_current_user_id(), $amount, $gateway);
+
+        return is_wp_error($result) ? $result : rest_ensure_response($result);
+    }
+
+    public static function resume_payment_send_otp(\WP_REST_Request $request) {
+        $appointment = self::appointment_by_code_and_mobile((string) $request->get_param('appointment_code'), (string) $request->get_param('mobile'));
+        if (is_wp_error($appointment)) {
+            return $appointment;
+        }
+
+        if (!self::appointment_can_resume_payment($appointment)) {
+            return new \WP_Error('webtanan_resume_payment_not_available', __('این نوبت قابل پرداخت مجدد نیست.', 'webtanan-booking'), array('status' => 409));
+        }
+
+        $result = OTP::send((string) $appointment['patient_mobile'], 'resume_payment');
+
+        return is_wp_error($result) ? $result : rest_ensure_response(array('sent' => true, 'expires_at' => $result['expires_at'] ?? ''));
+    }
+
+    public static function resume_payment_verify(\WP_REST_Request $request) {
+        $appointment = self::appointment_by_code_and_mobile((string) $request->get_param('appointment_code'), (string) $request->get_param('mobile'));
+        if (is_wp_error($appointment)) {
+            return $appointment;
+        }
+
+        if (!self::appointment_can_resume_payment($appointment)) {
+            return new \WP_Error('webtanan_resume_payment_not_available', __('این نوبت قابل پرداخت مجدد نیست.', 'webtanan-booking'), array('status' => 409));
+        }
+
+        $otp = OTP::verify((string) $appointment['patient_mobile'], (string) $request->get_param('otp'), 'resume_payment');
+        if (is_wp_error($otp)) {
+            return $otp;
+        }
+
+        return rest_ensure_response(
+            array(
+                'verified' => true,
+                'resume_token' => Payment_Gateways::resume_token((int) $appointment['id'], (string) $appointment['patient_mobile']),
+                'appointment' => self::format_appointment($appointment),
+                'nonce' => wp_create_nonce('wp_rest'),
+            )
+        );
+    }
+
+    public static function resume_payment_pay(\WP_REST_Request $request) {
+        $verified = Payment_Gateways::verify_resume_token((string) $request->get_param('resume_token'));
+        if (is_wp_error($verified)) {
+            return $verified;
+        }
+
+        $lock = Booking::renew_lock_for_resume((int) $verified['appointment_id'], (string) $verified['mobile']);
+        if (is_wp_error($lock)) {
+            return $lock;
+        }
+
+        if (!empty($lock['status']) && 'already_confirmed' === $lock['status']) {
+            return rest_ensure_response($lock);
+        }
+
+        $method = sanitize_key((string) ($request->get_param('method') ?: 'gateway'));
+        $gateway = sanitize_key((string) ($request->get_param('gateway') ?: $request->get_param('gateway_name')));
+        if ('wallet' === $method) {
+            $result = Wallet::pay_for_appointment((int) $lock['appointment_id'], (string) $lock['lock_token']);
+        } else {
+            $result = Booking::initiate_payment((int) $lock['appointment_id'], (string) $lock['lock_token'], $gateway);
+        }
+
+        return is_wp_error($result) ? $result : rest_ensure_response(array_merge($lock, $result));
+    }
+
     public static function send_otp(\WP_REST_Request $request) {
         $result = OTP::send((string) $request->get_param('mobile'), (string) ($request->get_param('purpose') ?: 'login'));
 
@@ -481,6 +706,8 @@ final class REST {
                 ),
                 'doctors' => $doctors,
                 'active_doctor_id' => $active_doctor_id,
+                'can_switch_doctors' => self::current_user_can_switch_doctors($doctors),
+                'can_edit_profile' => $active_doctor_id ? self::current_user_can_edit_doctor_profile(Booking::get_doctor($active_doctor_id) ?: array()) : false,
                 'can_view_finance' => $active_doctor_id ? self::current_user_can_view_doctor_finance($active_doctor_id) : false,
                 'today' => current_time('Y-m-d'),
             )
@@ -496,7 +723,10 @@ final class REST {
         }
 
         $doctor = Booking::get_doctor($doctor_id);
-        $date = sanitize_text_field((string) ($request->get_param('date') ?: current_time('Y-m-d')));
+        $date = self::normalize_rest_date((string) ($request->get_param('date') ?: current_time('Y-m-d')));
+        if (!$date) {
+            return new \WP_Error('webtanan_invalid_dashboard_date', __('تاریخ داشبورد معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
         $appointments = DB::table('appointments');
 
         $row = $wpdb->get_row(
@@ -557,7 +787,10 @@ final class REST {
             return new \WP_Error('webtanan_doctor_context_missing', __('دسترسی پزشک پیدا نشد.', 'webtanan-booking'), array('status' => 403));
         }
 
-        $date = sanitize_text_field((string) ($request->get_param('date') ?: current_time('Y-m-d')));
+        $date = self::normalize_rest_date((string) ($request->get_param('date') ?: current_time('Y-m-d')));
+        if (!$date) {
+            return new \WP_Error('webtanan_invalid_dashboard_date', __('تاریخ داشبورد معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
         $search = sanitize_text_field((string) $request->get_param('search'));
         $status = sanitize_key((string) $request->get_param('status'));
         $payment_status = sanitize_key((string) $request->get_param('payment_status'));
@@ -596,7 +829,13 @@ final class REST {
         }
 
         $params = $request->get_params();
+        $date = self::normalize_rest_date((string) ($params['appointment_date'] ?? ''));
+        if (!$date) {
+            return new \WP_Error('webtanan_invalid_appointment_date', __('تاریخ نوبت معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
+
         $params['doctor_id'] = $doctor_id;
+        $params['appointment_date'] = $date;
         $result = Booking::create_staff_appointment($params);
 
         return is_wp_error($result) ? $result : rest_ensure_response($result);
@@ -626,13 +865,77 @@ final class REST {
         return is_wp_error($result) ? $result : rest_ensure_response($result);
     }
 
+    public static function doctor_dashboard_bulk_cancel_appointments(\WP_REST_Request $request) {
+        global $wpdb;
+
+        $doctor_id = self::current_dashboard_doctor_id($request);
+        if (!$doctor_id || !Booking::current_user_can_access_doctor($doctor_id)) {
+            return new \WP_Error('webtanan_doctor_context_missing', __('دسترسی پزشک پیدا نشد.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $ids = self::sanitize_id_list($request->get_param('appointment_ids'));
+        $date = self::normalize_rest_date((string) $request->get_param('date'));
+        if (!$ids && $date) {
+            $ids = array_map(
+                'absint',
+                $wpdb->get_col(
+                    $wpdb->prepare(
+                        "SELECT id FROM " . DB::table('appointments') . "
+                        WHERE doctor_id = %d
+                            AND appointment_date = %s
+                            AND appointment_status IN ('locked','confirmed','pay_at_clinic')
+                        ORDER BY start_time ASC",
+                        $doctor_id,
+                        $date
+                    )
+                )
+            );
+        }
+
+        if (!$ids) {
+            return new \WP_Error('webtanan_bulk_cancel_empty', __('هیچ نوبت قابل لغوی انتخاب نشده است.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $allowed_ids = array();
+        foreach ($ids as $appointment_id) {
+            $appointment = Booking::get_appointment($appointment_id);
+            if ($appointment && (int) $appointment['doctor_id'] === $doctor_id && Booking::current_user_can_access_doctor($doctor_id)) {
+                $allowed_ids[] = $appointment_id;
+            }
+        }
+
+        if (!$allowed_ids) {
+            return new \WP_Error('webtanan_bulk_cancel_forbidden', __('نوبت‌های انتخاب‌شده برای این پزشک قابل مدیریت نیستند.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $actor = current_user_can('webtanan_manage_booking') || current_user_can('manage_options') ? 'admin' : (Booking::current_user_is_secretary() ? 'secretary' : 'doctor');
+        $summary = Booking::bulk_cancel_appointments($allowed_ids, $actor, sanitize_textarea_field((string) $request->get_param('reason')));
+        SMS::send_doctor_notification(
+            $doctor_id,
+            'bulk_appointment_cancelled',
+            array(
+                'date' => $date ?: current_time('Y-m-d'),
+                'status' => 'cancelled',
+                'reason' => sanitize_textarea_field((string) $request->get_param('reason')),
+                'amount' => (string) ($summary['refund_total'] ?? 0),
+            )
+        );
+
+        return rest_ensure_response($summary);
+    }
+
     public static function doctor_dashboard_calendar(\WP_REST_Request $request) {
         $doctor_id = self::current_dashboard_doctor_id($request);
         if (!$doctor_id) {
             return new \WP_Error('webtanan_doctor_context_missing', __('دسترسی پزشک پیدا نشد.', 'webtanan-booking'), array('status' => 403));
         }
 
-        return rest_ensure_response(Booking::get_slots($doctor_id, sanitize_text_field((string) ($request->get_param('date') ?: current_time('Y-m-d')))));
+        $date = self::normalize_rest_date((string) ($request->get_param('date') ?: current_time('Y-m-d')));
+        if (!$date) {
+            return rest_ensure_response(array());
+        }
+
+        return rest_ensure_response(Booking::get_slots($doctor_id, $date));
     }
 
     public static function doctor_dashboard_schedules(\WP_REST_Request $request) {
@@ -697,7 +1000,10 @@ final class REST {
             return new \WP_Error('webtanan_doctor_context_missing', __('دسترسی پزشک پیدا نشد.', 'webtanan-booking'), array('status' => 403));
         }
 
-        $from = sanitize_text_field((string) ($request->get_param('from') ?: current_time('Y-m-d')));
+        $from = self::normalize_rest_date((string) ($request->get_param('from') ?: current_time('Y-m-d')));
+        if (!$from) {
+            return new \WP_Error('webtanan_invalid_exception_date', __('تاریخ استثنا معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
         $rows = $wpdb->get_results(
             $wpdb->prepare('SELECT * FROM ' . DB::table('schedule_exceptions') . ' WHERE doctor_id = %d AND exception_date >= %s ORDER BY exception_date ASC, start_time ASC LIMIT 100', $doctor_id, $from),
             ARRAY_A
@@ -719,7 +1025,10 @@ final class REST {
             return new \WP_Error('webtanan_invalid_exception_type', __('نوع استثنا معتبر نیست.', 'webtanan-booking'), array('status' => 400));
         }
 
-        $date = sanitize_text_field((string) $request->get_param('exception_date'));
+        $date = self::normalize_rest_date((string) $request->get_param('exception_date'));
+        if (!$date) {
+            return new \WP_Error('webtanan_invalid_exception_date', __('تاریخ استثنا معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
         $start_time = self::normalize_rest_time((string) $request->get_param('start_time'));
         $end_time = self::normalize_rest_time((string) $request->get_param('end_time'));
         if ('day_off' !== $type && (!$start_time || !$end_time)) {
@@ -768,6 +1077,7 @@ final class REST {
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT
+                    MAX(patient_user_id) AS patient_user_id,
                     patient_first_name,
                     patient_last_name,
                     patient_national_code,
@@ -785,6 +1095,80 @@ final class REST {
         );
 
         return rest_ensure_response($rows);
+    }
+
+    public static function doctor_dashboard_patient_record(\WP_REST_Request $request) {
+        $doctor_id = self::current_dashboard_doctor_id($request);
+        $patient_id = absint($request['patient_id']);
+        if (!$doctor_id || !$patient_id || !self::doctor_can_access_patient($doctor_id, $patient_id)) {
+            return new \WP_Error('webtanan_patient_record_forbidden', __('شما اجازه مشاهده پرونده این بیمار را ندارید.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $record = self::patient_record_payload($doctor_id, $patient_id, true);
+
+        return rest_ensure_response($record);
+    }
+
+    public static function doctor_dashboard_update_patient_record(\WP_REST_Request $request) {
+        global $wpdb;
+
+        $doctor_id = self::current_dashboard_doctor_id($request);
+        $patient_id = absint($request['patient_id']);
+        if (!$doctor_id || !$patient_id || !self::doctor_can_access_patient($doctor_id, $patient_id)) {
+            return new \WP_Error('webtanan_patient_record_forbidden', __('شما اجازه ویرایش پرونده این بیمار را ندارید.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $record = self::patient_record_payload($doctor_id, $patient_id, true);
+        $now = DB::now();
+        $data = array(
+            'summary' => sanitize_textarea_field((string) $request->get_param('summary')),
+            'allergies' => sanitize_textarea_field((string) $request->get_param('allergies')),
+            'chronic_conditions' => sanitize_textarea_field((string) $request->get_param('chronic_conditions')),
+            'current_medications' => sanitize_textarea_field((string) $request->get_param('current_medications')),
+            'updated_by' => get_current_user_id(),
+            'updated_at' => $now,
+        );
+
+        $wpdb->update(DB::table('patient_records'), $data, array('id' => (int) $record['id']));
+
+        return rest_ensure_response(self::patient_record_payload($doctor_id, $patient_id, false));
+    }
+
+    public static function doctor_dashboard_add_patient_record_note(\WP_REST_Request $request) {
+        global $wpdb;
+
+        $doctor_id = self::current_dashboard_doctor_id($request);
+        $patient_id = absint($request['patient_id']);
+        if (!$doctor_id || !$patient_id || !self::doctor_can_access_patient($doctor_id, $patient_id)) {
+            return new \WP_Error('webtanan_patient_record_forbidden', __('شما اجازه ویرایش پرونده این بیمار را ندارید.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $record = self::patient_record_payload($doctor_id, $patient_id, true);
+        $body = sanitize_textarea_field((string) $request->get_param('body'));
+        if ('' === $body) {
+            return new \WP_Error('webtanan_patient_record_note_empty', __('متن یادداشت پرونده خالی است.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $visibility = sanitize_key((string) ($request->get_param('visibility') ?: 'patient'));
+        if (!in_array($visibility, array('patient', 'private'), true)) {
+            $visibility = 'patient';
+        }
+
+        $wpdb->insert(
+            DB::table('patient_record_notes'),
+            array(
+                'record_id' => (int) $record['id'],
+                'appointment_id' => absint($request->get_param('appointment_id')),
+                'author_user_id' => get_current_user_id(),
+                'note_type' => sanitize_key((string) ($request->get_param('note_type') ?: 'visit')),
+                'title' => sanitize_text_field((string) $request->get_param('title')),
+                'body' => $body,
+                'visibility' => $visibility,
+                'created_at' => DB::now(),
+            )
+        );
+
+        return rest_ensure_response(self::patient_record_payload($doctor_id, $patient_id, false));
     }
 
     public static function doctor_dashboard_wallet(\WP_REST_Request $request) {
@@ -853,6 +1237,125 @@ final class REST {
         SMS::send_doctor_notification($doctor_id, 'settlement_requested', array('amount' => (string) $amount));
 
         return rest_ensure_response($result);
+    }
+
+    public static function doctor_dashboard_profile(\WP_REST_Request $request) {
+        $doctor_id = self::current_dashboard_doctor_id($request);
+        $doctor = $doctor_id ? Booking::get_doctor($doctor_id) : null;
+        if (!$doctor) {
+            return new \WP_Error('webtanan_doctor_context_missing', __('دسترسی پزشک پیدا نشد.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        return rest_ensure_response(self::profile_payload($doctor));
+    }
+
+    public static function doctor_dashboard_update_profile(\WP_REST_Request $request) {
+        global $wpdb;
+
+        $doctor_id = self::current_dashboard_doctor_id($request);
+        $doctor = $doctor_id ? Booking::get_doctor($doctor_id) : null;
+        if (!$doctor || !self::current_user_can_edit_doctor_profile($doctor)) {
+            return new \WP_Error('webtanan_profile_forbidden', __('شما اجازه ویرایش این پروفایل را ندارید.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $post_id = absint($doctor['post_id'] ?? 0);
+        $title = sanitize_text_field((string) $request->get_param('title'));
+        $excerpt = sanitize_textarea_field((string) $request->get_param('summary'));
+        $biography = wp_kses_post((string) $request->get_param('biography'));
+        $thumbnail_id = absint($request->get_param('thumbnail_id'));
+        $gallery_ids = self::sanitize_attachment_ids($request->get_param('gallery_ids'));
+
+        if ($post_id > 0) {
+            $post_data = array('ID' => $post_id);
+            if ('' !== $title) {
+                $post_data['post_title'] = $title;
+            }
+            $post_data['post_excerpt'] = $excerpt;
+            $post_data['post_content'] = $biography;
+            wp_update_post($post_data, true);
+
+            if ($thumbnail_id > 0 && wp_attachment_is_image($thumbnail_id)) {
+                set_post_thumbnail($post_id, $thumbnail_id);
+            }
+            update_post_meta($post_id, '_webtanan_doctor_gallery_ids', $gallery_ids);
+        }
+
+        $wpdb->update(
+            DB::table('doctors'),
+            array(
+                'medical_system_number' => sanitize_text_field((string) $request->get_param('medical_system_number')),
+                'clinic_name' => sanitize_text_field((string) $request->get_param('clinic_name')),
+                'clinic_address' => sanitize_textarea_field((string) $request->get_param('clinic_address')),
+                'clinic_phone' => sanitize_text_field((string) $request->get_param('clinic_phone')),
+                'iban' => sanitize_text_field((string) $request->get_param('iban')),
+                'bank_account_owner' => sanitize_text_field((string) $request->get_param('bank_account_owner')),
+                'updated_at' => DB::now(),
+            ),
+            array('id' => $doctor_id)
+        );
+
+        $updated = Booking::get_doctor($doctor_id);
+
+        return rest_ensure_response(self::profile_payload($updated ?: $doctor));
+    }
+
+    public static function doctor_dashboard_profile_upload(\WP_REST_Request $request) {
+        $doctor_id = self::current_dashboard_doctor_id($request);
+        $doctor = $doctor_id ? Booking::get_doctor($doctor_id) : null;
+        if (!$doctor || !self::current_user_can_edit_doctor_profile($doctor)) {
+            return new \WP_Error('webtanan_profile_upload_forbidden', __('شما اجازه آپلود تصویر برای این پروفایل را ندارید.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $files = $request->get_file_params();
+        if (empty($files['file'])) {
+            return new \WP_Error('webtanan_profile_upload_missing_file', __('فایل تصویر ارسال نشده است.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $file = $files['file'];
+        if (!empty($file['size']) && (int) $file['size'] > 5 * MB_IN_BYTES) {
+            return new \WP_Error('webtanan_profile_upload_too_large', __('حجم تصویر باید کمتر از ۵ مگابایت باشد.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $allowed_mimes = array(
+            'jpg|jpeg|jpe' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+        );
+
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+
+        $upload = wp_handle_upload($file, array('test_form' => false, 'mimes' => $allowed_mimes));
+        if (!empty($upload['error'])) {
+            return new \WP_Error('webtanan_profile_upload_failed', sanitize_text_field($upload['error']), array('status' => 400));
+        }
+
+        $attachment_id = wp_insert_attachment(
+            array(
+                'post_mime_type' => sanitize_mime_type((string) $upload['type']),
+                'post_title' => sanitize_file_name(pathinfo((string) $upload['file'], PATHINFO_FILENAME)),
+                'post_content' => '',
+                'post_status' => 'inherit',
+            ),
+            (string) $upload['file'],
+            absint($doctor['post_id'] ?? 0)
+        );
+
+        if (is_wp_error($attachment_id)) {
+            return $attachment_id;
+        }
+
+        $metadata = wp_generate_attachment_metadata((int) $attachment_id, (string) $upload['file']);
+        wp_update_attachment_metadata((int) $attachment_id, $metadata);
+
+        return rest_ensure_response(
+            array(
+                'id' => (int) $attachment_id,
+                'url' => esc_url_raw(wp_get_attachment_url((int) $attachment_id)),
+                'thumbnail' => esc_url_raw(wp_get_attachment_image_url((int) $attachment_id, 'medium') ?: wp_get_attachment_url((int) $attachment_id)),
+            )
+        );
     }
 
     public static function patient_panel_summary(\WP_REST_Request $request): \WP_REST_Response {
@@ -938,6 +1441,46 @@ final class REST {
         );
     }
 
+    public static function patient_panel_medical_records(\WP_REST_Request $request): \WP_REST_Response {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $records_table = DB::table('patient_records');
+        $doctors_table = DB::table('doctors');
+        $notes_table = DB::table('patient_record_notes');
+
+        $records = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT r.*, d.post_id, d.clinic_name
+                FROM $records_table r
+                LEFT JOIN $doctors_table d ON d.id = r.doctor_id
+                WHERE r.patient_user_id = %d
+                ORDER BY r.updated_at DESC
+                LIMIT 100",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        foreach ($records as &$record) {
+            $record['doctor_title'] = !empty($record['post_id']) ? html_entity_decode(get_the_title((int) $record['post_id']), ENT_QUOTES, get_bloginfo('charset')) : ($record['clinic_name'] ?? '');
+            $record['notes'] = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, appointment_id, note_type, title, body, created_at
+                    FROM $notes_table
+                    WHERE record_id = %d AND visibility = 'patient'
+                    ORDER BY id DESC
+                    LIMIT 100",
+                    (int) $record['id']
+                ),
+                ARRAY_A
+            );
+        }
+        unset($record);
+
+        return rest_ensure_response($records);
+    }
+
     public static function appointment_receipt(\WP_REST_Request $request) {
         $appointment = Booking::get_appointment(absint($request['id']));
         if (!$appointment || !self::current_user_can_view_appointment($appointment)) {
@@ -954,6 +1497,253 @@ final class REST {
                 'print_title' => __('رسید نوبت', 'webtanan-booking'),
             )
         );
+    }
+
+    public static function appointment_waiting_list(\WP_REST_Request $request) {
+        $appointment = self::appointment_by_code((string) $request['code']);
+        if (!$appointment || !SMS::verify_appointment_token($appointment, 'waiting-list', (string) $request->get_param('token'))) {
+            return new \WP_Error('webtanan_waiting_list_forbidden', __('لینک صف انتظار معتبر نیست.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        return rest_ensure_response(
+            array_merge(
+                Booking::waiting_list_snapshot($appointment),
+                array(
+                    'appointment_code' => $appointment['appointment_code'],
+                    'date' => $appointment['appointment_date'],
+                    'time' => substr((string) $appointment['start_time'], 0, 5),
+                )
+            )
+        );
+    }
+
+    public static function appointment_survey(\WP_REST_Request $request) {
+        $appointment = self::appointment_by_code((string) $request['code']);
+        if (!$appointment || !SMS::verify_appointment_token($appointment, 'survey', (string) $request->get_param('token'))) {
+            return new \WP_Error('webtanan_survey_forbidden', __('لینک نظرسنجی معتبر نیست.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $doctor = Booking::get_doctor((int) $appointment['doctor_id']);
+
+        return rest_ensure_response(
+            array(
+                'appointment_code' => $appointment['appointment_code'],
+                'doctor_name' => $doctor && !empty($doctor['post_id']) ? html_entity_decode(get_the_title((int) $doctor['post_id']), ENT_QUOTES, get_bloginfo('charset')) : '',
+                'date' => $appointment['appointment_date'],
+                'time' => substr((string) $appointment['start_time'], 0, 5),
+                'message' => __('از همراهی شما ممنونیم. امتیاز و تجربه خود را ثبت کنید.', 'webtanan-booking'),
+            )
+        );
+    }
+
+    public static function submit_appointment_survey(\WP_REST_Request $request) {
+        global $wpdb;
+
+        $appointment = self::appointment_by_code((string) $request['code']);
+        if (!$appointment || !SMS::verify_appointment_token($appointment, 'survey', (string) $request->get_param('token'))) {
+            return new \WP_Error('webtanan_survey_forbidden', __('لینک نظرسنجی معتبر نیست.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $rating = max(1, min(5, absint($request->get_param('rating'))));
+        $feedback = sanitize_textarea_field((string) $request->get_param('feedback'));
+        $public_consent = $request->get_param('public_consent');
+        $public_consent = null === $public_consent ? true : (bool) $public_consent;
+        $now = DB::now();
+        $table = DB::table('survey_responses');
+        $existing_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE appointment_id = %d", (int) $appointment['id']));
+        $data = array(
+            'appointment_id' => (int) $appointment['id'],
+            'doctor_id' => (int) $appointment['doctor_id'],
+            'patient_user_id' => (int) $appointment['patient_user_id'],
+            'rating' => $rating,
+            'feedback' => $feedback,
+            'public_consent' => $public_consent ? 1 : 0,
+            'status' => $public_consent ? 'pending' : 'private',
+            'token_hash' => hash('sha256', (string) $request->get_param('token')),
+            'updated_at' => $now,
+        );
+
+        if ($existing_id) {
+            $wpdb->update($table, $data, array('id' => $existing_id));
+        } else {
+            $data['created_at'] = $now;
+            $wpdb->insert($table, $data);
+        }
+
+        if ($public_consent) {
+            self::create_pending_survey_comment($appointment, $rating, $feedback);
+        }
+
+        return rest_ensure_response(array('success' => true, 'status' => $public_consent ? 'pending' : 'private'));
+    }
+
+    private static function sanitize_id_list($raw): array {
+        if (is_string($raw)) {
+            $raw = preg_split('/[\s,]+/', $raw);
+        }
+        if (!is_array($raw)) {
+            return array();
+        }
+
+        return array_values(array_unique(array_filter(array_map('absint', $raw))));
+    }
+
+    private static function appointment_by_code(string $code): ?array {
+        global $wpdb;
+
+        $code = sanitize_text_field($code);
+        if ('' === $code) {
+            return null;
+        }
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare('SELECT * FROM ' . DB::table('appointments') . ' WHERE appointment_code = %s LIMIT 1', $code),
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : null;
+    }
+
+    private static function doctor_can_access_patient(int $doctor_id, int $patient_user_id): bool {
+        global $wpdb;
+
+        if ($doctor_id <= 0 || $patient_user_id <= 0 || !Booking::current_user_can_access_doctor($doctor_id)) {
+            return false;
+        }
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COUNT(*) FROM ' . DB::table('appointments') . ' WHERE doctor_id = %d AND patient_user_id = %d',
+                $doctor_id,
+                $patient_user_id
+            )
+        ) > 0;
+    }
+
+    private static function patient_record_payload(int $doctor_id, int $patient_user_id, bool $create): array {
+        global $wpdb;
+
+        $records_table = DB::table('patient_records');
+        $notes_table = DB::table('patient_record_notes');
+        $appointments_table = DB::table('appointments');
+        $record = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM $records_table WHERE doctor_id = %d AND patient_user_id = %d LIMIT 1", $doctor_id, $patient_user_id),
+            ARRAY_A
+        );
+
+        if (!$record && $create) {
+            $patient = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT patient_mobile, patient_national_code
+                    FROM $appointments_table
+                    WHERE doctor_id = %d AND patient_user_id = %d
+                    ORDER BY appointment_date DESC, start_time DESC
+                    LIMIT 1",
+                    $doctor_id,
+                    $patient_user_id
+                ),
+                ARRAY_A
+            );
+            $now = DB::now();
+            $wpdb->insert(
+                $records_table,
+                array(
+                    'doctor_id' => $doctor_id,
+                    'patient_user_id' => $patient_user_id,
+                    'patient_mobile' => $patient['patient_mobile'] ?? '',
+                    'patient_national_code' => $patient['patient_national_code'] ?? '',
+                    'summary' => '',
+                    'allergies' => '',
+                    'chronic_conditions' => '',
+                    'current_medications' => '',
+                    'created_by' => get_current_user_id(),
+                    'updated_by' => get_current_user_id(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                )
+            );
+            $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM $records_table WHERE id = %d", (int) $wpdb->insert_id), ARRAY_A);
+        }
+
+        if (!$record) {
+            return array();
+        }
+
+        $notes = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT *
+                FROM $notes_table
+                WHERE record_id = %d
+                ORDER BY id DESC
+                LIMIT 100",
+                (int) $record['id']
+            ),
+            ARRAY_A
+        );
+
+        $patient = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT patient_first_name, patient_last_name, patient_mobile, patient_national_code
+                FROM $appointments_table
+                WHERE doctor_id = %d AND patient_user_id = %d
+                ORDER BY appointment_date DESC, start_time DESC
+                LIMIT 1",
+                $doctor_id,
+                $patient_user_id
+            ),
+            ARRAY_A
+        );
+
+        $record['patient_full_name'] = $patient ? trim($patient['patient_first_name'] . ' ' . $patient['patient_last_name']) : '';
+        $record['patient_mobile'] = $record['patient_mobile'] ?: ($patient['patient_mobile'] ?? '');
+        $record['patient_national_code'] = $record['patient_national_code'] ?: ($patient['patient_national_code'] ?? '');
+        $record['notes'] = $notes;
+
+        return $record;
+    }
+
+    private static function create_pending_survey_comment(array $appointment, int $rating, string $feedback): void {
+        global $wpdb;
+
+        $doctor = Booking::get_doctor((int) $appointment['doctor_id']);
+        $post_id = $doctor ? absint($doctor['post_id'] ?? 0) : 0;
+        if ($post_id <= 0) {
+            return;
+        }
+
+        $exists = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*)
+                FROM $wpdb->commentmeta cm
+                INNER JOIN $wpdb->comments c ON c.comment_ID = cm.comment_id
+                WHERE c.comment_post_ID = %d AND cm.meta_key = %s AND cm.meta_value = %d",
+                $post_id,
+                '_webtanan_survey_appointment_id',
+                (int) $appointment['id']
+            )
+        );
+        if ($exists > 0) {
+            return;
+        }
+
+        $comment_id = wp_insert_comment(
+            array(
+                'comment_post_ID' => $post_id,
+                'comment_author' => trim($appointment['patient_first_name'] . ' ' . $appointment['patient_last_name']) ?: __('بیمار', 'webtanan-booking'),
+                'comment_author_email' => '',
+                'comment_author_url' => '',
+                'comment_content' => $feedback ?: sprintf(__('امتیاز ثبت‌شده: %d از ۵', 'webtanan-booking'), $rating),
+                'comment_type' => 'comment',
+                'comment_parent' => 0,
+                'user_id' => (int) $appointment['patient_user_id'],
+                'comment_approved' => 0,
+            )
+        );
+
+        if ($comment_id) {
+            add_comment_meta($comment_id, '_webtanan_rating', $rating, true);
+            add_comment_meta($comment_id, '_webtanan_survey_appointment_id', (int) $appointment['id'], true);
+        }
     }
 
     public static function logged_in(?\WP_REST_Request $request = null): bool {
@@ -980,6 +1770,26 @@ final class REST {
         }
 
         return '' !== $nonce && (bool) wp_verify_nonce($nonce, 'wp_rest');
+    }
+
+    private static function current_user_can_switch_doctors(array $doctors): bool {
+        if (current_user_can('webtanan_manage_booking') || current_user_can('manage_options')) {
+            return count($doctors) > 1;
+        }
+
+        return Booking::current_user_is_secretary() && count($doctors) > 1;
+    }
+
+    private static function current_user_can_edit_doctor_profile(array $doctor): bool {
+        if (!$doctor) {
+            return false;
+        }
+
+        if (current_user_can('webtanan_manage_booking') || current_user_can('manage_options')) {
+            return true;
+        }
+
+        return get_current_user_id() > 0 && (int) ($doctor['user_id'] ?? 0) === get_current_user_id();
     }
 
     private static function current_dashboard_doctor_id(\WP_REST_Request $request): int {
@@ -1082,6 +1892,39 @@ final class REST {
         }
 
         return Booking::current_user_can_access_doctor((int) $appointment['doctor_id']);
+    }
+
+    private static function appointment_by_code_and_mobile(string $appointment_code, string $mobile) {
+        global $wpdb;
+
+        $appointment_code = sanitize_text_field($appointment_code);
+        $mobile = OTP::normalize_mobile($mobile);
+        if ('' === $appointment_code || '' === $mobile) {
+            return new \WP_Error('webtanan_resume_input_missing', __('کد نوبت و شماره موبایل را وارد کنید.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $appointment = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM ' . DB::table('appointments') . ' WHERE appointment_code = %s AND patient_mobile = %s ORDER BY id DESC LIMIT 1',
+                $appointment_code,
+                $mobile
+            ),
+            ARRAY_A
+        );
+
+        if (!$appointment) {
+            return new \WP_Error('webtanan_resume_appointment_not_found', __('نوبتی با این کد و شماره موبایل پیدا نشد.', 'webtanan-booking'), array('status' => 404));
+        }
+
+        return $appointment;
+    }
+
+    private static function appointment_can_resume_payment(array $appointment): bool {
+        if (in_array((string) $appointment['appointment_status'], array('confirmed', 'cancelled', 'completed', 'no_show'), true)) {
+            return false;
+        }
+
+        return in_array((string) $appointment['payment_status'], array('unpaid', 'failed'), true);
     }
 
     private static function format_doctor(array $row): array {
@@ -1197,6 +2040,7 @@ final class REST {
             'booking_fee' => (float) ($row['booking_fee'] ?? $payment_amount),
             'payment_amount' => $payment_amount,
             'payment_method' => $row['payment_method'],
+            'booking_source' => in_array((string) $row['payment_method'], array('pay_at_clinic', 'cash_at_clinic', 'pos_at_clinic'), true) ? 'clinic' : 'online',
             'payment_status' => $row['payment_status'],
             'payment_label' => $payment_labels[$row['payment_status']] ?? $row['payment_status'],
             'appointment_status' => $row['appointment_status'],
@@ -1242,6 +2086,232 @@ final class REST {
         }
 
         return $gallery;
+    }
+
+    private static function profile_payload(array $doctor): array {
+        $post_id = absint($doctor['post_id'] ?? 0);
+        $thumbnail_id = $post_id > 0 ? (int) get_post_thumbnail_id($post_id) : 0;
+        $gallery_ids = $post_id > 0 ? get_post_meta($post_id, '_webtanan_doctor_gallery_ids', true) : array();
+        if (is_string($gallery_ids)) {
+            $gallery_ids = array_filter(array_map('absint', explode(',', $gallery_ids)));
+        }
+        if (!is_array($gallery_ids)) {
+            $gallery_ids = array();
+        }
+
+        return array(
+            'doctor_id' => (int) $doctor['id'],
+            'post_id' => $post_id,
+            'title' => $post_id ? html_entity_decode(get_the_title($post_id), ENT_QUOTES, get_bloginfo('charset')) : '',
+            'summary' => $post_id ? wp_strip_all_tags((string) get_post_field('post_excerpt', $post_id)) : '',
+            'biography' => $post_id ? (string) get_post_field('post_content', $post_id) : '',
+            'medical_system_number' => (string) ($doctor['medical_system_number'] ?? ''),
+            'clinic_name' => (string) ($doctor['clinic_name'] ?? ''),
+            'clinic_address' => (string) ($doctor['clinic_address'] ?? ''),
+            'clinic_phone' => (string) ($doctor['clinic_phone'] ?? ''),
+            'iban' => (string) ($doctor['iban'] ?? ''),
+            'bank_account_owner' => (string) ($doctor['bank_account_owner'] ?? ''),
+            'thumbnail_id' => $thumbnail_id,
+            'thumbnail' => $thumbnail_id > 0 ? esc_url_raw(wp_get_attachment_image_url($thumbnail_id, 'medium') ?: wp_get_attachment_url($thumbnail_id)) : '',
+            'gallery_ids' => array_values(array_map('absint', $gallery_ids)),
+            'gallery' => self::doctor_gallery_urls($post_id),
+        );
+    }
+
+    private static function sanitize_attachment_ids($value): array {
+        if (is_string($value)) {
+            $value = explode(',', $value);
+        }
+        if (!is_array($value)) {
+            return array();
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('absint', $value))));
+        $valid = array();
+        foreach ($ids as $id) {
+            if ($id > 0 && wp_attachment_is_image($id)) {
+                $valid[] = $id;
+            }
+        }
+
+        return $valid;
+    }
+
+    private static function normalize_rest_date(string $raw_date): string {
+        $date = trim(self::normalize_digits(sanitize_text_field($raw_date)));
+        if ('' === $date) {
+            return '';
+        }
+
+        $date = str_replace(array('/', '.', ' '), '-', $date);
+        if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})/', $date, $matches)) {
+            $year = (int) $matches[1];
+            $month = (int) $matches[2];
+            $day = (int) $matches[3];
+
+            if ($year >= 1700) {
+                return checkdate($month, $day, $year) ? sprintf('%04d-%02d-%02d', $year, $month, $day) : '';
+            }
+
+            if ($year >= 1200 && $year <= 1600 && self::is_valid_jalali_date($year, $month, $day)) {
+                $gregorian = self::jalali_to_gregorian($year, $month, $day);
+
+                return sprintf('%04d-%02d-%02d', $gregorian['gy'], $gregorian['gm'], $gregorian['gd']);
+            }
+        }
+
+        $timestamp = strtotime($date);
+        if (!$timestamp) {
+            return '';
+        }
+
+        return gmdate('Y-m-d', $timestamp);
+    }
+
+    private static function latin_digits(string $value): string {
+        return strtr(
+            $value,
+            array(
+                '۰' => '0',
+                '۱' => '1',
+                '۲' => '2',
+                '۳' => '3',
+                '۴' => '4',
+                '۵' => '5',
+                '۶' => '6',
+                '۷' => '7',
+                '۸' => '8',
+                '۹' => '9',
+                '٠' => '0',
+                '١' => '1',
+                '٢' => '2',
+                '٣' => '3',
+                '٤' => '4',
+                '٥' => '5',
+                '٦' => '6',
+                '٧' => '7',
+                '٨' => '8',
+                '٩' => '9',
+            )
+        );
+    }
+
+    private static function is_valid_jalali_date(int $year, int $month, int $day): bool {
+        if ($year < 1200 || $year > 1600 || $month < 1 || $month > 12 || $day < 1) {
+            return false;
+        }
+
+        if ($month <= 6) {
+            return $day <= 31;
+        }
+
+        if ($month <= 11) {
+            return $day <= 30;
+        }
+
+        return $day <= 30;
+    }
+
+    private static function normalize_digits(string $value): string {
+        return strtr(
+            $value,
+            array(
+                '۰' => '0',
+                '۱' => '1',
+                '۲' => '2',
+                '۳' => '3',
+                '۴' => '4',
+                '۵' => '5',
+                '۶' => '6',
+                '۷' => '7',
+                '۸' => '8',
+                '۹' => '9',
+                '٠' => '0',
+                '١' => '1',
+                '٢' => '2',
+                '٣' => '3',
+                '٤' => '4',
+                '٥' => '5',
+                '٦' => '6',
+                '٧' => '7',
+                '٨' => '8',
+                '٩' => '9',
+            )
+        );
+    }
+
+    private static function is_jalali_leap_year(int $year): bool {
+        $breaks = array(-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178);
+        $gy = $year + 621;
+        $leap_j = -14;
+        $jp = $breaks[0];
+
+        foreach (array_slice($breaks, 1) as $jm) {
+            $jump = $jm - $jp;
+            if ($year < $jm) {
+                break;
+            }
+            $leap_j += self::jdiv($jump, 33) * 8 + self::jdiv($jump % 33, 4);
+            $jp = $jm;
+        }
+
+        $n = $year - $jp;
+        $leap_j += self::jdiv($n, 33) * 8 + self::jdiv(($n % 33) + 3, 4);
+        if (($jump % 33) === 4 && $jump - $n === 4) {
+            $leap_j++;
+        }
+
+        $leap_g = self::jdiv($gy, 4) - self::jdiv((self::jdiv($gy, 100) + 1) * 3, 4) - 150;
+        $march = 20 + $leap_j - $leap_g;
+        $unused = $march;
+        $leap = (($n + 1) % 33) - 1;
+        if ($leap === -1) {
+            $leap = 4;
+        }
+
+        return 0 === $leap;
+    }
+
+    private static function jalali_to_gregorian(int $jy, int $jm, int $jd): array {
+        $jy += 1595;
+        $days = -355668 + (365 * $jy) + (self::jdiv($jy, 33) * 8) + self::jdiv(($jy % 33) + 3, 4) + $jd + ($jm < 7 ? ($jm - 1) * 31 : (($jm - 7) * 30) + 186);
+        $gy = 400 * self::jdiv($days, 146097);
+        $days %= 146097;
+
+        if ($days > 36524) {
+            $gy += 100 * self::jdiv(--$days, 36524);
+            $days %= 36524;
+            if ($days >= 365) {
+                $days++;
+            }
+        }
+
+        $gy += 4 * self::jdiv($days, 1461);
+        $days %= 1461;
+
+        if ($days > 365) {
+            $gy += self::jdiv($days - 1, 365);
+            $days = ($days - 1) % 365;
+        }
+
+        $gd = $days + 1;
+        $sal = array(0, 31, self::is_gregorian_leap_year($gy) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
+        $gm = 1;
+
+        while ($gm <= 12 && $gd > $sal[$gm]) {
+            $gd -= $sal[$gm];
+            $gm++;
+        }
+
+        return array('gy' => $gy, 'gm' => $gm, 'gd' => $gd);
+    }
+
+    private static function is_gregorian_leap_year(int $year): bool {
+        return (0 === $year % 4 && 0 !== $year % 100) || 0 === $year % 400;
+    }
+
+    private static function jdiv(int $a, int $b): int {
+        return (int) floor($a / $b);
     }
 
     private static function normalize_rest_time(string $time): string {

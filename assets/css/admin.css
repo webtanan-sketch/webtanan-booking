@@ -371,6 +371,104 @@
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
+.webtanan-user-picker-ui {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+    position: relative;
+}
+
+.webtanan-user-selected {
+    color: var(--wba-primary);
+    font-weight: 700;
+}
+
+.webtanan-user-search-results {
+    position: absolute;
+    z-index: 50;
+    top: 100%;
+    right: 0;
+    left: 0;
+    max-height: 240px;
+    overflow: auto;
+    border: 1px solid var(--wba-border);
+    border-radius: 8px;
+    background: var(--wba-surface);
+    box-shadow: var(--wba-shadow);
+}
+
+.webtanan-user-search-results button {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--wba-border-soft);
+    background: transparent;
+    color: var(--wba-text);
+    cursor: pointer;
+    padding: 9px 12px;
+    text-align: right;
+}
+
+.webtanan-user-search-results button:hover {
+    background: var(--wba-soft);
+}
+
+.webtanan-admin-help-card {
+    margin: 12px 0 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--wba-border-soft);
+    border-radius: 10px;
+    background: var(--wba-surface);
+    box-shadow: var(--wba-shadow);
+}
+
+.webtanan-admin-help-card p {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 0;
+}
+
+.webtanan-admin-help-card code,
+.webtanan-pattern-table code {
+    direction: ltr;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 6px;
+    background: var(--wba-soft);
+    padding: 3px 7px;
+}
+
+.webtanan-pattern-table td {
+    vertical-align: top;
+}
+
+.webtanan-admin-sms-form {
+    display: grid;
+    gap: 12px;
+    max-width: 760px;
+    padding: 16px;
+    border: 1px solid var(--wba-border-soft);
+    border-radius: 10px;
+    background: var(--wba-surface);
+    box-shadow: var(--wba-shadow);
+}
+
+.webtanan-admin-sms-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.webtanan-danger-panel {
+    border-color: rgba(220, 38, 38, 0.22);
+    background: #fffafa;
+}
+
+.webtanan-danger-panel h2 {
+    color: #991b1b;
+}
+
 @media (max-width: 1100px) {
     .webtanan-admin-layout {
         grid-template-columns: 1fr;

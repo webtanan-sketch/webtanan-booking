@@ -81,6 +81,88 @@
         $($(this).data('preview')).empty();
     });
 
+    $(document).on('click', '.webtanan-font-upload', function (event) {
+        event.preventDefault();
+        if (!window.wp || !wp.media) {
+            return;
+        }
+
+        const $button = $(this);
+        const $target = $($button.data('target'));
+        const $urlTarget = $($button.data('url-target'));
+        const frame = wp.media({
+            title: 'انتخاب فونت افزونه',
+            button: { text: 'استفاده از فونت' },
+            multiple: false
+        });
+
+        frame.on('select', function () {
+            const attachment = frame.state().get('selection').first().toJSON();
+            $target.val(attachment.id || '');
+            $urlTarget.val(attachment.url || '');
+        });
+
+        frame.open();
+    });
+
+    const initUserPicker = function () {
+        const cfg = window.WebtananBookingAdmin || {};
+        $('input[name="user_id"][type="number"]').each(function () {
+            const $id = $(this);
+            if ($id.data('webtananUserPicker')) {
+                return;
+            }
+            $id.data('webtananUserPicker', true).attr('type', 'hidden').addClass('webtanan-user-id');
+
+            const $picker = $('<div class="webtanan-user-picker-ui" />');
+            const $search = $('<input type="search" class="widefat webtanan-user-search" autocomplete="off" placeholder="نام، موبایل، ایمیل یا ID کاربر را جستجو کنید">');
+            const $selected = $('<div class="webtanan-user-selected" />');
+            const $results = $('<div class="webtanan-user-search-results" hidden />');
+            let timer = null;
+
+            $picker.append($search, $selected, $results);
+            $id.after($picker);
+
+            $search.on('input', function () {
+                const q = $search.val().trim();
+                clearTimeout(timer);
+                if (q.length < 2 && !/^\d+$/.test(q)) {
+                    $results.empty().prop('hidden', true);
+                    return;
+                }
+                timer = setTimeout(function () {
+                    $.get(cfg.ajaxUrl || ajaxurl, {
+                        action: 'webtanan_booking_user_search',
+                        nonce: cfg.nonce || '',
+                        q
+                    }).done(function (response) {
+                        const items = response && response.success && Array.isArray(response.data) ? response.data : [];
+                        $results.empty();
+                        if (!items.length) {
+                            $('<button type="button" disabled>کاربری پیدا نشد</button>').appendTo($results);
+                        } else {
+                            items.forEach(function (item) {
+                                $('<button type="button" />')
+                                    .text(item.text)
+                                    .attr('data-id', item.id)
+                                    .appendTo($results);
+                            });
+                        }
+                        $results.prop('hidden', false);
+                    });
+                }, 250);
+            });
+
+            $results.on('click', 'button[data-id]', function () {
+                const $button = $(this);
+                $id.val($button.data('id'));
+                $selected.text($button.text());
+                $results.empty().prop('hidden', true);
+                $search.val('');
+            });
+        });
+    };
+
     const syncSettlementTracking = function ($form) {
         const status = $form.find('select[name="status"]').val();
         const $tracking = $form.find('input[name="bank_tracking_number"]');
@@ -107,4 +189,6 @@
     $('.webtanan-settlement-actions').each(function () {
         syncSettlementTracking($(this));
     });
+
+    initUserPicker();
 })(jQuery);

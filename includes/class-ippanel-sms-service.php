@@ -88,6 +88,92 @@ final class IPPanel_SMS_Service {
         );
     }
 
+    public function send_normal(array $mobiles, string $message): array {
+        $settings = $this->settings();
+        $from_number = self::normalize_mobile_e164($settings['from_number'] ?: $settings['originator']);
+        $message = trim(wp_strip_all_tags($message));
+        $recipients = array();
+
+        foreach ($mobiles as $mobile) {
+            $mobile = self::normalize_mobile_e164((string) $mobile);
+            if ($mobile) {
+                $recipients[] = $mobile;
+            }
+        }
+
+        $recipients = array_values(array_unique($recipients));
+
+        if (!$recipients) {
+            return $this->failed('recipient_missing', __('شماره موبایل گیرنده خالی است.', 'webtanan-booking'));
+        }
+
+        if ('' === $message) {
+            return $this->failed('message_missing', __('متن پیامک خالی است.', 'webtanan-booking'));
+        }
+
+        if (empty($settings['api_key'])) {
+            return $this->failed('api_key_missing', __('کلید API آی‌پی‌پنل خالی است.', 'webtanan-booking'));
+        }
+
+        if (!$from_number) {
+            return $this->failed('from_number_missing', __('شماره ارسال‌کننده آی‌پی‌پنل خالی است.', 'webtanan-booking'));
+        }
+
+        $payload = array(
+            'sending_type' => 'normal',
+            'from_number' => $from_number,
+            'recipients' => $recipients,
+            'message' => $message,
+        );
+
+        if (!empty($settings['test_mode'])) {
+            return array(
+                'success' => true,
+                'status' => 'test_mode',
+                'provider' => 'ippanel',
+                'payload' => $payload,
+                'message' => 'IPPanel test mode: HTTP request was not sent.',
+            );
+        }
+
+        $response = wp_remote_post(
+            trailingslashit($settings['base_url']) . 'api/send',
+            array(
+                'headers' => array(
+                    'Authorization' => $settings['api_key'],
+                    'Content-Type' => 'application/json',
+                ),
+                'timeout' => 20,
+                'body' => wp_json_encode($payload, JSON_UNESCAPED_UNICODE),
+            )
+        );
+
+        if (is_wp_error($response)) {
+            return $this->failed('http_error', $response->get_error_message(), array('payload' => $payload));
+        }
+
+        $http_code = (int) wp_remote_retrieve_response_code($response);
+        $body_raw = (string) wp_remote_retrieve_body($response);
+        $body = json_decode($body_raw, true);
+        if (!is_array($body)) {
+            $body = array('raw' => $body_raw);
+        }
+
+        $meta_status = isset($body['meta']['status']) ? (bool) $body['meta']['status'] : ($http_code >= 200 && $http_code < 300);
+        $success = $http_code >= 200 && $http_code < 300 && $meta_status;
+
+        return array(
+            'success' => $success,
+            'status' => $success ? 'sent' : 'failed',
+            'provider' => 'ippanel',
+            'http_code' => $http_code,
+            'payload' => $payload,
+            'response' => $body,
+            'message_outbox_ids' => $body['data']['message_outbox_ids'] ?? array(),
+            'message' => $body['meta']['message'] ?? wp_remote_retrieve_response_message($response),
+        );
+    }
+
     public function list_patterns(int $page = 1, int $per_page = 100): array {
         $settings = $this->settings();
 

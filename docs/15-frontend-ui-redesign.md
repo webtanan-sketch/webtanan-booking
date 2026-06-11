@@ -41,3 +41,18 @@
 - خروجی dynamic در `assets/js/frontend.js` با کارت عمومی server-side هماهنگ شد.
 - قالب رسید اکنون کلاس پایه `webtanan-booking` دارد تا متغیرهای CSS افزونه درست اعمال شوند.
 - اتصال lock مهمان به کاربر لاگین‌شده در مرحله پرداخت انجام می‌شود تا OTP داخل modal باعث از دست رفتن `lock_token` نشود.
+# v1.2 Payment Result And UI Polish
+
+- The single doctor sticky card no longer renders the embedded calendar. It shows only doctor summary, first available slot loaded via REST, and the "Book appointment" CTA. The calendar remains inside the modal.
+- The booking payment step now behaves like a checkout: appointment summary, booking service fee, optional visit price note, wallet option, and gateway options.
+- Slot colors were clarified: available is green, locked is amber, booked/expired is muted, and cancelled is danger-tinted.
+- A full payment result page renders a printable appointment invoice instead of raw gateway JSON.
+- Resume-payment UI is available through `[webtanan_booking_resume_payment]` and the automatic result page.
+- Admin settings include plugin-wide font family plus `woff`, `woff2`, or `ttf` upload/URL support.
+# v1.2.4 Doctor Listing Template
+
+- The doctors archive page was rebuilt as a wide, RTL-first SaaS discovery page.
+- Static PHP doctor loops were removed from the archive template to avoid cache collisions with first available slots.
+- The CPT archive, `[webtanan_booking_doctors_archive]`, Elementor Doctor Search, and Elementor Doctor List now share the same AJAX card renderer.
+- Doctor cards use the unified layout: photo, tinted badges, title, specialty/address, service fee, visit fee, dynamic first available slot, and clear booking/profile actions.
+- Grid and list layouts are responsive: wide desktop uses dense card grids, list mode uses a wider media column, and mobile stacks into a single column.

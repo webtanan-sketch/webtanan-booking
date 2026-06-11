@@ -94,3 +94,35 @@ APIهای بیمار:
 
 - UI تقویم هنوز input تاریخ مرورگر است؛ نمایش عنوان روز با تقویم فارسی انجام می‌شود، ولی انتخابگر شمسی اختصاصی باید در فاز بعدی اضافه شود.
 - تست همزمانی و تست مرورگر واقعی باید روی نصب وردپرس مقصد انجام شود.
+# v1.2 Patient Wallet And Doctor Profile Dashboard
+
+- Patient panel wallet tab now includes online wallet top-up with preset amounts and a custom amount field.
+- The patient wallet list renders ledger entries with friendly labels and current `balance_after`.
+- Doctor dashboard context now returns `can_switch_doctors` and `can_edit_profile`.
+- A doctor role user sees only the doctor row linked to their own `user_id`; admin users can switch doctors.
+- The new "Profile" tab lets the doctor edit display name, summary, biography, medical system number, clinic name/address/phone, IBAN, account owner, featured image, and gallery.
+- Front-end profile upload uses secure REST upload and accepts only `jpg`, `png`, and `webp` images up to 5 MB.
+# v1.2.2 Dashboard Additions
+
+## Doctor Dashboard
+
+- New tab: `پرونده بیماران`.
+- Doctors can open a patient record from today's appointments or the patient list.
+- Record fields: summary, allergies, chronic conditions, current medications.
+- Visit notes support two visibility modes: `patient` and `private`.
+- Bulk cancellation is available from today's appointment view:
+  - Cancel selected appointments.
+  - Cancel all active appointments for the selected day.
+  - Every item is processed through the same idempotent cancellation/refund engine.
+
+## Patient Panel
+
+- New tab: `پرونده پزشکی`.
+- Patients see only their own records and only notes marked as visible to patient.
+- The patient view is read-only in this phase.
+
+## Wording Update
+
+- `پیش‌خوان` is normalized to `پیشخوان`.
+- `مرخصی‌ها` is replaced with `روزهای خاص` / `برنامه تاریخ خاص`.
+- Walk-in appointments remain in the same appointment table and timeline as online appointments; the UI distinguishes them with `حضوری` and `آنلاین` badges.

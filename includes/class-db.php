@@ -24,6 +24,9 @@ final class DB {
         'settlement_requests' => 'saas_settlement_requests',
         'otp_logs' => 'saas_otp_logs',
         'sms_logs' => 'saas_sms_logs',
+        'patient_records' => 'saas_patient_records',
+        'patient_record_notes' => 'saas_patient_record_notes',
+        'survey_responses' => 'saas_survey_responses',
     );
 
     public static function table(string $key): string {
@@ -56,6 +59,9 @@ final class DB {
         $settlements = self::table('settlement_requests');
         $otp = self::table('otp_logs');
         $sms = self::table('sms_logs');
+        $patient_records = self::table('patient_records');
+        $patient_record_notes = self::table('patient_record_notes');
+        $survey_responses = self::table('survey_responses');
 
         $schemas = array();
 
@@ -298,6 +304,66 @@ final class DB {
             KEY created_at (created_at)
         ) $charset_collate;";
 
+        $schemas[] = "CREATE TABLE $patient_records (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            doctor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            patient_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            patient_mobile varchar(32) NOT NULL DEFAULT '',
+            patient_national_code varchar(20) NOT NULL DEFAULT '',
+            summary longtext NULL,
+            allergies text NULL,
+            chronic_conditions text NULL,
+            current_medications text NULL,
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY doctor_patient (doctor_id,patient_user_id),
+            KEY doctor_id (doctor_id),
+            KEY patient_user_id (patient_user_id),
+            KEY patient_mobile (patient_mobile),
+            KEY patient_national_code (patient_national_code)
+        ) $charset_collate;";
+
+        $schemas[] = "CREATE TABLE $patient_record_notes (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            record_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            appointment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            author_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            note_type varchar(32) NOT NULL DEFAULT 'visit',
+            title varchar(191) NOT NULL DEFAULT '',
+            body longtext NULL,
+            visibility varchar(32) NOT NULL DEFAULT 'patient',
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY record_id (record_id),
+            KEY appointment_id (appointment_id),
+            KEY author_user_id (author_user_id),
+            KEY visibility (visibility),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+
+        $schemas[] = "CREATE TABLE $survey_responses (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            appointment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            doctor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            patient_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            rating tinyint(3) unsigned NOT NULL DEFAULT 0,
+            feedback text NULL,
+            public_consent tinyint(1) NOT NULL DEFAULT 1,
+            status varchar(32) NOT NULL DEFAULT 'pending',
+            token_hash varchar(128) NOT NULL DEFAULT '',
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY appointment_id (appointment_id),
+            KEY doctor_id (doctor_id),
+            KEY patient_user_id (patient_user_id),
+            KEY status (status),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+
         foreach ($schemas as $schema) {
             dbDelta($schema);
         }
@@ -317,6 +383,11 @@ final class DB {
             'otp_rate_limit_window_minutes' => 15,
             'reminder_time_hours' => 24,
             'platform_wallet_user_id' => 0,
+            'wallet_topup_min_amount' => 10000,
+            'wallet_topup_max_amount' => 50000000,
+            'ui_font_family' => '',
+            'ui_font_attachment_id' => 0,
+            'ui_font_url' => '',
             'gateway_settings' => array(
                 'active_gateway' => 'aqayepardakht',
                 'merchant_id' => '',
@@ -360,6 +431,9 @@ final class DB {
                     'settlement_requested' => array('enabled' => true, 'code' => ''),
                     'settlement_paid' => array('enabled' => true, 'code' => ''),
                     'settlement_status' => array('enabled' => true, 'code' => ''),
+                    'appointment_survey' => array('enabled' => true, 'code' => ''),
+                    'waiting_list_30m' => array('enabled' => true, 'code' => ''),
+                    'bulk_appointment_cancelled' => array('enabled' => true, 'code' => ''),
                 ),
             ),
             'cancellation_policy' => array(

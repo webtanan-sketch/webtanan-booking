@@ -51,6 +51,7 @@ final class Plugin {
         Frontend::init();
         Cron::init();
         SMS::init();
+        Seeder::init();
         Elementor_Integration::init();
     }
 }

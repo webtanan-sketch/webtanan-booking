@@ -78,3 +78,12 @@
 - ذخیره callback payload
 - ذخیره ref_id
 - جلوگیری از تایید دوباره تراکنش
+# v1.2 Checkout, Payment Result, Retry, And Wallet Top-Up
+
+- Gateway callback no longer exposes raw JSON to the browser. It returns a 302 redirect to the plugin payment result page with a signed token.
+- The payment result page has three user-facing states: confirmed appointment, failed payment, and successful late payment credited back to wallet.
+- Appointment invoices show appointment code, doctor, patient, date/time, booking service fee, payment status, bank tracking number, and clinic address.
+- Wallet top-up uses the existing `wp_saas_transactions` table with `appointment_id = 0`; verified top-ups create one idempotent `credit` ledger entry.
+- Payment can be resumed without entering the patient dashboard by appointment code plus mobile OTP.
+- If a resumed payment lock has expired but the same slot is still free, the backend renews the lock before creating a new payment transaction.
+- If the original slot is no longer free, the user receives a clear message and suggested replacement slots.

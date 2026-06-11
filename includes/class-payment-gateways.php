@@ -155,6 +155,99 @@ final class Payment_Gateways {
         );
     }
 
+    public static function initiate_wallet_topup(int $user_id, float $amount, string $gateway_id = '') {
+        global $wpdb;
+
+        $user_id = absint($user_id);
+        $amount = max(0.0, (float) $amount);
+        if ($user_id <= 0 || $amount <= 0) {
+            return new \WP_Error('webtanan_wallet_topup_invalid_amount', __('مبلغ شارژ کیف پول معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $gateway_id = self::resolve_gateway_id($gateway_id);
+        $gateway = self::get_gateway($gateway_id);
+        if (!$gateway || !method_exists($gateway, 'is_enabled') || !$gateway->is_enabled()) {
+            return new \WP_Error('webtanan_gateway_not_configured', __('درگاه پرداخت فعال نیست.', 'webtanan-booking'), array('status' => 501));
+        }
+
+        $now = DB::now();
+        $transaction_code = DB::code('WLT');
+        $transaction_table = DB::table('transactions');
+        $invoice_id = $transaction_code;
+
+        $wpdb->insert(
+            $transaction_table,
+            array(
+                'transaction_code' => $transaction_code,
+                'user_id' => $user_id,
+                'doctor_id' => 0,
+                'appointment_id' => 0,
+                'gateway_name' => sanitize_key($gateway->id()),
+                'invoice_id' => $invoice_id,
+                'amount' => $amount,
+                'status' => 'initiated',
+                'request_payload' => wp_json_encode(array('context' => 'wallet_topup', 'user_id' => $user_id, 'gateway' => $gateway->id()), JSON_UNESCAPED_UNICODE),
+                'created_at' => $now,
+                'updated_at' => $now,
+            )
+        );
+
+        $transaction_id = (int) $wpdb->insert_id;
+        if ($transaction_id <= 0) {
+            return new \WP_Error('webtanan_wallet_topup_transaction_failed', __('شروع شارژ کیف پول انجام نشد.', 'webtanan-booking'), array('status' => 500));
+        }
+
+        $create = $gateway->create_payment(
+            array(
+                'amount' => $amount,
+                'invoice_id' => $invoice_id,
+                'mobile' => self::mobile_for_user($user_id),
+                'description' => sprintf(__('شارژ کیف پول وب‌تنان - کد %s', 'webtanan-booking'), $transaction_code),
+                'transaction_id' => $transaction_id,
+            )
+        );
+
+        if (is_wp_error($create)) {
+            $data = $create->get_error_data();
+            $data = is_array($data) ? $data : array();
+            $wpdb->update(
+                $transaction_table,
+                array(
+                    'status' => 'create_failed',
+                    'request_payload' => !empty($data['payload']) ? wp_json_encode(self::redact_payload($data['payload']), JSON_UNESCAPED_UNICODE) : null,
+                    'create_response' => !empty($data['response']) ? wp_json_encode($data['response'], JSON_UNESCAPED_UNICODE) : null,
+                    'error_code' => sanitize_text_field((string) ($data['error_code'] ?? $create->get_error_code())),
+                    'error_message' => sanitize_textarea_field($create->get_error_message()),
+                    'updated_at' => DB::now(),
+                ),
+                array('id' => $transaction_id)
+            );
+
+            return new \WP_Error($create->get_error_code(), $create->get_error_message(), array('status' => $data['status'] ?? 502, 'transaction_id' => $transaction_id));
+        }
+
+        $wpdb->update(
+            $transaction_table,
+            array(
+                'status' => 'redirected',
+                'gateway_transid' => sanitize_text_field((string) $create['transid']),
+                'gateway_authority' => sanitize_text_field((string) $create['transid']),
+                'request_payload' => wp_json_encode(self::redact_payload($create['payload']), JSON_UNESCAPED_UNICODE),
+                'create_response' => wp_json_encode($create['response'], JSON_UNESCAPED_UNICODE),
+                'updated_at' => DB::now(),
+            ),
+            array('id' => $transaction_id)
+        );
+
+        return array(
+            'transaction_id' => $transaction_id,
+            'transaction_code' => $transaction_code,
+            'gateway' => $gateway->public_config(),
+            'checkout_url' => esc_url_raw((string) $create['payment_url']),
+            'payment_url' => esc_url_raw((string) $create['payment_url']),
+        );
+    }
+
     public static function handle_aqayepardakht_callback(\WP_REST_Request $request) {
         global $wpdb;
 
@@ -177,13 +270,13 @@ final class Payment_Gateways {
         if (self::is_final_transaction_status((string) $transaction['status'])) {
             DB::commit();
 
-            return rest_ensure_response(self::callback_result($transaction, 'already_processed'));
+            return self::redirect_response((int) $transaction['id']);
         }
 
         if ('verifying' === $transaction['status'] && self::is_recently_verifying($transaction)) {
             DB::commit();
 
-            return rest_ensure_response(self::callback_result($transaction, 'verification_in_progress'));
+            return self::redirect_response((int) $transaction['id']);
         }
 
         $callback_status = $params['status'];
@@ -210,14 +303,7 @@ final class Payment_Gateways {
         if ('1' !== $callback_status) {
             self::mark_failed_payment_lock((int) $transaction['appointment_id'], (int) $transaction['id'], $params['tracking_number']);
 
-            return rest_ensure_response(
-                array(
-                    'success' => false,
-                    'status' => 'callback_failed',
-                    'transaction_id' => (int) $transaction['id'],
-                    'appointment_id' => (int) $transaction['appointment_id'],
-                )
-            );
+            return self::redirect_response((int) $transaction['id']);
         }
 
         $gateway = new AqayePardakht_Gateway();
@@ -238,7 +324,7 @@ final class Payment_Gateways {
                 array('id' => (int) $transaction['id'])
             );
 
-            return $verify;
+            return self::redirect_response((int) $transaction['id']);
         }
 
         $wpdb->update(
@@ -258,15 +344,25 @@ final class Payment_Gateways {
         if (empty($verify['success'])) {
             self::mark_failed_payment_lock((int) $transaction['appointment_id'], (int) $transaction['id'], $params['tracking_number']);
 
-            return rest_ensure_response(
-                array(
-                    'success' => false,
-                    'status' => 'verify_failed',
-                    'transaction_id' => (int) $transaction['id'],
-                    'appointment_id' => (int) $transaction['appointment_id'],
-                    'message' => $verify['message'] ?? '',
-                )
-            );
+            return self::redirect_response((int) $transaction['id']);
+        }
+
+        if (0 === (int) $transaction['appointment_id']) {
+            $topup = self::confirm_wallet_topup((int) $transaction['id']);
+            if (is_wp_error($topup)) {
+                $wpdb->update(
+                    $transaction_table,
+                    array(
+                        'status' => 'confirmation_failed',
+                        'error_code' => $topup->get_error_code(),
+                        'error_message' => sanitize_textarea_field($topup->get_error_message()),
+                        'updated_at' => DB::now(),
+                    ),
+                    array('id' => (int) $transaction['id'])
+                );
+            }
+
+            return self::redirect_response((int) $transaction['id']);
         }
 
         $confirmed = Booking::confirm_appointment_after_payment((int) $transaction['appointment_id'], (int) $transaction['id']);
@@ -282,7 +378,7 @@ final class Payment_Gateways {
                 array('id' => (int) $transaction['id'])
             );
 
-            return $confirmed;
+            return self::redirect_response((int) $transaction['id']);
         }
 
         if (isset($confirmed['status']) && 'refunded_to_wallet' === $confirmed['status']) {
@@ -293,16 +389,183 @@ final class Payment_Gateways {
             );
         }
 
-        return rest_ensure_response(
+        return self::redirect_response((int) $transaction['id']);
+    }
+
+    public static function payment_result_url(int $transaction_id): string {
+        $transaction_id = absint($transaction_id);
+
+        return add_query_arg(
             array(
-                'success' => true,
-                'status' => $confirmed['status'] ?? 'confirmed',
-                'transaction_id' => (int) $transaction['id'],
-                'appointment_id' => (int) $transaction['appointment_id'],
-                'already_verified' => !empty($verify['already_verified']),
-                'suggested_slots' => $confirmed['suggested_slots'] ?? array(),
+                'webtanan_payment_result' => 1,
+                'transaction_id' => $transaction_id,
+                'token' => self::payment_result_token($transaction_id),
+            ),
+            home_url('/')
+        );
+    }
+
+    public static function payment_result_token(int $transaction_id): string {
+        return hash_hmac('sha256', 'payment-result|' . absint($transaction_id), wp_salt('auth'));
+    }
+
+    public static function validate_payment_result_token(int $transaction_id, string $token): bool {
+        $transaction_id = absint($transaction_id);
+        $token = sanitize_text_field($token);
+
+        return $transaction_id > 0 && hash_equals(self::payment_result_token($transaction_id), $token);
+    }
+
+    public static function payment_result_data(int $transaction_id) {
+        global $wpdb;
+
+        $transaction = $wpdb->get_row(
+            $wpdb->prepare('SELECT * FROM ' . DB::table('transactions') . ' WHERE id = %d LIMIT 1', $transaction_id),
+            ARRAY_A
+        );
+        if (!$transaction) {
+            return new \WP_Error('webtanan_transaction_not_found', __('تراکنش پیدا نشد.', 'webtanan-booking'), array('status' => 404));
+        }
+
+        $appointment = (int) $transaction['appointment_id'] > 0 ? Booking::get_appointment((int) $transaction['appointment_id']) : null;
+        $doctor = $appointment ? Booking::get_doctor((int) $appointment['doctor_id']) : null;
+        $doctor_post_id = $doctor ? (int) ($doctor['post_id'] ?? 0) : 0;
+        $status = self::public_result_status($transaction, $appointment);
+
+        return array(
+            'status' => $status,
+            'transaction' => $transaction,
+            'appointment' => $appointment,
+            'doctor' => $doctor,
+            'doctor_name' => $doctor_post_id ? get_the_title($doctor_post_id) : '',
+            'doctor_url' => $doctor_post_id ? get_permalink($doctor_post_id) : '',
+            'doctor_image' => $doctor_post_id ? get_the_post_thumbnail_url($doctor_post_id, 'medium') : '',
+            'suggested_slots' => $appointment ? Booking::next_available((int) $appointment['doctor_id'], 5) : array(),
+        );
+    }
+
+    public static function resume_token(int $appointment_id, string $mobile): string {
+        $payload = absint($appointment_id) . '|' . OTP::normalize_mobile($mobile) . '|' . current_time('timestamp');
+        $signature = hash_hmac('sha256', $payload, wp_salt('auth'));
+
+        return base64_encode($payload . '|' . $signature);
+    }
+
+    public static function verify_resume_token(string $token) {
+        $decoded = base64_decode(sanitize_text_field($token), true);
+        if (!$decoded) {
+            return new \WP_Error('webtanan_resume_token_invalid', __('کد ادامه پرداخت معتبر نیست.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        $parts = explode('|', $decoded);
+        if (4 !== count($parts)) {
+            return new \WP_Error('webtanan_resume_token_invalid', __('کد ادامه پرداخت معتبر نیست.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        list($appointment_id, $mobile, $timestamp, $signature) = $parts;
+        $payload = absint($appointment_id) . '|' . OTP::normalize_mobile($mobile) . '|' . absint($timestamp);
+        $expected = hash_hmac('sha256', $payload, wp_salt('auth'));
+        if (!hash_equals($expected, $signature) || absint($timestamp) < current_time('timestamp') - (30 * MINUTE_IN_SECONDS)) {
+            return new \WP_Error('webtanan_resume_token_expired', __('مهلت ادامه پرداخت تمام شده است. دوباره کد تایید بگیرید.', 'webtanan-booking'), array('status' => 403));
+        }
+
+        return array(
+            'appointment_id' => absint($appointment_id),
+            'mobile' => OTP::normalize_mobile($mobile),
+        );
+    }
+
+    private static function redirect_response(int $transaction_id): \WP_REST_Response {
+        $response = new \WP_REST_Response(null, 302);
+        $response->header('Location', self::payment_result_url($transaction_id));
+
+        return $response;
+    }
+
+    private static function public_result_status(array $transaction, ?array $appointment): string {
+        $transaction_status = sanitize_key((string) ($transaction['status'] ?? ''));
+        $appointment_status = $appointment ? sanitize_key((string) ($appointment['appointment_status'] ?? '')) : '';
+        $payment_status = $appointment ? sanitize_key((string) ($appointment['payment_status'] ?? '')) : '';
+
+        if (0 === (int) ($transaction['appointment_id'] ?? 0) && 'verified' === $transaction_status) {
+            return 'wallet_charged';
+        }
+
+        if (in_array($transaction_status, array('expired_lock_wallet_charged', 'refunded_to_wallet'), true) || 'refunded_to_wallet' === $payment_status) {
+            return 'wallet_refunded';
+        }
+
+        if ('verified' === $transaction_status && 'confirmed' === $appointment_status) {
+            return 'confirmed';
+        }
+
+        if (in_array($transaction_status, array('callback_failed', 'verify_failed', 'confirmation_failed', 'create_failed', 'failed', 'cancelled', 'expired'), true)) {
+            return 'failed';
+        }
+
+        if (in_array($transaction_status, array('initiated', 'redirected', 'verifying'), true)) {
+            return 'pending';
+        }
+
+        return $transaction_status ?: 'pending';
+    }
+
+    private static function confirm_wallet_topup(int $transaction_id) {
+        global $wpdb;
+
+        $transactions = DB::table('transactions');
+        $ledger = DB::table('wallets_ledger');
+
+        DB::start_transaction();
+        $transaction = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM $transactions WHERE id = %d FOR UPDATE", $transaction_id),
+            ARRAY_A
+        );
+
+        if (!$transaction || 0 !== (int) $transaction['appointment_id']) {
+            DB::rollback();
+
+            return new \WP_Error('webtanan_wallet_topup_transaction_invalid', __('تراکنش شارژ کیف پول معتبر نیست.', 'webtanan-booking'), array('status' => 404));
+        }
+
+        $existing_ledger_id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $ledger WHERE related_transaction_id = %d AND user_id = %d AND user_type = %s AND entry_type = %s LIMIT 1",
+                $transaction_id,
+                (int) $transaction['user_id'],
+                'patient',
+                'credit'
             )
         );
+
+        if ($existing_ledger_id <= 0) {
+            $entry = Wallet::add_entry(
+                array(
+                    'user_id' => (int) $transaction['user_id'],
+                    'user_type' => 'patient',
+                    'related_transaction_id' => $transaction_id,
+                    'entry_type' => 'credit',
+                    'amount' => (float) $transaction['amount'],
+                    'description' => __('شارژ کیف پول از درگاه پرداخت', 'webtanan-booking'),
+                )
+            );
+
+            if (is_wp_error($entry)) {
+                DB::rollback();
+
+                return $entry;
+            }
+        }
+
+        $wpdb->update(
+            $transactions,
+            array('status' => 'verified', 'verified_at' => DB::now(), 'updated_at' => DB::now()),
+            array('id' => $transaction_id)
+        );
+
+        DB::commit();
+
+        return array('status' => 'wallet_charged', 'transaction_id' => $transaction_id);
     }
 
     private static function resolve_gateway_id(string $gateway_id): string {
@@ -332,6 +595,27 @@ final class Payment_Gateways {
                 '{amount}' => (string) round(Booking::appointment_charge_amount($appointment)),
             )
         );
+    }
+
+    private static function mobile_for_user(int $user_id): string {
+        $candidates = array(
+            get_user_meta($user_id, 'webtanan_mobile', true),
+            get_user_meta($user_id, 'mobile', true),
+            get_user_meta($user_id, 'billing_phone', true),
+        );
+        $user = get_userdata($user_id);
+        if ($user) {
+            $candidates[] = $user->user_login;
+        }
+
+        foreach ($candidates as $candidate) {
+            $mobile = OTP::normalize_mobile((string) $candidate);
+            if ('' !== $mobile) {
+                return $mobile;
+            }
+        }
+
+        return '';
     }
 
     private static function appointment_lock_is_valid(array $appointment): bool {

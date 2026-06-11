@@ -213,6 +213,7 @@ final class Booking {
 
         return array(
             'appointment_id' => $appointment_id,
+            'appointment_code' => (string) $data['appointment_code'],
             'lock_token' => $lock_token,
             'locked_until' => $locked_until,
             'amount' => self::doctor_booking_fee($doctor),
@@ -224,6 +225,130 @@ final class Booking {
 
     public static function initiate_payment(int $appointment_id, string $lock_token, string $gateway_id = '') {
         return Payment_Gateways::initiate_payment($appointment_id, $lock_token, $gateway_id);
+    }
+
+    public static function renew_lock_for_resume(int $appointment_id, string $mobile) {
+        global $wpdb;
+
+        $appointment_id = absint($appointment_id);
+        $mobile = OTP::normalize_mobile($mobile);
+        if ($appointment_id <= 0 || '' === $mobile) {
+            return new \WP_Error('webtanan_resume_invalid_input', __('اطلاعات ادامه پرداخت معتبر نیست.', 'webtanan-booking'), array('status' => 400));
+        }
+
+        $appointments = DB::table('appointments');
+        $settings = DB::get_settings();
+        $now = DB::now();
+
+        DB::start_transaction();
+        $appointment = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM $appointments WHERE id = %d FOR UPDATE", $appointment_id),
+            ARRAY_A
+        );
+
+        if (!$appointment || !hash_equals(OTP::normalize_mobile((string) $appointment['patient_mobile']), $mobile)) {
+            DB::rollback();
+
+            return new \WP_Error('webtanan_resume_appointment_not_found', __('نوبتی با این کد و شماره موبایل پیدا نشد.', 'webtanan-booking'), array('status' => 404));
+        }
+
+        if ('confirmed' === (string) $appointment['appointment_status']) {
+            DB::commit();
+
+            return array(
+                'status' => 'already_confirmed',
+                'appointment_id' => $appointment_id,
+                'appointment_code' => (string) $appointment['appointment_code'],
+            );
+        }
+
+        if (in_array((string) $appointment['appointment_status'], array('cancelled', 'completed', 'no_show'), true)) {
+            DB::rollback();
+
+            return new \WP_Error('webtanan_resume_not_payable', __('این نوبت دیگر قابل پرداخت نیست.', 'webtanan-booking'), array('status' => 409));
+        }
+
+        if (!self::slot_exists_in_schedule((int) $appointment['doctor_id'], (string) $appointment['appointment_date'], (string) $appointment['start_time'])) {
+            DB::rollback();
+
+            return new \WP_Error(
+                'webtanan_resume_slot_unavailable',
+                __('این ساعت دیگر در برنامه پزشک فعال نیست.', 'webtanan-booking'),
+                array('status' => 409, 'suggested_slots' => self::next_available((int) $appointment['doctor_id'], 5))
+            );
+        }
+
+        $slot_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $appointments WHERE doctor_id = %d AND appointment_date = %s AND start_time = %s FOR UPDATE",
+                (int) $appointment['doctor_id'],
+                (string) $appointment['appointment_date'],
+                self::normalize_time((string) $appointment['start_time'])
+            ),
+            ARRAY_A
+        );
+
+        if ($slot_row && (int) $slot_row['id'] !== $appointment_id && self::is_blocking_appointment($slot_row)) {
+            DB::rollback();
+
+            return new \WP_Error(
+                'webtanan_resume_slot_taken',
+                __('این ساعت در این فاصله پر شده است. می‌توانید یک نوبت جدید بگیرید.', 'webtanan-booking'),
+                array('status' => 409, 'suggested_slots' => self::next_available((int) $appointment['doctor_id'], 5))
+            );
+        }
+
+        if ('locked' === (string) $appointment['appointment_status'] && self::lock_is_valid($appointment)) {
+            if (0 === (int) $appointment['patient_user_id'] && get_current_user_id() > 0) {
+                $wpdb->update(
+                    $appointments,
+                    array('patient_user_id' => get_current_user_id(), 'updated_at' => $now),
+                    array('id' => $appointment_id)
+                );
+            }
+            DB::commit();
+
+            return array(
+                'status' => 'locked',
+                'appointment_id' => $appointment_id,
+                'appointment_code' => (string) $appointment['appointment_code'],
+                'lock_token' => (string) $appointment['lock_token'],
+                'locked_until' => (string) $appointment['locked_until'],
+                'amount' => self::appointment_charge_amount($appointment),
+                'booking_fee' => self::appointment_charge_amount($appointment),
+                'visit_price' => (float) $appointment['visit_price'],
+            );
+        }
+
+        $lock_token = wp_generate_uuid4();
+        $locked_until = date('Y-m-d H:i:s', current_time('timestamp') + ((int) $settings['lock_duration_minutes'] * MINUTE_IN_SECONDS));
+        $wpdb->update(
+            $appointments,
+            array(
+                'appointment_status' => 'locked',
+                'payment_status' => 'unpaid',
+                'payment_method' => 'online',
+                'patient_user_id' => 0 === (int) $appointment['patient_user_id'] && get_current_user_id() > 0 ? get_current_user_id() : (int) $appointment['patient_user_id'],
+                'locked_until' => $locked_until,
+                'lock_token' => $lock_token,
+                'transaction_id' => 0,
+                'updated_at' => $now,
+            ),
+            array('id' => $appointment_id)
+        );
+
+        DB::commit();
+
+        return array(
+            'status' => 'relocked',
+            'appointment_id' => $appointment_id,
+            'appointment_code' => (string) $appointment['appointment_code'],
+            'lock_token' => $lock_token,
+            'locked_until' => $locked_until,
+            'amount' => self::appointment_charge_amount($appointment),
+            'booking_fee' => self::appointment_charge_amount($appointment),
+            'visit_price' => (float) $appointment['visit_price'],
+        );
     }
 
     public static function confirm_appointment_after_payment(int $appointment_id, int $transaction_id, string $lock_token = '') {
@@ -750,6 +875,45 @@ final class Booking {
         return array('status' => 'cancelled', 'refund_amount' => $refund_amount, 'policy' => $preview);
     }
 
+    public static function bulk_cancel_appointments(array $appointment_ids, string $cancelled_by, string $reason = ''): array {
+        $summary = array(
+            'requested' => count($appointment_ids),
+            'cancelled' => 0,
+            'already_cancelled' => 0,
+            'failed' => 0,
+            'refund_total' => 0.0,
+            'items' => array(),
+        );
+
+        foreach (array_values(array_unique(array_filter(array_map('absint', $appointment_ids)))) as $appointment_id) {
+            $result = self::cancel_appointment($appointment_id, $cancelled_by, $reason);
+            if (is_wp_error($result)) {
+                $summary['failed']++;
+                $summary['items'][] = array(
+                    'appointment_id' => $appointment_id,
+                    'status' => 'failed',
+                    'message' => $result->get_error_message(),
+                );
+                continue;
+            }
+
+            if (!empty($result['already_cancelled'])) {
+                $summary['already_cancelled']++;
+            } else {
+                $summary['cancelled']++;
+            }
+
+            $summary['refund_total'] += (float) ($result['refund_amount'] ?? 0);
+            $summary['items'][] = array(
+                'appointment_id' => $appointment_id,
+                'status' => !empty($result['already_cancelled']) ? 'already_cancelled' : 'cancelled',
+                'refund_amount' => (float) ($result['refund_amount'] ?? 0),
+            );
+        }
+
+        return $summary;
+    }
+
     public static function expire_locks(): int {
         global $wpdb;
 
@@ -838,6 +1002,55 @@ final class Booking {
         }
 
         return max(0.0, (float) ($appointment['visit_price'] ?? 0));
+    }
+
+    public static function waiting_list_snapshot(array $appointment): array {
+        global $wpdb;
+
+        $doctor_id = (int) ($appointment['doctor_id'] ?? 0);
+        $date = (string) ($appointment['appointment_date'] ?? '');
+        $start_time = self::normalize_time((string) ($appointment['start_time'] ?? ''));
+        if ($doctor_id <= 0 || !self::is_valid_date($date) || !self::is_valid_time($start_time)) {
+            return array(
+                'queue_position' => 1,
+                'ahead_count' => 0,
+                'total_waiting' => 1,
+                'estimated_time' => substr($start_time, 0, 5),
+                'appointment_status' => (string) ($appointment['appointment_status'] ?? ''),
+            );
+        }
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, appointment_code, start_time, appointment_status, payment_method
+                FROM " . DB::table('appointments') . "
+                WHERE doctor_id = %d
+                    AND appointment_date = %s
+                    AND appointment_status IN ('confirmed','pay_at_clinic')
+                    AND start_time <= %s
+                ORDER BY start_time ASC, id ASC",
+                $doctor_id,
+                $date,
+                $start_time
+            ),
+            ARRAY_A
+        );
+
+        $position = 1;
+        foreach ($rows as $index => $row) {
+            if ((int) $row['id'] === (int) ($appointment['id'] ?? 0) || (string) $row['appointment_code'] === (string) ($appointment['appointment_code'] ?? '')) {
+                $position = $index + 1;
+                break;
+            }
+        }
+
+        return array(
+            'queue_position' => $position,
+            'ahead_count' => max(0, $position - 1),
+            'total_waiting' => count($rows),
+            'estimated_time' => substr($start_time, 0, 5),
+            'appointment_status' => (string) ($appointment['appointment_status'] ?? ''),
+        );
     }
 
     public static function doctor_booking_fee(array $doctor): float {
@@ -1226,7 +1439,7 @@ final class Booking {
         $amount = self::appointment_charge_amount($appointment);
         $settings = DB::get_settings();
         $policy = $settings['cancellation_policy'] ?? array();
-        if (!empty($policy['doctor_admin_full_refund']) && in_array($cancelled_by, array('doctor', 'secretary', 'admin'), true)) {
+        if (in_array($cancelled_by, array('doctor', 'secretary', 'admin'), true)) {
             return $amount;
         }
 
