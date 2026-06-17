@@ -238,7 +238,7 @@ if ($doctor) {
             </article>
         </section>
 
-        <aside class="webtanan-profile-sidebar wb-profile-sidebar" aria-label="<?php esc_attr_e('رزرو نوبت', 'webtanan-booking'); ?>">
+        <aside id="booking" class="webtanan-profile-sidebar wb-profile-sidebar" aria-label="<?php esc_attr_e('رزرو نوبت', 'webtanan-booking'); ?>">
             <div class="webtanan-profile-booking-card wb-sticky-booking-card">
                 <header class="wb-booking-card-head">
                     <span class="wb-kicker"><?php esc_html_e('رزرو آنلاین', 'webtanan-booking'); ?></span>
@@ -252,7 +252,7 @@ if ($doctor) {
                     </div>
 
                     <button type="button" class="webtanan-button webtanan-button-primary wb-btn wb-btn-primary wb-booking-cta" data-webtanan-booking-open data-doctor-id="<?php echo esc_attr((string) $doctor_id); ?>">
-                        <?php esc_html_e('باز کردن پنجره رزرو', 'webtanan-booking'); ?>
+                        <?php esc_html_e('گرفتن نوبت', 'webtanan-booking'); ?>
                     </button>
                 <?php else : ?>
                     <p class="webtanan-empty-state"><?php esc_html_e('اطلاعات رزرو این پزشک هنوز تکمیل نشده است.', 'webtanan-booking'); ?></p>

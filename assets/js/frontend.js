@@ -1155,7 +1155,7 @@
         function renderTitle(title, subtitle = '') {
             return `<div class="wb-page-head">
                 <div class="wb-page-head-copy">
-                    <span class="wb-kicker">Webtanan Booking</span>
+                    <span class="wb-kicker">پیشخوان</span>
                     <h2>${esc(title)}</h2>
                     ${subtitle ? `<p>${esc(subtitle)}</p>` : ''}
                 </div>
@@ -1912,7 +1912,7 @@
         function renderTitle(title, subtitle = '') {
             return `<div class="wb-page-head">
                 <div class="wb-page-head-copy">
-                    <span class="wb-kicker">Webtanan Booking</span>
+                    <span class="wb-kicker">پیشخوان</span>
                     <h2>${esc(title)}</h2>
                     ${subtitle ? `<p>${esc(subtitle)}</p>` : ''}
                 </div>

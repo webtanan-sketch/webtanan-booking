@@ -56,3 +56,13 @@
 - The CPT archive, `[webtanan_booking_doctors_archive]`, Elementor Doctor Search, and Elementor Doctor List now share the same AJAX card renderer.
 - Doctor cards use the unified layout: photo, tinted badges, title, specialty/address, service fee, visit fee, dynamic first available slot, and clear booking/profile actions.
 - Grid and list layouts are responsive: wide desktop uses dense card grids, list mode uses a wider media column, and mobile stacks into a single column.
+
+# v1.2.5 Frontend UX Polish
+
+- A final frontend polish layer was added to `assets/css/frontend.css` for the public doctor archive, Elementor discovery widgets, doctor cards, single doctor profile, booking modal, checkout, payment result, patient panel, doctor dashboard, medical records, waiting list, and survey pages.
+- The single doctor booking area now has a stable `#booking` anchor and the primary CTA uses the friendlier Persian wording `گرفتن نوبت`.
+- Dashboard section kickers were changed from the raw product label to `پیشخوان` so patient and clinic panels feel less technical.
+- Time-sensitive data remains cache-safe: doctor availability, first available appointment, slots, wallet state, payment state, queue state, and survey state are still loaded through REST/AJAX.
+- Wide desktop layouts now use larger constrained containers, stable CSS grids, improved card spacing, and text overflow guards for names, clinic titles, financial values, and table cells.
+- Mobile behavior was tightened for modal date strips, slot grids, profile cards, dashboard navigation, doctor cards, checkout summaries, and public flow pages.
+- Slot colors are normalized across modal and dashboard views: green for available, amber for in-progress, muted for booked/expired, and danger tint for cancelled.

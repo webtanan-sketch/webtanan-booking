@@ -1,4 +1,4 @@
-# Webtanan Booking Gap Review - v1.2.3
+# Webtanan Booking Gap Review - v1.2.5
 
 ## Completed In This Pass
 
@@ -21,6 +21,13 @@
 - Walk-in and online appointments stay in the same appointment table and timeline, with UI badges.
 - Main wording fixes: `پیشخوان`, `روزهای خاص`, `برنامه تاریخ خاص`.
 
+## Frontend UI/UX Completed In v1.2.5
+
+- A frontend UI/UX polish layer now covers archive/listing pages, Elementor doctor cards, the single doctor profile, booking modal, checkout, patient panel, doctor dashboard, medical records, waiting-list page, and survey page.
+- The single doctor booking CTA now has a stable `#booking` anchor and uses the user-facing `گرفتن نوبت` wording.
+- Dashboard headers now use `پیشخوان` instead of a raw product label.
+- The UI pass is CSS/markup focused and does not change REST payloads, financial logic, database schema, refunds, or booking transactions.
+
 ## Partially Complete
 
 - Survey submission stores a private response and creates a pending public WordPress comment when the patient consents. The new admin survey screen can mark responses as approved, private, pending, or rejected.
@@ -33,10 +40,11 @@
 - Audit log for medical-record reads/edits.
 - More granular secretary access to medical records if clinics require it.
 - Automated browser QA for 390, 768, 1366, and 1920 pixel widths.
+- Deeper browser QA against real Elementor templates, sticky theme headers, and production cache plugins.
 
 ## Operational Notes
 
-- Plugin version is bumped to `1.2.3`. No database schema change was required in this pass.
+- Plugin version is bumped to `1.2.5`. The v1.2.5 UI/UX pass does not require a database schema change.
 - Database schema from `1.2.2` remains valid; `DB::create_tables()` still runs on boot when the stored version differs.
 - Refund idempotency remains centralized in `Booking::cancel_appointment()` and `wp_saas_wallets_ledger`.
 - Survey and waiting-list public access relies on HMAC tokens generated from appointment id/code/mobile and purpose.
