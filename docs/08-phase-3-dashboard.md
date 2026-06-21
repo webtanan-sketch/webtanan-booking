@@ -63,6 +63,10 @@ namespace:
 
 `webtanan_secretary_can_view_finance`
 
+برای دسترسی منشی به پرونده پزشکی، مقدار user meta زیر باید `yes` باشد:
+
+`webtanan_secretary_can_manage_records`
+
 ## پنل بیمار
 
 بخش‌های اضافه‌شده:
@@ -110,6 +114,8 @@ APIهای بیمار:
 - Doctors can open a patient record from today's appointments or the patient list.
 - Record fields: summary, allergies, chronic conditions, current medications.
 - Visit notes support two visibility modes: `patient` and `private`.
+- Medical-record files support `jpg`, `png`, `webp`, and `pdf` uploads through the doctor dashboard.
+- Every record view, update, note creation, and file upload is written to the audit log.
 - Bulk cancellation is available from today's appointment view:
   - Cancel selected appointments.
   - Cancel all active appointments for the selected day.
@@ -119,6 +125,7 @@ APIهای بیمار:
 
 - New tab: `پرونده پزشکی`.
 - Patients see only their own records and only notes marked as visible to patient.
+- Patients see only files marked with `visibility=patient`.
 - The patient view is read-only in this phase.
 
 ## Wording Update

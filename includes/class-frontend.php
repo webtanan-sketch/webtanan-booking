@@ -679,32 +679,33 @@ final class Frontend {
 
         ob_start();
         ?>
-        <article class="webtanan-booking webtanan-public-doctor-card webtanan-doctor-card-shortcode wb-doctor-card" dir="rtl">
+        <article class="webtanan-booking webtanan-public-doctor-card webtanan-doctor-card-shortcode wb-doctor-card wb-doctor-card-unified" dir="rtl">
             <a class="webtanan-public-doctor-photo wb-doctor-card-photo" href="<?php echo esc_url($permalink); ?>" aria-label="<?php echo esc_attr($title); ?>">
                 <?php if ($image_url) : ?>
-                    <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($title); ?>">
+                    <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy">
                 <?php else : ?>
-                    <span><?php echo esc_html(function_exists('mb_substr') ? mb_substr($title, 0, 1) : substr($title, 0, 1)); ?></span>
+                    <span class="wb-doctor-card-initial"><?php echo esc_html(function_exists('mb_substr') ? mb_substr($title, 0, 1) : substr($title, 0, 1)); ?></span>
                 <?php endif; ?>
             </a>
             <div class="webtanan-public-doctor-body wb-doctor-card-body">
                 <div class="webtanan-doctor-badges wb-doctor-card-badges">
-                    <?php if (!empty($doctor['is_verified'])) : ?><span class="wb-badge wb-badge-success"><?php esc_html_e('تاییدشده', 'webtanan-booking'); ?></span><?php endif; ?>
+                    <?php if (!empty($doctor['is_verified'])) : ?><span class="wb-badge wb-badge-success"><?php esc_html_e('پزشک تایید شده', 'webtanan-booking'); ?></span><?php endif; ?>
                     <?php if (!empty($doctor['allow_online_payment'])) : ?><span class="wb-badge wb-badge-info"><?php esc_html_e('پرداخت آنلاین', 'webtanan-booking'); ?></span><?php endif; ?>
                     <?php if (!empty($doctor['allow_pay_at_clinic'])) : ?><span class="wb-badge wb-badge-warning"><?php esc_html_e('پرداخت در مطب', 'webtanan-booking'); ?></span><?php endif; ?>
                 </div>
                 <h2 class="wb-doctor-card-title"><a href="<?php echo esc_url($permalink); ?>"><?php echo esc_html($title); ?></a></h2>
                 <div class="wb-doctor-card-meta-row">
-                    <?php if (!empty($doctor['specialty_name'])) : ?><p class="webtanan-meta wb-doctor-card-meta"><?php echo esc_html($doctor['specialty_name']); ?></p><?php endif; ?>
-                    <?php if (!empty($doctor['clinic_address'])) : ?><p class="webtanan-meta wb-doctor-card-meta"><?php echo esc_html(wp_trim_words($doctor['clinic_address'], 18)); ?></p><?php endif; ?>
+                    <?php if (!empty($doctor['specialty_name'])) : ?><span class="webtanan-meta wb-doctor-card-meta"><?php echo esc_html($doctor['specialty_name']); ?></span><?php endif; ?>
+                    <?php if (!empty($doctor['clinic_address'])) : ?><span class="webtanan-meta wb-doctor-card-meta"><?php echo esc_html(wp_trim_words($doctor['clinic_address'], 18)); ?></span><?php endif; ?>
                 </div>
                 <div class="webtanan-public-fees wb-doctor-fees">
-                    <span class="wb-doctor-fee"><?php esc_html_e('هزینه نوبت‌دهی:', 'webtanan-booking'); ?> <strong><?php echo esc_html(number_format_i18n($booking_fee)); ?></strong> <?php esc_html_e('تومان', 'webtanan-booking'); ?></span>
-                    <?php if ($visit_price > 0) : ?><span class="wb-doctor-fee"><?php esc_html_e('ویزیت اعلامی:', 'webtanan-booking'); ?> <strong><?php echo esc_html(number_format_i18n($visit_price)); ?></strong> <?php esc_html_e('تومان', 'webtanan-booking'); ?></span><?php endif; ?>
+                    <div class="wb-doctor-fee"><span><?php esc_html_e('خدمات نوبت‌دهی', 'webtanan-booking'); ?></span><strong><?php echo esc_html(number_format_i18n($booking_fee)); ?> <?php esc_html_e('تومان', 'webtanan-booking'); ?></strong></div>
+                    <?php if ($visit_price > 0) : ?><div class="wb-doctor-fee"><span><?php esc_html_e('تعرفه ویزیت', 'webtanan-booking'); ?></span><strong><?php echo esc_html(number_format_i18n($visit_price)); ?> <?php esc_html_e('تومان', 'webtanan-booking'); ?></strong></div><?php endif; ?>
                 </div>
+                <div class="webtanan-next-available wb-next-available-wrap" data-webtanan-widget="next-available" data-doctor-id="<?php echo esc_attr((string) $doctor_id); ?>"></div>
                 <div class="webtanan-public-actions wb-doctor-card-actions">
-                    <a class="webtanan-button webtanan-button-primary wb-btn wb-btn-primary" href="<?php echo esc_url($permalink); ?>"><?php esc_html_e('مشاهده و دریافت نوبت', 'webtanan-booking'); ?></a>
-                    <div class="webtanan-next-available wb-next-available-wrap" data-webtanan-widget="next-available" data-doctor-id="<?php echo esc_attr((string) $doctor_id); ?>"></div>
+                    <a class="webtanan-button webtanan-button-primary wb-btn wb-btn-primary" href="<?php echo esc_url($permalink . '#booking'); ?>"><?php esc_html_e('گرفتن نوبت', 'webtanan-booking'); ?></a>
+                    <a class="wb-btn wb-btn-ghost" href="<?php echo esc_url($permalink); ?>"><?php esc_html_e('مشاهده پروفایل', 'webtanan-booking'); ?></a>
                 </div>
             </div>
         </article>

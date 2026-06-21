@@ -4,7 +4,7 @@ A production-oriented **SaaS appointment booking plugin for WordPress**, designe
 
 Webtanan Booking combines **SEO-friendly WordPress doctor profiles** with **high-performance custom database tables** for appointments, payments, wallets, SMS logs, OTP authentication, financial operations, and settlement workflows.
 
-> 🚧 **Current status:** Installable foundation / advanced MVP. The plugin already includes the core architecture, doctor CPT, custom operational tables, OTP, appointment locking, wallet ledger, IPPanel Pattern SMS integration, AqayePardakht payment gateway integration, admin management pages, front-end doctor/secretary dashboard, patient panel, and Persian language support. It is not yet a final production SaaS release.
+> 🚧 **Current status:** Installable foundation / advanced MVP. The plugin already includes the core architecture, doctor CPT, custom operational tables, OTP, appointment locking, wallet ledger, IPPanel Pattern SMS integration, AqayePardakht payment gateway integration, admin management pages, front-end doctor/secretary dashboard, patient panel, medical-record notes/files with audit logging, and Persian language support. It is not yet a final production SaaS release.
 
 ---
 
@@ -240,6 +240,11 @@ wp_saas_wallets_ledger
 wp_saas_settlement_requests
 wp_saas_otp_logs
 wp_saas_sms_logs
+wp_saas_patient_records
+wp_saas_patient_record_notes
+wp_saas_patient_record_files
+wp_saas_patient_record_audit_logs
+wp_saas_survey_responses
 ```
 
 ### 🔒 Critical appointment index

@@ -35,6 +35,7 @@
 - اتصال منشی به یک یا چند پزشک
 - ذخیره پزشکان مجاز در user meta با کلید `webtanan_assigned_doctor_ids`
 - کنترل دسترسی مالی منشی با کلید `webtanan_secretary_can_view_finance`
+- کنترل دسترسی پرونده پزشکی منشی با کلید `webtanan_secretary_can_manage_records`
 
 منشی همچنان فقط پزشک‌هایی را در داشبورد می‌بیند که مستقیم یا از این صفحه به او assign شده باشند. بدون مجوز مالی، endpointهای کیف پول و تسویه برای منشی بسته می‌مانند.
 
@@ -74,6 +75,7 @@
 
 - صفحه مدیریت منشی‌ها همچنان زیر منوی Webtanan Booking قرار دارد و assignment را در `webtanan_assigned_doctor_ids` ذخیره می‌کند.
 - مقدار `webtanan_secretary_can_view_finance` تنها toggle معتبر مشاهده کیف پول و تسویه برای منشی است.
+- مقدار `webtanan_secretary_can_manage_records` تنها toggle معتبر مشاهده، ویرایش و آپلود فایل پرونده پزشکی برای منشی است.
 - در middleware داشبورد REST، کاربر دارای نقش `webtanan_secretary` فقط پزشک‌های موجود در `webtanan_assigned_doctor_ids` را می‌بیند.
 - فیلد `secretary_user_id` در جدول پزشکان برای سهم/گیرنده مالی استفاده می‌شود و به‌تنهایی مجوز دسترسی داشبورد نیست.
 - لغو بیمار از policy backend استفاده می‌کند: مهلت لغو، بازه استرداد کامل، درصد استرداد کامل، درصد میانی و درصد دیرهنگام.

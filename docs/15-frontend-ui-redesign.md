@@ -66,3 +66,14 @@
 - Wide desktop layouts now use larger constrained containers, stable CSS grids, improved card spacing, and text overflow guards for names, clinic titles, financial values, and table cells.
 - Mobile behavior was tightened for modal date strips, slot grids, profile cards, dashboard navigation, doctor cards, checkout summaries, and public flow pages.
 - Slot colors are normalized across modal and dashboard views: green for available, amber for in-progress, muted for booked/expired, and danger tint for cancelled.
+
+# v1.2.6 Frontend Rebuild
+
+- `assets/css/frontend.css` was rebuilt as a clean frontend layer instead of adding another polish override. The file is now split by responsibility: tokens/base, controls, doctor discovery, single doctor, booking modal/checkout, dashboards, calendar, tables, records/profile/wallet, public waiting/survey, and responsive rules.
+- Doctor archive, Elementor Doctor Search/List, AJAX results, and the single Doctor Card shortcode now share the same card contract: photo, title, specialty/address, payment badges, booking service fee, visit fee, dynamic first available slot, and two CTAs.
+- The doctor search form now styles the real `.wb-search-field` markup and uses responsive CSS grid so specialty/province/city/payment/sort filters do not collapse on wide screens.
+- The single doctor sidebar remains cache-safe and lightweight: no embedded calendar is rendered in the sticky card; the booking flow still opens inside the modal and loads days/slots through REST.
+- Doctor dashboard calendar was changed from a raw month grid to practical daily/weekly appointment cards with patient name, source label, time range, payment label, and status badge.
+- REST responses were extended additively with display-only fields such as `display_status`, `display_payment`, `source_label`, `patient_display_name`, `time_range`, and `slot_tone`. Existing raw fields remain available for backward compatibility.
+- Duplicate JavaScript render paths were removed: doctor cards now delegate to `doctorCardUnified()`, and the patient wallet keeps a single renderer with top-up UI.
+- The dashboard wrappers still render below the site header/footer, but the plugin content uses a wide independent layout so it is not trapped inside narrow theme containers.

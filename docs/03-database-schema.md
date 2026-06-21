@@ -117,3 +117,41 @@ Stores append-only visit notes for a medical record. Each note can be linked to 
 ## `wp_saas_survey_responses`
 
 Stores private survey feedback after an appointment. If the patient allows public display, a pending WordPress comment is also created on the doctor CPT, while this table remains the operational source for reports.
+
+# v1.2.7 Tables Added
+
+## `wp_saas_patient_record_files`
+
+Stores uploaded medical-record files. The physical file is still a WordPress attachment, but the medical-record relationship and access metadata are isolated in this custom table.
+
+Important fields:
+
+- `record_id`
+- `note_id`
+- `appointment_id`
+- `doctor_id`
+- `patient_user_id`
+- `attachment_id`
+- `file_url`
+- `file_name`
+- `mime_type`
+- `file_size`
+- `visibility`
+- `uploaded_by`
+- `created_at`
+
+Allowed `visibility` values are `patient` and `private`.
+
+## `wp_saas_patient_record_audit_logs`
+
+Stores append-only audit events for sensitive medical-record reads and writes.
+
+Tracked actions include:
+
+- `view_record`
+- `patient_view_record`
+- `update_record`
+- `add_note`
+- `upload_file`
+
+The table keeps `actor_user_id`, `actor_role`, IP address, user agent, object metadata, and timestamp for traceability.

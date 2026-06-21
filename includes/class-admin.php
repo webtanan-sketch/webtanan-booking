@@ -424,6 +424,7 @@ final class Admin {
         }
 
         $can_view_finance = $secretary_id ? ('yes' === get_user_meta($secretary_id, 'webtanan_secretary_can_view_finance', true)) : false;
+        $can_manage_records = $secretary_id ? ('yes' === get_user_meta($secretary_id, 'webtanan_secretary_can_manage_records', true)) : false;
         $doctors = $wpdb->get_results('SELECT d.id, d.clinic_name, p.post_title FROM ' . DB::table('doctors') . ' d LEFT JOIN ' . $wpdb->posts . ' p ON p.ID = d.post_id ORDER BY p.post_title ASC, d.id ASC LIMIT 500', ARRAY_A);
 
         ?>
@@ -435,7 +436,7 @@ final class Admin {
                     <div class="webtanan-admin-panel">
                         <h2><?php esc_html_e('منشی‌های ثبت‌شده', 'webtanan-booking'); ?></h2>
                         <table class="widefat striped">
-                            <thead><tr><th><?php esc_html_e('منشی', 'webtanan-booking'); ?></th><th><?php esc_html_e('پزشکان مجاز', 'webtanan-booking'); ?></th><th><?php esc_html_e('دسترسی مالی', 'webtanan-booking'); ?></th><th><?php esc_html_e('عملیات', 'webtanan-booking'); ?></th></tr></thead>
+                            <thead><tr><th><?php esc_html_e('منشی', 'webtanan-booking'); ?></th><th><?php esc_html_e('پزشکان مجاز', 'webtanan-booking'); ?></th><th><?php esc_html_e('دسترسی مالی', 'webtanan-booking'); ?></th><th><?php esc_html_e('دسترسی پرونده', 'webtanan-booking'); ?></th><th><?php esc_html_e('عملیات', 'webtanan-booking'); ?></th></tr></thead>
                             <tbody>
                             <?php foreach ($secretaries as $secretary) : ?>
                                 <?php
@@ -449,10 +450,11 @@ final class Admin {
                                     <td><strong><?php echo esc_html($secretary->display_name); ?></strong><br><code><?php echo esc_html($secretary->user_email); ?></code></td>
                                     <td><?php echo esc_html(number_format_i18n(count($ids))); ?></td>
                                     <td><?php echo esc_html('yes' === get_user_meta((int) $secretary->ID, 'webtanan_secretary_can_view_finance', true) ? __('دارد', 'webtanan-booking') : __('ندارد', 'webtanan-booking')); ?></td>
+                                    <td><?php echo esc_html('yes' === get_user_meta((int) $secretary->ID, 'webtanan_secretary_can_manage_records', true) ? __('دارد', 'webtanan-booking') : __('ندارد', 'webtanan-booking')); ?></td>
                                     <td><a class="button button-small" href="<?php echo esc_url(self::page_url('webtanan-booking-secretaries', array('secretary_user_id' => (int) $secretary->ID))); ?>"><?php esc_html_e('تنظیم دسترسی', 'webtanan-booking'); ?></a></td>
                                 </tr>
                             <?php endforeach; ?>
-                            <?php if (!$secretaries) : ?><tr><td colspan="4"><?php esc_html_e('هنوز کاربری با نقش منشی وب‌تنان وجود ندارد.', 'webtanan-booking'); ?></td></tr><?php endif; ?>
+                            <?php if (!$secretaries) : ?><tr><td colspan="5"><?php esc_html_e('هنوز کاربری با نقش منشی وب‌تنان وجود ندارد.', 'webtanan-booking'); ?></td></tr><?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -482,6 +484,7 @@ final class Admin {
                                     </select>
                                 </p>
                                 <p><label><input type="checkbox" name="can_view_finance" value="1" <?php checked($can_view_finance); ?>> <?php esc_html_e('منشی اجازه مشاهده کیف پول، درآمد و تسویه این پزشک‌ها را داشته باشد', 'webtanan-booking'); ?></label></p>
+                                <p><label><input type="checkbox" name="can_manage_records" value="1" <?php checked($can_manage_records); ?>> <?php esc_html_e('منشی اجازه مشاهده، ویرایش و آپلود فایل در پرونده پزشکی بیماران این پزشک‌ها را داشته باشد', 'webtanan-booking'); ?></label></p>
                                 <?php submit_button(__('ذخیره دسترسی منشی', 'webtanan-booking')); ?>
                             </form>
                         <?php else : ?>
@@ -1441,6 +1444,7 @@ final class Admin {
         $doctor_ids = array_values(array_unique(array_filter($doctor_ids)));
         update_user_meta($secretary_id, 'webtanan_assigned_doctor_ids', $doctor_ids);
         update_user_meta($secretary_id, 'webtanan_secretary_can_view_finance', isset($_POST['can_view_finance']) ? 'yes' : 'no');
+        update_user_meta($secretary_id, 'webtanan_secretary_can_manage_records', isset($_POST['can_manage_records']) ? 'yes' : 'no');
 
         self::set_notice('success', __('دسترسی منشی ذخیره شد.', 'webtanan-booking'));
         self::redirect('webtanan-booking-secretaries', array('secretary_user_id' => $secretary_id));

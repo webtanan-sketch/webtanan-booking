@@ -175,6 +175,22 @@ Doctors can edit only the doctor row linked to their own user. Admin users can s
 
 Doctor endpoints require that the patient has at least one appointment with the active doctor. Patient panel returns only the logged-in patient's records and only notes with `visibility=patient`.
 
+## v1.2.7 Medical Record Files And Audit
+
+- `POST /doctor-dashboard/patients/{patient_id}/record/files`
+- `GET /doctor-dashboard/patients/{patient_id}/record/audit`
+
+File upload uses `multipart/form-data` with:
+
+- `file`
+- `visibility`: `patient` or `private`
+- optional `appointment_id`
+- optional `note_id`
+
+Allowed file types are `jpg`, `png`, `webp`, and `pdf`; max size is 10 MB. Uploaded file relationships are stored in `wp_saas_patient_record_files`.
+
+Audit rows are stored in `wp_saas_patient_record_audit_logs`. The patient panel receives only files and notes marked `visibility=patient`. Secretaries must have both doctor assignment and `webtanan_secretary_can_manage_records=yes` to read, edit, or upload medical-record data.
+
 ### Waiting List
 
 - `GET /appointments/{appointment_code}/waiting-list?token=...`

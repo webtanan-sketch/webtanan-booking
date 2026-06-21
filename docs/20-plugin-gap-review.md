@@ -1,4 +1,4 @@
-# Webtanan Booking Gap Review - v1.2.5
+# Webtanan Booking Gap Review - v1.2.7
 
 ## Completed In This Pass
 
@@ -28,23 +28,41 @@
 - Dashboard headers now use `پیشخوان` instead of a raw product label.
 - The UI pass is CSS/markup focused and does not change REST payloads, financial logic, database schema, refunds, or booking transactions.
 
+## Frontend UI/UX Completed In v1.2.6
+
+- `frontend.css` was rebuilt into a single clean design layer to remove conflicting selector generations.
+- Public doctor cards now have one shared rendering contract across AJAX archive results, Elementor widgets, and the single-card shortcode.
+- The doctor search UI now uses the actual `.wb-search-field` markup and a responsive grid that remains stable on wide and mobile widths.
+- Doctor dashboard calendar now renders daily/weekly operational cards instead of the old raw month grid.
+- REST payloads received additive display fields only; booking, payment, refund, wallet ledger, and database schema behavior are unchanged.
+- Duplicate JavaScript renderers were removed to reduce future UI drift.
+
+## Medical Record Hardening Completed In v1.2.7
+
+- Medical-record file uploads were added with a dedicated custom table: `wp_saas_patient_record_files`.
+- Supported file types are `jpg`, `png`, `webp`, and `pdf`, with a 10 MB limit.
+- Doctors can upload patient-visible or private files from the patient record tab.
+- Patients can see only patient-visible files in their read-only medical-record panel.
+- Medical-record audit logging was added with `wp_saas_patient_record_audit_logs`.
+- Logged events include record view, patient view, record update, note creation, and file upload.
+- Secretary medical-record access now has a separate user meta toggle: `webtanan_secretary_can_manage_records`.
+
 ## Partially Complete
 
 - Survey submission stores a private response and creates a pending public WordPress comment when the patient consents. The new admin survey screen can mark responses as approved, private, pending, or rejected.
 - Waiting-list live view is now available through both the signed REST endpoint and a polished public HTML page with 30-second polling.
-- Medical records support text fields and notes. File attachments, prescriptions, and document uploads are not yet implemented.
+- Medical records support text fields, notes, and uploaded files. Prescription-specific structured data is not yet implemented.
 
 ## Still Missing / Recommended Next
 
-- Medical record attachments and per-note file uploads.
-- Audit log for medical-record reads/edits.
-- More granular secretary access to medical records if clinics require it.
+- Structured prescription module and prescription-specific print/export templates.
+- Optional per-note file binding UI; the backend table already supports `note_id`.
 - Automated browser QA for 390, 768, 1366, and 1920 pixel widths.
 - Deeper browser QA against real Elementor templates, sticky theme headers, and production cache plugins.
 
 ## Operational Notes
 
-- Plugin version is bumped to `1.2.5`. The v1.2.5 UI/UX pass does not require a database schema change.
-- Database schema from `1.2.2` remains valid; `DB::create_tables()` still runs on boot when the stored version differs.
+- Plugin version is bumped to `1.2.7`. The v1.2.7 pass adds medical-record file and audit tables through `dbDelta`.
+- `DB::create_tables()` still runs on boot when the stored version differs.
 - Refund idempotency remains centralized in `Booking::cancel_appointment()` and `wp_saas_wallets_ledger`.
 - Survey and waiting-list public access relies on HMAC tokens generated from appointment id/code/mobile and purpose.

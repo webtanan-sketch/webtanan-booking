@@ -57,11 +57,20 @@
 - صفحه مدیریت منشی‌ها فقط کاربران دارای نقش `webtanan_secretary` را می‌پذیرد.
 - پزشکان مجاز منشی فقط در user meta با کلید `webtanan_assigned_doctor_ids` ذخیره می‌شوند.
 - دسترسی مالی منشی فقط با user meta `webtanan_secretary_can_view_finance = yes` فعال است.
+- دسترسی منشی به پرونده پزشکی فقط با user meta `webtanan_secretary_can_manage_records = yes` فعال است؛ assignment پزشک به‌تنهایی برای مشاهده یا ویرایش پرونده کافی نیست.
 - endpointهای `doctor-dashboard/*` برای منشی فقط از لیست `webtanan_assigned_doctor_ids` پزشک انتخاب می‌کنند؛ فیلد `secretary_user_id` مجوز مشاهده داده نیست.
 - endpointهای مالی `doctor-dashboard/wallet`، `doctor-dashboard/settlements` و `doctor-dashboard/settlement-request` علاوه بر assignment، toggle مالی را هم بررسی می‌کنند و در صورت عدم مجوز 403 برمی‌گردانند.
 - در `POST /appointments/cancel` مقدار `cancelled_by` از کلاینت پذیرفته نمی‌شود؛ backend actor را از مالکیت بیمار، ادمین بودن، پزشک بودن یا منشی assign شده تشخیص می‌دهد.
 - refund لغو نوبت فقط پس از lock شدن ردیف نوبت با `FOR UPDATE` و داخل transaction انجام می‌شود.
 - قبل از ثبت refund، ledger برای `related_appointment_id + user_type=patient + entry_type=refund` بررسی می‌شود تا استرداد دوباره ساخته نشود.
+
+## سخت‌سازی پرونده پزشکی v1.2.7
+
+- فایل‌های پرونده از route امن `POST /doctor-dashboard/patients/{patient_id}/record/files` آپلود می‌شوند.
+- نوع فایل مجاز محدود به `jpg`, `png`, `webp`, و `pdf` است و حجم فایل باید کمتر از ۱۰ مگابایت باشد.
+- پزشک فقط پرونده بیمارانی را می‌بیند که برای همان `doctor_id` نوبت داشته‌اند.
+- بیمار فقط فایل‌ها و یادداشت‌های دارای `visibility=patient` را در پنل خود می‌بیند.
+- هر مشاهده، ویرایش، یادداشت و آپلود فایل در `wp_saas_patient_record_audit_logs` ثبت می‌شود.
 
 ## سخت‌سازی نسخه 1.1.0
 

@@ -236,6 +236,24 @@
         return statusLabels[status] || 'نامشخص';
     }
 
+    function statusTone(status) {
+        const value = String(status || '').toLowerCase();
+        if (['available', 'confirmed', 'completed', 'paid', 'wallet_paid', 'credit', 'approved'].includes(value)) {
+            return 'success';
+        }
+        if (['locked', 'pending', 'pay_at_clinic', 'cash_at_clinic', 'pos_at_clinic', 'unpaid'].includes(value)) {
+            return 'warning';
+        }
+        if (['cancelled', 'failed', 'no_show', 'rejected', 'debit'].includes(value)) {
+            return 'danger';
+        }
+        if (['booked', 'expired', 'settlement', 'commission'].includes(value)) {
+            return 'muted';
+        }
+
+        return 'info';
+    }
+
     function displayStatusLabel(label, status) {
         const cleanLabel = String(label || '').trim();
         if (!cleanLabel || cleanLabel === String(status || '') || /^[a-z0-9_-]+$/i.test(cleanLabel)) {
@@ -306,6 +324,16 @@
         return slot.status || 'available';
     }
 
+    function appointmentTimeRange(item) {
+        const start = item.start_time || '';
+        const end = item.end_time || '';
+        return item.time_range || (end ? `${start} - ${end}` : start);
+    }
+
+    function appointmentPatientName(item) {
+        return item.patient_display_name || item.patient_full_name || `${item.patient_first_name || ''} ${item.patient_last_name || ''}`.trim() || 'بیمار';
+    }
+
     function doctorNextAvailableMarkup(slot) {
         if (!slot) {
             return `<div class="webtanan-next-card wb-next-availability webtanan-next-card-empty"><span>اولین نوبت آزاد</span><strong>فعلا نوبت آزادی ثبت نشده است</strong></div>`;
@@ -317,40 +345,7 @@
     }
 
     function doctorCard(doctor) {
-        const title = doctor.title || doctor.clinic_name || 'پزشک';
-        const image = doctor.thumbnail
-            ? `<img src="${esc(doctor.thumbnail)}" alt="${esc(title)}">`
-            : `<span>${esc(title.charAt(0))}</span>`;
-        const visitPrice = Number(doctor.display_visit_price || doctor.visit_price || 0);
-        const badges = [
-            doctor.is_verified ? { label: 'تاییدشده', tone: 'success' } : null,
-            doctor.allow_online_payment ? { label: 'پرداخت آنلاین', tone: 'info' } : null,
-            doctor.allow_pay_at_clinic ? { label: 'پرداخت در مطب', tone: 'warning' } : null
-        ].filter(Boolean).map((badgeItem) => `<span class="wb-badge wb-badge-${esc(badgeItem.tone)}">${esc(badgeItem.label)}</span>`).join('');
-        const hasInlineNextAvailable = Object.prototype.hasOwnProperty.call(doctor, 'next_available');
-        const nextAvailable = hasInlineNextAvailable
-            ? doctorNextAvailableMarkup(doctor.next_available)
-            : `<div class="webtanan-next-available" data-webtanan-widget="next-available" data-doctor-id="${esc(doctor.id || 0)}"></div>`;
-
-        return `<article class="webtanan-public-doctor-card webtanan-public-doctor-card-compact wb-doctor-card">
-            <a class="webtanan-public-doctor-photo wb-doctor-card-photo" href="${esc(doctor.permalink || '#')}" aria-label="${esc(title)}">${image}</a>
-            <div class="webtanan-public-doctor-body wb-doctor-card-body">
-                <div class="webtanan-doctor-badges wb-doctor-card-badges">${badges}</div>
-                <h2 class="wb-doctor-card-title"><a href="${esc(doctor.permalink || '#')}">${esc(title)}</a></h2>
-                <div class="wb-doctor-card-meta-row">
-                    ${doctor.specialty_name ? `<p class="webtanan-meta wb-doctor-card-meta">${esc(doctor.specialty_name)}</p>` : ''}
-                    ${doctor.clinic_address ? `<p class="webtanan-meta wb-doctor-card-meta">${esc(doctor.clinic_address)}</p>` : ''}
-                </div>
-                <div class="webtanan-public-fees wb-doctor-fees">
-                    <span class="wb-doctor-fee">هزینه نوبت‌دهی: <strong>${money(doctor.booking_fee)}</strong> تومان</span>
-                    ${visitPrice > 0 ? `<span class="wb-doctor-fee">ویزیت اعلامی: <strong>${money(visitPrice)}</strong> تومان</span>` : ''}
-                </div>
-                <div class="webtanan-public-actions wb-doctor-card-actions">
-                    <a class="webtanan-button webtanan-button-primary wb-btn wb-btn-primary" href="${esc(doctor.permalink || '#')}">مشاهده و دریافت نوبت</a>
-                    <div class="wb-next-available-wrap">${nextAvailable}</div>
-                </div>
-            </div>
-        </article>`;
+        return doctorCardUnified(doctor);
     }
 
     function doctorCardUnified(doctor) {
@@ -358,10 +353,10 @@
         const permalink = doctor.permalink || '#';
         const image = doctor.thumbnail
             ? `<img src="${esc(doctor.thumbnail)}" alt="${esc(title)}" loading="lazy">`
-            : `<span>${esc(title.charAt(0))}</span>`;
+            : `<span class="wb-doctor-card-initial">${esc(title.charAt(0))}</span>`;
         const visitPrice = Number(doctor.display_visit_price || doctor.visit_price || 0);
         const badges = [
-            doctor.is_verified ? { label: 'تایید شده', tone: 'success' } : null,
+            doctor.is_verified ? { label: 'پزشک تایید شده', tone: 'success' } : null,
             doctor.allow_online_payment ? { label: 'پرداخت آنلاین', tone: 'info' } : null,
             doctor.allow_pay_at_clinic ? { label: 'پرداخت در مطب', tone: 'warning' } : null
         ].filter(Boolean).map((badgeItem) => `<span class="wb-badge wb-badge-${esc(badgeItem.tone)}">${esc(badgeItem.label)}</span>`).join('');
@@ -376,17 +371,17 @@
                 <div class="webtanan-doctor-badges wb-doctor-card-badges">${badges}</div>
                 <h2 class="wb-doctor-card-title"><a href="${esc(permalink)}">${esc(title)}</a></h2>
                 <div class="wb-doctor-card-meta-row">
-                    ${doctor.specialty_name ? `<p class="webtanan-meta wb-doctor-card-meta">${esc(doctor.specialty_name)}</p>` : ''}
-                    ${doctor.clinic_address ? `<p class="webtanan-meta wb-doctor-card-meta">${esc(doctor.clinic_address)}</p>` : ''}
+                    ${doctor.specialty_name ? `<span class="webtanan-meta wb-doctor-card-meta">${esc(doctor.specialty_name)}</span>` : ''}
+                    ${doctor.clinic_address ? `<span class="webtanan-meta wb-doctor-card-meta">${esc(doctor.clinic_address)}</span>` : ''}
                 </div>
                 <div class="webtanan-public-fees wb-doctor-fees">
-                    <span class="wb-doctor-fee">خدمات نوبت‌دهی: <strong>${money(doctor.booking_fee)}</strong> تومان</span>
-                    ${visitPrice > 0 ? `<span class="wb-doctor-fee">ویزیت: <strong>${money(visitPrice)}</strong> تومان</span>` : ''}
+                    <div class="wb-doctor-fee"><span>خدمات نوبت‌دهی</span><strong>${money(doctor.booking_fee)} تومان</strong></div>
+                    ${visitPrice > 0 ? `<div class="wb-doctor-fee"><span>تعرفه ویزیت</span><strong>${money(visitPrice)} تومان</strong></div>` : ''}
                 </div>
+                <div class="wb-next-available-wrap">${nextAvailable}</div>
                 <div class="webtanan-public-actions wb-doctor-card-actions">
                     <a class="webtanan-button webtanan-button-primary wb-btn wb-btn-primary" href="${esc(permalink)}#booking">گرفتن نوبت</a>
-                    <a class="wb-btn wb-btn-ghost" href="${esc(permalink)}">پروفایل پزشک</a>
-                    <div class="wb-next-available-wrap">${nextAvailable}</div>
+                    <a class="wb-btn wb-btn-ghost" href="${esc(permalink)}">مشاهده پروفایل</a>
                 </div>
             </div>
         </article>`;
@@ -1011,8 +1006,9 @@
     }
 
     function badge(value, type) {
-        const tone = String(type || value || 'info').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
-        return `<span class="wb-badge wb-status-badge wb-badge-${esc(tone)}">${esc(value)}</span>`;
+        const raw = String(type || value || 'info').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+        const tone = statusTone(raw);
+        return `<span class="wb-badge wb-status-badge wb-badge-${esc(tone)}" data-status="${esc(raw)}">${esc(value)}</span>`;
     }
 
     function confirmModal(options) {
@@ -1104,12 +1100,12 @@
                 <tbody>
                     ${items.map((item) => `<tr class="wb-appointment-row" data-status="${esc(item.appointment_status || '')}">
                         ${selectable ? `<td class="wb-check-cell"><input type="checkbox" class="wb-appointment-check" value="${esc(item.id)}" ${['locked', 'confirmed', 'pay_at_clinic'].includes(item.appointment_status) ? '' : 'disabled'}></td>` : ''}
-                        <td class="wb-time-cell"><strong>${esc(displayDate(item.appointment_date, false))}</strong><span>${esc(item.start_time)}</span></td>
-                        <td class="wb-patient-cell"><strong>${esc(item.patient_full_name || '-')}</strong><span>${esc(item.patient_mobile || '')}</span></td>
+                        <td class="wb-time-cell"><strong>${esc(displayDate(item.appointment_date, false))}</strong><span>${esc(appointmentTimeRange(item))}</span></td>
+                        <td class="wb-patient-cell"><strong>${esc(appointmentPatientName(item))}</strong><span>${esc(item.patient_mobile || '')}</span></td>
                         <td class="wb-national-cell">${esc(item.patient_national_code || '-')}</td>
-                        <td>${badge(item.booking_source === 'clinic' ? 'حضوری' : 'آنلاین', item.booking_source === 'clinic' ? 'pay_at_clinic' : 'paid')}</td>
-                        <td class="wb-table-status">${badge(displayStatusLabel(item.payment_label, item.payment_status), item.payment_status)}</td>
-                        <td class="wb-table-status">${badge(displayStatusLabel(item.appointment_label, item.appointment_status), item.appointment_status)}</td>
+                        <td>${badge(item.source_label || (item.booking_source === 'clinic' ? 'حضوری' : 'آنلاین'), item.booking_source === 'clinic' ? 'pay_at_clinic' : 'paid')}</td>
+                        <td class="wb-table-status">${badge(item.display_payment || displayStatusLabel(item.payment_label, item.payment_status), item.payment_status)}</td>
+                        <td class="wb-table-status">${badge(item.display_status || displayStatusLabel(item.appointment_label, item.appointment_status), item.appointment_status)}</td>
                         <td class="wb-actions">${appointmentActions(item, mode)}</td>
                     </tr>`).join('')}
                 </tbody>
@@ -1249,13 +1245,15 @@
         }
 
         function renderCalendar() {
-            content.innerHTML = `${renderTitle('تقویم نوبت‌دهی', 'برنامه نوبت‌ها در نمای روزانه، هفتگی یا ماهانه')}
+            if (state.calendarMode === 'month') {
+                state.calendarMode = 'week';
+            }
+            content.innerHTML = `${renderTitle('تقویم نوبت‌دهی', 'نمای کاربردی روزانه و هفتگی برای مدیریت نوبت‌های مطب')}
                 <div class="wb-filterbar">
                     <input type="date" class="wb-calendar-date" value="${esc(state.date)}">
                     <div class="wb-segmented" role="group" aria-label="نوع نمایش تقویم">
                         <button type="button" class="${state.calendarMode === 'day' ? 'is-active' : ''}" data-calendar-mode="day">روزانه</button>
                         <button type="button" class="${state.calendarMode === 'week' ? 'is-active' : ''}" data-calendar-mode="week">هفتگی</button>
-                        <button type="button" class="${state.calendarMode === 'month' ? 'is-active' : ''}" data-calendar-mode="month">ماهانه</button>
                     </div>
                     <button type="button" class="wb-button wb-load-calendar">نمایش تقویم</button>
                     <button type="button" class="wb-button wb-calendar-today">امروز</button>
@@ -1269,7 +1267,7 @@
                     <span data-status="no_show">مراجعه نکرد</span>
                     <span data-status="cancelled">لغو شده</span>
                 </div>
-                <div class="wb-calendar-results">${panel('در حال بارگذاری')}</div>`;
+                <div class="wb-calendar-results wb-calendar-board">${loadingPanel('در حال بارگذاری تقویم...')}</div>`;
             loadCalendar();
         }
 
@@ -1277,7 +1275,7 @@
             const date = content.querySelector('.wb-calendar-date') ? content.querySelector('.wb-calendar-date').value : state.date;
             state.date = date;
             const results = content.querySelector('.wb-calendar-results');
-            results.innerHTML = panel('در حال بارگذاری');
+            results.innerHTML = loadingPanel('در حال بارگذاری تقویم...');
             const dates = calendarDateRange(state.calendarMode, date);
             Promise.all(dates.map((day) => request(`/doctor-dashboard/calendar?${doctorQuery({ date: day })}`)))
                 .then((days) => {
@@ -1291,14 +1289,31 @@
 
         function renderCalendarDay(date, slots) {
             const available = slots.filter((slot) => slot.status === 'available').length;
-            return `<section class="wb-calendar-day">
-                <header>
-                    <strong>${esc(displayDate(date))}</strong>
-                    <span>${money(available)} نوبت آزاد</span>
+            const booked = slots.filter((slot) => slot.status !== 'available').length;
+            return `<section class="wb-calendar-day-card">
+                <header class="wb-calendar-day-head">
+                    <div>
+                        <strong>${esc(displayDate(date))}</strong>
+                        <span>${money(available)} ساعت آزاد، ${money(booked)} نوبت ثبت‌شده</span>
+                    </div>
+                    <button type="button" class="wb-table-action wb-calendar-focus-day" data-calendar-date="${esc(date)}">نمای روز</button>
                 </header>
-                ${slots.length ? `<div class="wb-slot-grid">${slots.map((slot) => {
+                ${slots.length ? `<div class="wb-calendar-slots">${slots.map((slot) => {
                     const detailed = slotDetailedStatus(slot);
-                    return `<div class="wb-slot-card" data-status="${esc(detailed)}"><strong>${esc(slot.start_time)}</strong><span>${esc(statusLabel(detailed))}</span></div>`;
+                    const tone = slot.slot_tone || statusTone(detailed);
+                    const patient = slot.patient_display_name ? `<strong class="wb-calendar-patient">${esc(slot.patient_display_name)}</strong>` : '';
+                    const source = slot.source_label ? `<span class="wb-calendar-source">${esc(slot.source_label)}</span>` : '';
+                    return `<article class="wb-calendar-slot-card" data-status="${esc(detailed)}" data-tone="${esc(tone)}">
+                        <div class="wb-calendar-slot-time">${esc(slot.time_range || `${slot.start_time}${slot.end_time ? ` - ${slot.end_time}` : ''}`)}</div>
+                        <div class="wb-calendar-slot-body">
+                            ${patient || '<strong class="wb-calendar-patient">ساعت آزاد</strong>'}
+                            <span>${esc(slot.display_status || statusLabel(detailed))}</span>
+                        </div>
+                        <div class="wb-calendar-slot-meta">
+                            ${source}
+                            ${slot.display_payment ? `<span>${esc(slot.display_payment)}</span>` : ''}
+                        </div>
+                    </article>`;
                 }).join('')}</div>` : panel('برای این روز اسلاتی ثبت نشده است.')}
             </section>`;
         }
@@ -1350,6 +1365,8 @@
             request(`/doctor-dashboard/patients/${patientId}/record?${doctorQuery()}`)
                 .then((record) => {
                     const notes = Array.isArray(record.notes) ? record.notes : [];
+                    const files = Array.isArray(record.files) ? record.files : [];
+                    const auditLogs = Array.isArray(record.audit_logs) ? record.audit_logs : [];
                     target.innerHTML = `<div class="wb-record-card" data-patient-id="${esc(patientId)}">
                         <div class="wb-section-head"><h3>پرونده ${esc(record.patient_full_name || 'بیمار')}</h3><span>${esc(record.patient_mobile || '')}</span></div>
                         <form class="wb-record-form">
@@ -1369,8 +1386,28 @@
                             </select>
                             <button type="submit" class="wb-button wb-button-primary">افزودن یادداشت</button>
                         </form>
+                        <form class="wb-record-file-form">
+                            <div class="wb-section-head"><h3>فایل‌های پرونده</h3><span>تصویر، PDF یا مدارک مراجعه</span></div>
+                            <input type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf" required>
+                            <select name="visibility">
+                                <option value="patient">نمایش برای بیمار</option>
+                                <option value="private">فقط پزشک/مدیر</option>
+                            </select>
+                            <button type="submit" class="wb-button wb-button-primary">آپلود فایل</button>
+                        </form>
+                        <div class="wb-record-files">
+                            ${files.length ? files.map((file) => `<a class="wb-record-file" href="${esc(file.file_url || '#')}" target="_blank" rel="noopener">
+                                <strong>${esc(file.file_name || 'فایل پرونده')}</strong>
+                                <span>${esc(file.mime_type || '')} ${file.file_size ? `- ${money(Math.round(Number(file.file_size) / 1024))} KB` : ''}</span>
+                                ${badge(file.visibility === 'private' ? 'خصوصی' : 'قابل مشاهده بیمار', file.visibility === 'private' ? 'cancelled' : 'confirmed')}
+                            </a>`).join('') : panel('هنوز فایلی برای پرونده ثبت نشده است.')}
+                        </div>
                         <div class="wb-record-notes">
                             ${notes.length ? notes.map((note) => `<article class="wb-record-note"><strong>${esc(note.title || 'یادداشت')}</strong><p>${esc(note.body || '')}</p><span>${esc(note.created_at || '')}</span>${badge(note.visibility === 'private' ? 'خصوصی' : 'قابل مشاهده بیمار', note.visibility === 'private' ? 'cancelled' : 'confirmed')}</article>`).join('') : panel('هنوز یادداشتی ثبت نشده است.')}
+                        </div>
+                        <div class="wb-record-audit">
+                            <div class="wb-section-head"><h3>ردپای پرونده</h3></div>
+                            ${auditLogs.length ? auditLogs.map((item) => `<div class="wb-record-audit-row"><strong>${esc(item.action_label || item.action || '')}</strong><span>${esc(item.actor_name || '')}</span><time>${esc(item.created_at || '')}</time></div>`).join('') : panel('هنوز لاگی برای این پرونده ثبت نشده است.')}
                         </div>
                         <div class="wb-record-message" aria-live="polite"></div>
                     </div>`;
@@ -1439,74 +1476,6 @@
                 })
                 .catch((error) => {
                     content.querySelector('.wb-exception-results').innerHTML = panel(error.message);
-                });
-        }
-
-        function renderWallet() {
-            content.innerHTML = `${renderTitle('کیف پول و مالی', 'موجودی، دفتر کل و درخواست تسویه')}
-                <div class="wb-wallet-results">${panel('در حال بارگذاری')}</div>`;
-            Promise.all([
-                request(`/doctor-dashboard/wallet?${doctorQuery()}`),
-                request(`/doctor-dashboard/settlements?${doctorQuery()}`)
-            ]).then(([wallet, settlements]) => {
-                const ledgerRows = Array.isArray(wallet.ledger) ? wallet.ledger : [];
-                const settlementRows = Array.isArray(settlements) ? settlements : [];
-                content.querySelector('.wb-wallet-results').innerHTML = `<div class="wb-stats-grid">
-                        ${statCard('موجودی کل', money(wallet.total_balance != null ? wallet.total_balance : wallet.balance), 'تومان', 'ک')}
-                        ${statCard('موجودی قابل برداشت', money(wallet.available_balance != null ? wallet.available_balance : wallet.balance), 'تومان', 'ب')}
-                        ${statCard('در انتظار تسویه', money(wallet.pending_settlement || 0), 'تومان', 'ت')}
-                        ${statCard('بدهی کمیسیون حضوری', money(wallet.commission_debt || 0), 'تومان', 'د')}
-                    </div>
-                    <form class="wb-inline-form wb-settlement-form">
-                        <input type="number" name="amount" min="1" placeholder="مبلغ تسویه">
-                        <input type="text" name="iban" placeholder="شماره شبا">
-                        <button type="submit" class="wb-button wb-button-primary">ثبت درخواست تسویه</button>
-                    </form>
-                    <div class="wb-section-head"><h3>دفتر کل</h3></div>
-                    ${ledgerRows.length ? `<div class="wb-table-wrap"><table class="wb-table wb-wallet-table"><thead><tr><th>نوع</th><th>مبلغ</th><th>مانده بعد</th><th>تاریخ</th></tr></thead><tbody>${ledgerRows.map((item) => `<tr><td>${badge(ledgerLabel(item.entry_type), item.entry_type)}</td><td class="${Number(item.amount || 0) >= 0 ? 'wb-money-credit' : 'wb-money-debit'}">${money(item.amount)} تومان</td><td>${money(item.balance_after)} تومان</td><td>${esc(item.created_at)}</td></tr>`).join('')}</tbody></table></div>` : panel('موردی ثبت نشده است.')}
-                    <div class="wb-section-head"><h3>درخواست‌های تسویه</h3></div>
-                    ${settlementRows.length ? `<div class="wb-table-wrap"><table class="wb-table wb-settlement-table"><thead><tr><th>مبلغ</th><th>وضعیت</th><th>پیگیری / تاریخ</th></tr></thead><tbody>${settlementRows.map((item) => `<tr><td><strong>${money(item.amount)} تومان</strong></td><td>${badge(settlementLabel(item.status), item.status)}</td><td>${esc(item.bank_tracking_number || item.requested_at || item.created_at)}</td></tr>`).join('')}</tbody></table></div>` : panel('درخواستی ثبت نشده است.')}`;
-            }).catch((error) => {
-                content.querySelector('.wb-wallet-results').innerHTML = panel(error.message);
-            });
-        }
-
-        function renderWallet() {
-            content.innerHTML = loadingPanel('در حال بارگذاری کیف پول...');
-            request('/patient-panel/wallet')
-                .then((wallet) => {
-                    const rows = Array.isArray(wallet.ledger) ? wallet.ledger : [];
-                    content.innerHTML = `${renderTitle('کیف پول', 'افزایش موجودی، پرداخت‌ها و برگشت پول‌ها')}
-                        <div class="wb-stats-grid">${statCard('موجودی فعلی', money(wallet.balance), 'تومان', 'ک')}</div>
-                        <form class="wb-wallet-topup-form">
-                            <div class="wb-topup-presets" role="group" aria-label="مبلغ‌های پیشنهادی">
-                                <button type="button" data-topup-amount="100000">۱۰۰ هزار</button>
-                                <button type="button" data-topup-amount="250000">۲۵۰ هزار</button>
-                                <button type="button" data-topup-amount="500000">۵۰۰ هزار</button>
-                                <button type="button" data-topup-amount="1000000">۱ میلیون</button>
-                            </div>
-                            <label>
-                                <span>مبلغ دلخواه شارژ</span>
-                                <input type="number" name="amount" min="10000" step="1000" placeholder="مثلاً ۲۰۰۰۰۰" required>
-                            </label>
-                            <button type="submit" class="wb-btn wb-btn-primary">افزایش موجودی</button>
-                        </form>
-                        ${rows.length ? `<div class="wb-table-wrap">
-                            <table class="wb-table wb-wallet-table">
-                                <thead><tr><th>تاریخ</th><th>نوع</th><th>مبلغ</th><th>مانده بعد</th><th>نوبت</th><th>توضیح</th></tr></thead>
-                                <tbody>${rows.map((item) => `<tr>
-                                    <td>${esc(displayDate((item.created_at || '').slice(0, 10), false))}<br><span>${esc(item.created_at || '')}</span></td>
-                                    <td>${badge(ledgerLabel(item.entry_type), item.entry_type)}</td>
-                                    <td class="${Number(item.amount || 0) >= 0 ? 'wb-money-credit' : 'wb-money-debit'}">${money(item.amount)} تومان</td>
-                                    <td>${money(item.balance_after)} تومان</td>
-                                    <td>${esc(item.appointment_code || '-')}</td>
-                                    <td>${esc(item.description || '-')}</td>
-                                </tr>`).join('')}</tbody>
-                            </table>
-                        </div>` : panel('فعلاً گردشی برای کیف پول ثبت نشده است.')}`;
-                })
-                .catch((error) => {
-                    content.innerHTML = panel(error.message);
                 });
         }
 
@@ -1668,6 +1637,13 @@
                 loadCalendar();
                 return;
             }
+            const focusDay = event.target.closest('.wb-calendar-focus-day');
+            if (focusDay) {
+                state.date = focusDay.dataset.calendarDate || state.date;
+                state.calendarMode = 'day';
+                renderCalendar();
+                return;
+            }
             const calendarMode = event.target.closest('[data-calendar-mode]');
             if (calendarMode) {
                 state.calendarMode = calendarMode.dataset.calendarMode || 'day';
@@ -1777,6 +1753,28 @@
                 }).catch((error) => {
                     message && (message.textContent = error.message);
                 });
+            } else if (event.target.matches('.wb-record-file-form')) {
+                event.preventDefault();
+                const form = event.target;
+                const card = form.closest('.wb-record-card');
+                const patientId = card ? card.dataset.patientId : '';
+                const message = card ? card.querySelector('.wb-record-message') : null;
+                const fileInput = form.querySelector('input[type="file"]');
+                if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                    message && (message.textContent = 'ابتدا یک فایل انتخاب کنید.');
+                    return;
+                }
+                const data = new FormData();
+                data.append('file', fileInput.files[0]);
+                data.append('visibility', new FormData(form).get('visibility') || 'patient');
+                message && (message.textContent = 'در حال آپلود فایل پرونده...');
+                requestFormData(`/doctor-dashboard/patients/${patientId}/record/files?${doctorQuery()}`, data)
+                    .then(() => {
+                        loadPatientRecord(patientId);
+                    })
+                    .catch((error) => {
+                        message && (message.textContent = error.message);
+                    });
             } else if (event.target.matches('.wb-profile-form')) {
                 event.preventDefault();
                 const form = event.target;
@@ -1947,32 +1945,6 @@
         }
 
         function renderWallet() {
-            content.innerHTML = panel('در حال بارگذاری');
-            request('/patient-panel/wallet')
-                .then((wallet) => {
-                    const rows = Array.isArray(wallet.ledger) ? wallet.ledger : [];
-                    content.innerHTML = `${renderTitle('کیف پول', 'گردش اعتبار، پرداخت‌ها و استردادها')}
-                        <div class="wb-stats-grid">${statCard('موجودی', money(wallet.balance), 'تومان', 'ک')}</div>
-                        ${rows.length ? `<div class="wb-table-wrap">
-                            <table class="wb-table wb-wallet-table">
-                                <thead><tr><th>تاریخ</th><th>نوع</th><th>مبلغ</th><th>مانده بعد</th><th>نوبت</th><th>توضیح</th></tr></thead>
-                                <tbody>${rows.map((item) => `<tr>
-                                    <td>${esc(displayDate((item.created_at || '').slice(0, 10), false))}<br><span>${esc(item.created_at || '')}</span></td>
-                                    <td>${badge(ledgerLabel(item.entry_type), item.entry_type)}</td>
-                                    <td class="${Number(item.amount || 0) >= 0 ? 'wb-money-credit' : 'wb-money-debit'}">${money(item.amount)} تومان</td>
-                                    <td>${money(item.balance_after)} تومان</td>
-                                    <td><code>${esc(item.appointment_code || '-')}</code></td>
-                                    <td>${esc(item.description || '-')}</td>
-                                </tr>`).join('')}</tbody>
-                            </table>
-                        </div>` : panel('گردشی برای کیف پول ثبت نشده است.')}`;
-                })
-                .catch((error) => {
-                    content.innerHTML = panel(error.message);
-                });
-        }
-
-        function renderWallet() {
             content.innerHTML = loadingPanel('در حال بارگذاری کیف پول...');
             request('/patient-panel/wallet')
                 .then((wallet) => {
@@ -2019,6 +1991,7 @@
                     content.innerHTML = `${renderTitle('پرونده پزشکی', 'یادداشت‌هایی که پزشک برای شما قابل مشاهده کرده است')}
                         ${rows.length ? `<div class="wb-record-list">${rows.map((record) => {
                             const notes = Array.isArray(record.notes) ? record.notes : [];
+                            const files = Array.isArray(record.files) ? record.files : [];
                             return `<article class="wb-record-card wb-record-card-readonly">
                                 <div class="wb-section-head"><h3>${esc(record.doctor_title || record.clinic_name || 'پزشک')}</h3><span>${esc(record.updated_at || '')}</span></div>
                                 ${record.summary ? `<p>${esc(record.summary)}</p>` : ''}
@@ -2027,6 +2000,7 @@
                                     <div><span>بیماری‌های زمینه‌ای</span><strong>${esc(record.chronic_conditions || '-')}</strong></div>
                                     <div><span>داروهای فعلی</span><strong>${esc(record.current_medications || '-')}</strong></div>
                                 </div>
+                                <div class="wb-record-files">${files.length ? files.map((file) => `<a class="wb-record-file" href="${esc(file.file_url || '#')}" target="_blank" rel="noopener"><strong>${esc(file.file_name || 'فایل پرونده')}</strong><span>${esc(file.mime_type || '')}</span></a>`).join('') : '<p>فایلی برای نمایش ثبت نشده است.</p>'}</div>
                                 <div class="wb-record-notes">${notes.length ? notes.map((note) => `<div class="wb-record-note"><strong>${esc(note.title || 'یادداشت مراجعه')}</strong><p>${esc(note.body || '')}</p><span>${esc(note.created_at || '')}</span></div>`).join('') : '<p>یادداشتی برای نمایش ثبت نشده است.</p>'}</div>
                             </article>`;
                         }).join('')}</div>` : panel('هنوز پرونده‌ای برای نمایش ثبت نشده است.')}`;

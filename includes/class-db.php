@@ -26,6 +26,8 @@ final class DB {
         'sms_logs' => 'saas_sms_logs',
         'patient_records' => 'saas_patient_records',
         'patient_record_notes' => 'saas_patient_record_notes',
+        'patient_record_files' => 'saas_patient_record_files',
+        'patient_record_audit_logs' => 'saas_patient_record_audit_logs',
         'survey_responses' => 'saas_survey_responses',
     );
 
@@ -61,6 +63,8 @@ final class DB {
         $sms = self::table('sms_logs');
         $patient_records = self::table('patient_records');
         $patient_record_notes = self::table('patient_record_notes');
+        $patient_record_files = self::table('patient_record_files');
+        $patient_record_audit_logs = self::table('patient_record_audit_logs');
         $survey_responses = self::table('survey_responses');
 
         $schemas = array();
@@ -341,6 +345,53 @@ final class DB {
             KEY appointment_id (appointment_id),
             KEY author_user_id (author_user_id),
             KEY visibility (visibility),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+
+        $schemas[] = "CREATE TABLE $patient_record_files (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            record_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            note_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            appointment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            doctor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            patient_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            attachment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            file_url text NULL,
+            file_name varchar(191) NOT NULL DEFAULT '',
+            mime_type varchar(100) NOT NULL DEFAULT '',
+            file_size bigint(20) unsigned NOT NULL DEFAULT 0,
+            visibility varchar(32) NOT NULL DEFAULT 'patient',
+            uploaded_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY record_id (record_id),
+            KEY note_id (note_id),
+            KEY appointment_id (appointment_id),
+            KEY doctor_patient (doctor_id,patient_user_id),
+            KEY attachment_id (attachment_id),
+            KEY visibility (visibility),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+
+        $schemas[] = "CREATE TABLE $patient_record_audit_logs (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            record_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            doctor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            patient_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            actor_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            actor_role varchar(64) NOT NULL DEFAULT '',
+            action varchar(64) NOT NULL DEFAULT '',
+            object_type varchar(64) NOT NULL DEFAULT '',
+            object_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            ip_address varchar(64) NOT NULL DEFAULT '',
+            user_agent text NULL,
+            details longtext NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY record_id (record_id),
+            KEY doctor_patient (doctor_id,patient_user_id),
+            KEY actor_user_id (actor_user_id),
+            KEY action (action),
             KEY created_at (created_at)
         ) $charset_collate;";
 
