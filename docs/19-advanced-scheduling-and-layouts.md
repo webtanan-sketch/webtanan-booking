@@ -73,6 +73,27 @@ Applied endpoints:
 
 `wp-admin/admin.php?page=webtanan-booking&webtanan_seed_data=1`
 
+From version `1.3.0`, this trigger must include a valid admin nonce generated with action `webtanan_booking_seed_data`. Direct unsigned URLs are rejected with 403 even for logged-in users. The admin dashboard quick action generates the safe URL through `wp_nonce_url()`.
+
+## 7. Virtual Slot Generator Contract
+
+`GET /wp-json/saas/v1/doctors/{id}/slots?date=...` no longer depends on pre-created appointment rows to show availability.
+
+Algorithm:
+
+1. Normalize incoming Jalali or Gregorian date to Gregorian `YYYY-MM-DD`.
+2. Determine the English weekday from the normalized date.
+3. Query `wp_saas_schedules` for `doctor_id + weekday`.
+4. Apply same-day exceptions from `wp_saas_schedule_exceptions`.
+5. Generate virtual slots in PHP memory using `start_time`, `end_time`, and `slot_duration`.
+6. Query `wp_saas_appointments` only for the same `doctor_id + appointment_date`.
+7. Overlay blocking appointments onto the generated slots:
+   - valid `locked` appointments become `locked`
+   - `confirmed`, `completed`, `no_show`, and `pay_at_clinic` become `booked`
+   - cancelled/expired/non-blocking rows do not hide the virtual slot
+
+This fixes empty calendars when schedules exist but no appointment rows have been created yet.
+
 It creates or updates:
 
 - 3 active specialties.

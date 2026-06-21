@@ -320,6 +320,7 @@ final class Admin {
                     <a class="button" href="<?php echo esc_url(self::page_url('webtanan-booking-appointments')); ?>"><?php esc_html_e('ثبت نوبت حضوری', 'webtanan-booking'); ?></a>
                     <a class="button" href="<?php echo esc_url(self::page_url('webtanan-booking-transactions')); ?>"><?php esc_html_e('بررسی تراکنش‌ها', 'webtanan-booking'); ?></a>
                     <a class="button" href="<?php echo esc_url(self::page_url('webtanan-booking-settings')); ?>"><?php esc_html_e('تنظیمات درگاه و پیامک', 'webtanan-booking'); ?></a>
+                    <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(array('page' => 'webtanan-booking', 'webtanan_seed_data' => '1'), admin_url('admin.php')), 'webtanan_booking_seed_data')); ?>"><?php esc_html_e('ساخت داده آزمایشی امن', 'webtanan-booking'); ?></a>
                 </p>
             </div>
         </div>

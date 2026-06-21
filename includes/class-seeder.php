@@ -35,6 +35,15 @@ final class Seeder {
             return;
         }
 
+        $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field((string) wp_unslash($_GET['_wpnonce'])) : '';
+        if (!$nonce || !wp_verify_nonce($nonce, 'webtanan_booking_seed_data')) {
+            wp_die(
+                esc_html__('درخواست ساخت داده آزمایشی معتبر نیست. لطفاً از لینک امن داخل پیشخوان مدیریت استفاده کنید.', 'webtanan-booking'),
+                esc_html__('درخواست نامعتبر', 'webtanan-booking'),
+                array('response' => 403)
+            );
+        }
+
         self::seed_dummy_data();
 
         wp_safe_redirect(

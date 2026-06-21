@@ -1,4 +1,4 @@
-# Webtanan Booking Gap Review - v1.2.7
+# Webtanan Booking Gap Review - v1.3.0
 
 ## Completed In This Pass
 
@@ -47,6 +47,15 @@
 - Logged events include record view, patient view, record update, note creation, and file upload.
 - Secretary medical-record access now has a separate user meta toggle: `webtanan_secretary_can_manage_records`.
 
+## Production Engine Fixes Completed In v1.3.0
+
+- Seeder trigger is now protected by `is_admin()`, `manage_options`, and nonce action `webtanan_booking_seed_data`.
+- The admin dashboard generates the safe seed URL with `wp_nonce_url()`.
+- Public doctor slots now use `REST::get_doctor_slots()` with a virtual slot generator.
+- Slot output is generated from schedule rules even when no appointment rows exist yet.
+- Jalali/Gregorian input dates are normalized before schedule lookup.
+- Blocking appointments are overlaid onto virtual slots; cancelled, expired, and stale locked rows do not hide available times.
+
 ## Partially Complete
 
 - Survey submission stores a private response and creates a pending public WordPress comment when the patient consents. The new admin survey screen can mark responses as approved, private, pending, or rejected.
@@ -57,12 +66,14 @@
 
 - Structured prescription module and prescription-specific print/export templates.
 - Optional per-note file binding UI; the backend table already supports `note_id`.
+- SaaS canvas template override for dashboard pages.
+- Cron-cached `next_free_slot_cache` column and first-available sorting by cache.
 - Automated browser QA for 390, 768, 1366, and 1920 pixel widths.
 - Deeper browser QA against real Elementor templates, sticky theme headers, and production cache plugins.
 
 ## Operational Notes
 
-- Plugin version is bumped to `1.2.7`. The v1.2.7 pass adds medical-record file and audit tables through `dbDelta`.
+- Plugin version is bumped to `1.3.0`. The v1.2.7 pass added medical-record file/audit tables, and v1.3.0 hardens seeding plus replaces public slot output with the virtual slot generator.
 - `DB::create_tables()` still runs on boot when the stored version differs.
 - Refund idempotency remains centralized in `Booking::cancel_appointment()` and `wp_saas_wallets_ledger`.
 - Survey and waiting-list public access relies on HMAC tokens generated from appointment id/code/mobile and purpose.

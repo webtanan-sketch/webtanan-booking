@@ -474,12 +474,178 @@ final class REST {
     }
 
     public static function slots(\WP_REST_Request $request): \WP_REST_Response {
-        $date = self::normalize_rest_date((string) $request->get_param('date'));
-        if (!$date) {
-            return rest_ensure_response(array());
+        return rest_ensure_response(self::get_doctor_slots(absint($request['id']), (string) $request->get_param('date')));
+    }
+
+    public static function get_doctor_slots(int $doctor_id, string $raw_date): array {
+        global $wpdb;
+
+        $doctor_id = absint($doctor_id);
+        $date = self::normalize_rest_date($raw_date);
+        if ($doctor_id <= 0 || !$date) {
+            return array();
         }
 
-        return rest_ensure_response(array_map(array(__CLASS__, 'format_public_slot'), Booking::get_slots(absint($request['id']), $date)));
+        $doctor = Booking::get_doctor($doctor_id);
+        if (!$doctor || 1 !== (int) ($doctor['is_active'] ?? 0) || 1 !== (int) ($doctor['is_verified'] ?? 0)) {
+            return array();
+        }
+
+        $timestamp = strtotime($date . ' 00:00:00');
+        if (!$timestamp) {
+            return array();
+        }
+
+        $weekday = strtolower(date('l', $timestamp));
+        $schedule_table = DB::table('schedules');
+        $appointment_table = DB::table('appointments');
+        $exception_table = DB::table('schedule_exceptions');
+
+        $segments = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT start_time, end_time, slot_duration, capacity_per_slot
+                FROM $schedule_table
+                WHERE doctor_id = %d AND weekday = %s AND is_active = 1
+                ORDER BY start_time ASC",
+                $doctor_id,
+                $weekday
+            ),
+            ARRAY_A
+        );
+
+        $exceptions = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT type, start_time, end_time, slot_duration, capacity_per_slot
+                FROM $exception_table
+                WHERE doctor_id = %d AND exception_date = %s
+                ORDER BY start_time ASC",
+                $doctor_id,
+                $date
+            ),
+            ARRAY_A
+        );
+
+        if ($exceptions) {
+            foreach ($exceptions as $exception) {
+                if ('day_off' === (string) $exception['type']) {
+                    return array();
+                }
+            }
+
+            $override = array_values(
+                array_filter(
+                    $exceptions,
+                    static function (array $exception): bool {
+                        return in_array((string) $exception['type'], array('custom_shift', 'reduced_shift'), true);
+                    }
+                )
+            );
+
+            if ($override) {
+                $segments = $override;
+            } else {
+                $extra = array_values(
+                    array_filter(
+                        $exceptions,
+                        static function (array $exception): bool {
+                            return 'extra_shift' === (string) $exception['type'];
+                        }
+                    )
+                );
+                if ($extra) {
+                    $segments = array_merge((array) $segments, $extra);
+                }
+            }
+        }
+
+        if (!$segments) {
+            return array();
+        }
+
+        $appointments = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, start_time, end_time, appointment_status, payment_status, locked_until
+                FROM $appointment_table
+                WHERE doctor_id = %d AND appointment_date = %s",
+                $doctor_id,
+                $date
+            ),
+            ARRAY_A
+        );
+
+        $appointment_map = array();
+        foreach ((array) $appointments as $appointment) {
+            $appointment_time = self::normalize_rest_time((string) ($appointment['start_time'] ?? ''));
+            if ($appointment_time) {
+                $appointment_map[$appointment_time] = $appointment;
+            }
+        }
+
+        $now = current_time('timestamp');
+        $virtual_slots = array();
+
+        foreach ((array) $segments as $segment) {
+            $start_time = self::normalize_rest_time((string) ($segment['start_time'] ?? ''));
+            $end_time = self::normalize_rest_time((string) ($segment['end_time'] ?? ''));
+            $duration = max(1, absint($segment['slot_duration'] ?? 15));
+            $capacity = max(1, absint($segment['capacity_per_slot'] ?? 1));
+
+            if (!$start_time || !$end_time) {
+                continue;
+            }
+
+            $cursor = strtotime($date . ' ' . $start_time);
+            $end = strtotime($date . ' ' . $end_time);
+            if (!$cursor || !$end || $cursor >= $end) {
+                continue;
+            }
+
+            while ($cursor + ($duration * MINUTE_IN_SECONDS) <= $end) {
+                $slot_start = date('H:i:s', $cursor);
+                $slot_end = date('H:i:s', $cursor + ($duration * MINUTE_IN_SECONDS));
+                $status = 'available';
+                $appointment_id = 0;
+                $appointment_status = '';
+                $payment_status = '';
+
+                if (isset($appointment_map[$slot_start])) {
+                    $appointment = $appointment_map[$slot_start];
+                    $raw_status = sanitize_key((string) ($appointment['appointment_status'] ?? ''));
+                    $is_valid_lock = 'locked' === $raw_status && !empty($appointment['locked_until']) && strtotime((string) $appointment['locked_until']) > $now;
+
+                    if ($is_valid_lock) {
+                        $status = 'locked';
+                        $appointment_id = (int) $appointment['id'];
+                        $appointment_status = 'locked';
+                        $payment_status = sanitize_key((string) ($appointment['payment_status'] ?? ''));
+                    } elseif (in_array($raw_status, array('confirmed', 'completed', 'no_show', 'pay_at_clinic'), true)) {
+                        $status = 'booked';
+                        $appointment_id = (int) $appointment['id'];
+                        $appointment_status = $raw_status;
+                        $payment_status = sanitize_key((string) ($appointment['payment_status'] ?? ''));
+                    }
+                }
+
+                $virtual_slots[$slot_start] = array(
+                    'doctor_id' => $doctor_id,
+                    'date' => $date,
+                    'start_time' => substr($slot_start, 0, 5),
+                    'end_time' => substr($slot_end, 0, 5),
+                    'duration' => $duration,
+                    'capacity_per_slot' => $capacity,
+                    'status' => $status,
+                    'appointment_status' => $appointment_status,
+                    'payment_status' => $payment_status,
+                    'appointment_id' => $appointment_id,
+                );
+
+                $cursor += $duration * MINUTE_IN_SECONDS;
+            }
+        }
+
+        ksort($virtual_slots);
+
+        return array_map(array(__CLASS__, 'format_public_slot'), array_values($virtual_slots));
     }
 
     public static function lock_appointment(\WP_REST_Request $request) {
