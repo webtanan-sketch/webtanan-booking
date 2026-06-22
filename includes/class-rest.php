@@ -385,6 +385,7 @@ final class REST {
         $sort = sanitize_key((string) ($request->get_param('sort') ?: $request->get_param('orderby')));
         $online = sanitize_key((string) $request->get_param('online'));
         $pay_at_clinic = sanitize_key((string) $request->get_param('pay_at_clinic'));
+        $available_only = in_array(sanitize_key((string) $request->get_param('available_only')), array('1', 'yes', 'true'), true);
         $where = "d.is_active = 1 AND d.is_verified = 1 AND p.post_status = 'publish'";
         $params = array();
 
@@ -430,7 +431,7 @@ final class REST {
         $params[] = $limit;
 
         $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
-        if ('first_available' === $sort && is_array($rows)) {
+        if (('first_available' === $sort || $available_only) && is_array($rows)) {
             foreach ($rows as &$row) {
                 $next = Booking::next_available((int) $row['id'], 1);
                 $row['_next_available_slot'] = $next[0] ?? null;
@@ -438,12 +439,25 @@ final class REST {
             }
             unset($row);
 
-            usort(
-                $rows,
-                static function (array $a, array $b): int {
-                    return strcmp((string) $a['_next_available_sort'], (string) $b['_next_available_sort']);
-                }
-            );
+            if ($available_only) {
+                $rows = array_values(
+                    array_filter(
+                        $rows,
+                        static function (array $row): bool {
+                            return !empty($row['_next_available_slot']);
+                        }
+                    )
+                );
+            }
+
+            if ('first_available' === $sort) {
+                usort(
+                    $rows,
+                    static function (array $a, array $b): int {
+                        return strcmp((string) $a['_next_available_sort'], (string) $b['_next_available_sort']);
+                    }
+                );
+            }
         }
 
         return rest_ensure_response(array_map(array(__CLASS__, 'format_doctor'), $rows));
@@ -940,6 +954,42 @@ final class REST {
         $can_view_finance = self::current_user_can_view_doctor_finance($doctor_id);
         $wallet_subject = $doctor ? self::doctor_wallet_subject($doctor) : array('user_id' => 0, 'user_type' => 'doctor');
         $wallet_balance = ($doctor && $can_view_finance && $wallet_subject['user_id'] > 0) ? Wallet::balance((int) $wallet_subject['user_id'], $wallet_subject['user_type']) : null;
+        $start_date = gmdate('Y-m-d', strtotime($date . ' -6 days'));
+        $trend_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT
+                    appointment_date,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN appointment_status = 'completed' THEN 1 ELSE 0 END) AS completed,
+                    SUM(CASE WHEN appointment_status IN ('cancelled','expired','expired_lock_wallet_charged') THEN 1 ELSE 0 END) AS cancelled,
+                    SUM(CASE WHEN payment_status IN ('paid','wallet_paid','cash_at_clinic','pos_at_clinic') THEN booking_fee ELSE 0 END) AS revenue
+                FROM $appointments
+                WHERE doctor_id = %d
+                    AND appointment_date BETWEEN %s AND %s
+                GROUP BY appointment_date
+                ORDER BY appointment_date ASC",
+                $doctor_id,
+                $start_date,
+                $date
+            ),
+            ARRAY_A
+        );
+        $trend_by_date = array();
+        foreach ($trend_rows as $trend_row) {
+            $trend_by_date[(string) $trend_row['appointment_date']] = $trend_row;
+        }
+        $weekly_chart = array();
+        for ($i = 0; $i < 7; $i++) {
+            $chart_date = gmdate('Y-m-d', strtotime($start_date . ' +' . $i . ' days'));
+            $trend_row = $trend_by_date[$chart_date] ?? array();
+            $weekly_chart[] = array(
+                'date' => $chart_date,
+                'appointments' => (int) ($trend_row['total'] ?? 0),
+                'completed' => (int) ($trend_row['completed'] ?? 0),
+                'cancelled' => (int) ($trend_row['cancelled'] ?? 0),
+                'revenue' => $can_view_finance ? (float) ($trend_row['revenue'] ?? 0) : null,
+            );
+        }
 
         return rest_ensure_response(
             array(
@@ -953,6 +1003,7 @@ final class REST {
                 'wallet_balance' => $wallet_balance,
                 'can_view_finance' => $can_view_finance,
                 'next_appointment' => $next ? self::format_appointment($next) : null,
+                'weekly_chart' => $weekly_chart,
             )
         );
     }
@@ -2499,19 +2550,34 @@ final class REST {
 
     private static function format_doctor(array $row): array {
         $post_id = (int) $row['post_id'];
+        $excerpt = '';
+        if ($post_id > 0) {
+            $excerpt = get_the_excerpt($post_id);
+            if (!$excerpt) {
+                $excerpt = wp_trim_words(wp_strip_all_tags((string) get_post_field('post_content', $post_id)), 24);
+            }
+        }
 
         $doctor = array(
             'id' => (int) $row['id'],
             'post_id' => $post_id,
             'title' => html_entity_decode(get_the_title($post_id), ENT_QUOTES, get_bloginfo('charset')),
             'permalink' => get_permalink($post_id),
+            'profile_excerpt' => $excerpt,
+            'doctor_code' => $row['doctor_code'] ?? '',
+            'medical_system_number' => $row['medical_system_number'] ?? '',
             'specialty_id' => (int) $row['specialty_id'],
             'specialty_name' => $row['specialty_name'] ?? '',
             'city_id' => (int) ($row['city_id'] ?? 0),
             'province_id' => (int) ($row['province_id'] ?? 0),
             'clinic_name' => $row['clinic_name'] ?? '',
             'clinic_address' => $row['clinic_address'] ?? '',
+            'clinic_short_address' => !empty($row['clinic_address']) ? wp_trim_words((string) $row['clinic_address'], 14) : '',
             'clinic_phone' => $row['clinic_phone'] ?? '',
+            'rating' => 4.8,
+            'reviews_count' => 12,
+            'gender_label' => __('پزشک', 'webtanan-booking'),
+            'online_status_label' => !empty($row['allow_online_payment']) ? __('آنلاین', 'webtanan-booking') : __('حضوری', 'webtanan-booking'),
             'visit_price' => (float) $row['visit_price'],
             'display_visit_price' => (float) $row['visit_price'],
             'booking_fee' => Booking::doctor_booking_fee($row),

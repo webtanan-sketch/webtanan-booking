@@ -77,3 +77,55 @@
 - REST responses were extended additively with display-only fields such as `display_status`, `display_payment`, `source_label`, `patient_display_name`, `time_range`, and `slot_tone`. Existing raw fields remain available for backward compatibility.
 - Duplicate JavaScript render paths were removed: doctor cards now delegate to `doctorCardUnified()`, and the patient wallet keeps a single renderer with top-up UI.
 - The dashboard wrappers still render below the site header/footer, but the plugin content uses a wide independent layout so it is not trapped inside narrow theme containers.
+
+# v1.3 Plugin-Owned Frontend Direction
+
+- تصمیم معماری UI تغییر کرد: ظاهر اصلی وب‌تنان داخل خود پلاگین نگهداری می‌شود و قالب فقط نقش پوسته خام سایت را دارد.
+- فونت محلی Vazir به پلاگین اضافه شد و `frontend.css` آن را برای خروجی‌های عمومی افزونه بارگذاری می‌کند.
+- Font Awesome و Chart.js به‌صورت local در پوشه `assets/vendor` افزونه قرار گرفتند تا وابستگی CDN حذف شود.
+- صفحه لیست پزشکان و شورت‌کد جستجو به ساختار discovery با search bar بالا و sidebar فیلتر منتقل شدند.
+- کارت پزشک اکنون اطلاعات بیشتری نمایش می‌دهد: تصویر، نام، تخصص لینک‌شده، امتیاز نمونه، وضعیت آنلاین/حضوری، آدرس، مطب، کد نظام پزشکی، تعرفه ویزیت، پیش‌پرداخت دریافت نوبت و اولین نوبت آزاد AJAX.
+- صفحه اختصاصی پزشک بازنویسی شد: hero پزشک، تب‌های پروفایل، خدمات و تخصص‌ها، آدرس و تماس، نظرات بیماران، گالری و FAQ فقط در صورت وجود داده نمایش داده می‌شوند.
+- کارت رزرو پروفایل پزشک در sidebar سمت راست دسکتاپ قرار می‌گیرد و در موبایل به جریان طبیعی صفحه برمی‌گردد. اسلات‌ها در HTML اولیه چاپ نمی‌شوند و انتخاب زمان داخل modal از REST انجام می‌شود.
+- صفحه لندینگ پلاگین با شورت‌کد `[webtanan_booking_homepage]` اضافه شد و شامل hero، جستجوی سریع، آمار، تخصص‌ها، پزشکان پیشنهادی و مراحل گرفتن نوبت است.
+- داشبورد پزشک از Chart.js محلی استفاده می‌کند و endpoint خلاصه پزشک، داده هفتگی نوبت و درآمد را به‌صورت افزایشی برمی‌گرداند.
+
+# v1.4.0 Turnkey SaaS Theme + Plugin UI
+
+- The companion `Webtanan SaaS Theme` now owns the public shell: landing page, native header/footer fallback, Elementor-safe locations, and the premium `saas_doctors` archive.
+- Theme typography is centralized through local `IRANSans` font-face declarations, with `IRANYekanXFaNum` as a local fallback. Plugin frontend/admin CSS now inherits the active theme font and no longer hardcodes `Tahoma`.
+- A dashboard admin setup page was added to the theme with two safe actions: idempotent page setup and optional booking demo-data setup through the plugin seeder.
+- The native header CTA opens a global patient OTP modal through `data-webtanan-modal-trigger="auth"`. If the booking plugin is inactive, the CTA falls back to the configured patient portal URL.
+- `front-page.php` renders a conversion-focused medical SaaS intro, dynamic doctor search, clickable specialty pills, and featured active doctors ordered by cached next slot when available.
+- `archive-saas_doctors.php` renders the premium discovery experience and delegates doctor results to the plugin AJAX search widget so first available appointments remain cache-safe.
+- Doctor specialties are clickable in theme cards, plugin AJAX cards, single doctor profiles, and shortcode-rendered doctor cards using `/?post_type=saas_doctors&specialty_id={id}`.
+- The printable receipt template was rebuilt as a clean invoice: tracking code, patient, doctor, date/time, paid prepayment, remaining visit amount, clinic address, and print action.
+- Visible frontend developer copy such as API/loading implementation notes was removed from public templates. Time-sensitive information is still loaded via REST/AJAX, but the user-facing copy is now product-friendly.
+
+# v1.4.1 Home Landing + Doctor Card Enrichment
+
+- The companion theme home page was expanded from a simple hero/search layout into a full SaaS landing page: hero actions, live system metrics, highlighted search, specialty pills, benefits, featured doctors, three-step booking explanation, and final CTA.
+- Featured doctors now show payment badges, specialty link, clinic label/address, booking prepayment, visit price, and next-slot CTA where cached data is available.
+- The public doctor REST response now includes safe display fields for cards: `profile_excerpt`, `medical_system_number`, `doctor_code`, `clinic_short_address`, and existing clinic/payment metadata.
+- The shared AJAX/Elementor doctor card renderer now displays trust metadata, clinic/address, a profile excerpt, payment badges, service fee, visit fee, first available slot, and clear booking/profile actions.
+- The PHP `[webtanan_booking_doctor_card]` output was aligned with the AJAX card contract so Elementor, shortcode, archive, and theme discovery cards no longer feel like different products.
+
+# v1.3.1 Product Polish
+
+- Patient-facing copy now uses a strict lexicon layer in `assets/js/frontend.js`; raw database enums such as `locked`, `booked`, `pay_at_clinic`, and `expired_lock_wallet_charged` are never printed directly.
+- The public meaning of `booking_fee` is standardized as `پیش‌پرداخت دریافت نوبت` across doctor cards, checkout, receipts, payment result pages, and resume-payment UI.
+- Booking modal flow is now a 3-step wizard: time selection, mobile/OTP confirmation, and final checkout.
+- After a temporary reservation is created, the modal shows a sticky trust banner with a live countdown based on `locked_until`; if the timer expires, the modal resets to time selection with a polite Persian message.
+- Slot labels are context-aware: available slots say `آزاد`, unavailable patient-facing slots say `پر شده`, and dashboard/payment tables use the fuller Persian status labels.
+- Gateway choices render as selectable radio-cards. Payment only starts from the final green CTA: `پرداخت و ثبت قطعی نوبت`.
+- Developer terms like `قفل نوبت`, `Slot Locked`, raw gateway ids, and raw unknown payment statuses were removed from visible UI fallbacks.
+
+# v1.4.2 Sample HTML Alignment
+
+- خروجی‌های اصلی فرانت با قالب نمونه HTML هماهنگ شدند، بدون تغییر قرارداد REST یا منطق مالی.
+- جستجوی پزشک اکنون DOM نمونه را استفاده می‌کند: `search-section`, `search-row`, `filter-row`, `filter-group`, `results-header`, `doctor-list`, و `doctor-card`.
+- کارت AJAX پزشک، شورت‌کد `[webtanan_booking_doctor_list]`، شورت‌کد `[webtanan_booking_doctor_card]` و ویجت‌های Elementor همگی زیر لایه scoped با کلاس `webtanan-sample-ui` رندر می‌شوند.
+- صفحه پروفایل پزشک کلاس‌های نمونه را روی داده‌های پویا دارد: `profile-hero`, `profile-avatar`, `profile-info`, `profile-tabs`, `profile-content`, `profile-main`, `profile-sidebar`, و `appointment-form-side`.
+- داشبورد پزشک و پنل بیمار با shell نمونه هماهنگ شدند: `sample-dashboard-header`, `sidebar`, `nav-item`, `main-content`, `stats-grid`, `dashboard-grid`, `card`, `appointment-item`, و `footer-bar`.
+- قالب همراه نیز برای `front-page.php` و `archive-saas_doctors.php` از همان لایه sample استفاده می‌کند تا shell قالب و خروجی پلاگین visually یکپارچه باشند.
+- منوی کناری داشبوردها در موبایل با `wb-sample-sidebar-toggle` به drawer تبدیل می‌شود و در دسکتاپ sidebar ثابت نمونه را حفظ می‌کند.

@@ -10,7 +10,7 @@
     --wba-info: #2563eb;
     --wba-warm: #d97706;
     --wba-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-    font-family: Tahoma, Arial, sans-serif;
+    font-family: inherit;
     color: var(--wba-text);
 }
 
