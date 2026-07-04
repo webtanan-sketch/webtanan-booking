@@ -3,7 +3,7 @@
  * Plugin Name: Webtanan Booking
  * Plugin URI: https://webtanan.com/
  * Description: SaaS doctor appointment booking for WordPress with CPT doctor profiles and operational custom tables.
- * Version: 1.3.1
+ * Version: 1.4.5
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Webtanan
@@ -15,7 +15,7 @@
 
 defined('ABSPATH') || exit;
 
-define('WEBTANAN_BOOKING_VERSION', '1.3.1');
+define('WEBTANAN_BOOKING_VERSION', '1.4.5');
 define('WEBTANAN_BOOKING_FILE', __FILE__);
 define('WEBTANAN_BOOKING_PATH', plugin_dir_path(__FILE__));
 define('WEBTANAN_BOOKING_URL', plugin_dir_url(__FILE__));
@@ -32,6 +32,7 @@ require_once WEBTANAN_BOOKING_PATH . 'includes/class-payment-gateways.php';
 require_once WEBTANAN_BOOKING_PATH . 'includes/class-booking.php';
 require_once WEBTANAN_BOOKING_PATH . 'includes/class-wallet.php';
 require_once WEBTANAN_BOOKING_PATH . 'includes/class-otp.php';
+require_once WEBTANAN_BOOKING_PATH . 'includes/class-patient-profile.php';
 require_once WEBTANAN_BOOKING_PATH . 'includes/class-ippanel-sms-service.php';
 require_once WEBTANAN_BOOKING_PATH . 'includes/class-sms.php';
 require_once WEBTANAN_BOOKING_PATH . 'includes/class-rest.php';

@@ -104,15 +104,58 @@ final class Admin {
         }
 
         $from_number = isset($sms_input['from_number']) ? sanitize_text_field($sms_input['from_number']) : (isset($sms_input['originator']) ? sanitize_text_field($sms_input['originator']) : '');
+        $otp_parameter_name = isset($sms_input['otp_parameter_name']) ? sanitize_key($sms_input['otp_parameter_name']) : 'verifyotp';
+        if ('' === $otp_parameter_name) {
+            $otp_parameter_name = 'verifyotp';
+        }
         $gateway_input = isset($input['gateway_settings']) && is_array($input['gateway_settings']) ? $input['gateway_settings'] : array();
         $aqaye_input = isset($gateway_input['aqayepardakht']) && is_array($gateway_input['aqayepardakht']) ? $gateway_input['aqayepardakht'] : array();
         $cancellation_input = isset($input['cancellation_policy']) && is_array($input['cancellation_policy']) ? $input['cancellation_policy'] : array();
+        $homepage_input = isset($input['homepage']) && is_array($input['homepage']) ? $input['homepage'] : array();
+        $specialty_layout = sanitize_key((string) ($homepage_input['specialty_layout'] ?? 'top'));
+        if (!in_array($specialty_layout, array('top', 'right', 'left'), true)) {
+            $specialty_layout = 'top';
+        }
+        $custom_sections = array();
+        foreach ((array) ($homepage_input['custom_sections'] ?? array()) as $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $title = sanitize_text_field((string) ($section['title'] ?? ''));
+            $body = sanitize_textarea_field((string) ($section['body'] ?? ''));
+            if ('' === $title && '' === $body) {
+                continue;
+            }
+            $custom_sections[] = array(
+                'enabled' => !empty($section['enabled']),
+                'title' => $title,
+                'body' => $body,
+                'button_label' => sanitize_text_field((string) ($section['button_label'] ?? '')),
+                'button_url' => esc_url_raw((string) ($section['button_url'] ?? '')),
+            );
+        }
+        $allowed_home_sections = array('specialties', 'latest_doctors', 'popular_doctors', 'custom_1', 'custom_2', 'custom_3');
+        $raw_section_order = $homepage_input['section_order'] ?? array();
+        if (is_string($raw_section_order)) {
+            $raw_section_order = explode(',', $raw_section_order);
+        }
+        $section_order = array_values(
+            array_unique(
+                array_filter(
+                    array_map('sanitize_key', (array) $raw_section_order),
+                    static function (string $section) use ($allowed_home_sections): bool {
+                        return in_array($section, $allowed_home_sections, true);
+                    }
+                )
+            )
+        );
+        $section_order = array_merge($section_order, array_values(array_diff($allowed_home_sections, $section_order)));
         $callback_method = isset($aqaye_input['callback_method']) ? strtoupper(sanitize_text_field($aqaye_input['callback_method'])) : 'GET';
         if (!in_array($callback_method, array('GET', 'POST'), true)) {
             $callback_method = 'GET';
         }
 
-        return array_replace_recursive(
+        $sanitized = array_replace_recursive(
             DB::get_settings(),
             array(
                 'default_commission_type' => (isset($input['default_commission_type']) && 'fixed' === $input['default_commission_type']) ? 'fixed' : 'percent',
@@ -127,6 +170,25 @@ final class Admin {
                 'ui_font_family' => isset($input['ui_font_family']) ? sanitize_text_field($input['ui_font_family']) : '',
                 'ui_font_attachment_id' => isset($input['ui_font_attachment_id']) ? absint($input['ui_font_attachment_id']) : 0,
                 'ui_font_url' => isset($input['ui_font_url']) ? esc_url_raw($input['ui_font_url']) : '',
+                'homepage' => array(
+                    'hero_title' => sanitize_text_field((string) ($homepage_input['hero_title'] ?? '')),
+                    'hero_highlight' => sanitize_text_field((string) ($homepage_input['hero_highlight'] ?? '')),
+                    'hero_description' => sanitize_textarea_field((string) ($homepage_input['hero_description'] ?? '')),
+                    'specialty_title' => sanitize_text_field((string) ($homepage_input['specialty_title'] ?? '')),
+                    'specialty_layout' => $specialty_layout,
+                    'specialty_columns' => min(6, max(2, absint($homepage_input['specialty_columns'] ?? 4))),
+                    'specialty_limit' => min(24, max(1, absint($homepage_input['specialty_limit'] ?? 8))),
+                    'show_specialties' => isset($homepage_input['show_specialties']),
+                    'show_latest_doctors' => isset($homepage_input['show_latest_doctors']),
+                    'show_popular_doctors' => isset($homepage_input['show_popular_doctors']),
+                    'latest_title' => sanitize_text_field((string) ($homepage_input['latest_title'] ?? '')),
+                    'latest_subtitle' => sanitize_text_field((string) ($homepage_input['latest_subtitle'] ?? '')),
+                    'popular_title' => sanitize_text_field((string) ($homepage_input['popular_title'] ?? '')),
+                    'popular_subtitle' => sanitize_text_field((string) ($homepage_input['popular_subtitle'] ?? '')),
+                    'doctor_section_limit' => min(12, max(1, absint($homepage_input['doctor_section_limit'] ?? 4))),
+                    'section_order' => $section_order,
+                    'custom_sections' => array_slice($custom_sections, 0, 3),
+                ),
                 'gateway_settings' => array(
                     'active_gateway' => isset($gateway_input['active_gateway']) ? sanitize_key($gateway_input['active_gateway']) : 'aqayepardakht',
                     'merchant_id' => isset($gateway_input['merchant_id']) ? sanitize_text_field($gateway_input['merchant_id']) : '',
@@ -151,6 +213,7 @@ final class Admin {
                     'api_key' => isset($sms_input['api_key']) ? sanitize_text_field($sms_input['api_key']) : '',
                     'originator' => $from_number,
                     'from_number' => $from_number,
+                    'otp_parameter_name' => $otp_parameter_name,
                     'test_mode' => isset($sms_input['test_mode']),
                     'log_enabled' => isset($sms_input['log_enabled']),
                     'send_to_patient' => isset($sms_input['send_to_patient']),
@@ -170,6 +233,11 @@ final class Admin {
                 ),
             )
         );
+        // Empty custom sections must clear old rows; recursive replacement keeps numeric keys otherwise.
+        $sanitized['homepage']['custom_sections'] = array_slice($custom_sections, 0, 3);
+        $sanitized['homepage']['section_order'] = $section_order;
+
+        return $sanitized;
     }
 
     public static function enqueue_admin_assets(string $hook): void {
@@ -179,8 +247,9 @@ final class Admin {
 
         wp_enqueue_style('webtanan-booking-admin', WEBTANAN_BOOKING_URL . 'assets/css/admin.css', array(), WEBTANAN_BOOKING_VERSION);
         wp_enqueue_media();
-        wp_enqueue_script('webtanan-booking-jalali', WEBTANAN_BOOKING_URL . 'assets/js/jalali-calendar.js', array(), WEBTANAN_BOOKING_VERSION, true);
-        wp_enqueue_script('webtanan-booking-admin', WEBTANAN_BOOKING_URL . 'assets/js/admin.js', array('jquery', 'webtanan-booking-jalali'), WEBTANAN_BOOKING_VERSION, true);
+        wp_enqueue_script('webtanan-booking-jalaali-engine', WEBTANAN_BOOKING_URL . 'assets/vendor/jalaali-js/jalaali.min.js', array(), WEBTANAN_BOOKING_VERSION, true);
+        wp_enqueue_script('webtanan-booking-jalali', WEBTANAN_BOOKING_URL . 'assets/js/jalali-calendar.js', array('webtanan-booking-jalaali-engine'), WEBTANAN_BOOKING_VERSION, true);
+        wp_enqueue_script('webtanan-booking-admin', WEBTANAN_BOOKING_URL . 'assets/js/admin.js', array('jquery', 'jquery-ui-sortable', 'webtanan-booking-jalali'), WEBTANAN_BOOKING_VERSION, true);
         wp_localize_script(
             'webtanan-booking-admin',
             'WebtananBookingAdmin',
@@ -193,6 +262,10 @@ final class Admin {
     }
 
     private static function add_custom_font_inline_style(): void {
+        if ('webtanan-saas-theme' === get_template()) {
+            return;
+        }
+
         $settings = DB::get_settings();
         $font_family = sanitize_text_field((string) ($settings['ui_font_family'] ?? ''));
         $font_url = esc_url_raw((string) ($settings['ui_font_url'] ?? ''));
@@ -332,13 +405,37 @@ final class Admin {
 
         $edit_id = absint($_GET['doctor_id'] ?? 0);
         $edit = $edit_id ? self::doctor_row($edit_id) : null;
+        $applicant_id = $edit ? 0 : absint($_GET['applicant_user_id'] ?? 0);
+        $applicant = $applicant_id ? get_userdata($applicant_id) : false;
+        if (!$applicant || 'pending' !== get_user_meta($applicant_id, 'webtanan_doctor_application_status', true)) {
+            $applicant = false;
+            $applicant_id = 0;
+        }
         $rows = self::filtered_doctors();
         $specialties = self::specialty_options();
+        $pending_applicants = get_users(
+            array(
+                'number' => 100,
+                'meta_key' => 'webtanan_doctor_application_status',
+                'meta_value' => 'pending',
+                'fields' => 'all',
+            )
+        );
 
         ?>
         <div class="wrap webtanan-admin" dir="rtl">
             <h1><?php esc_html_e('مدیریت پزشکان', 'webtanan-booking'); ?></h1>
             <?php self::render_notice(); ?>
+            <?php if ($pending_applicants) : ?>
+                <div class="webtanan-admin-panel">
+                    <h2><?php esc_html_e('درخواست‌های عضویت پزشکان', 'webtanan-booking'); ?></h2>
+                    <table class="widefat striped">
+                        <thead><tr><th><?php esc_html_e('متقاضی', 'webtanan-booking'); ?></th><th><?php esc_html_e('موبایل', 'webtanan-booking'); ?></th><th><?php esc_html_e('نظام پزشکی', 'webtanan-booking'); ?></th><th><?php esc_html_e('تخصص درخواستی', 'webtanan-booking'); ?></th><th><?php esc_html_e('بررسی', 'webtanan-booking'); ?></th></tr></thead>
+                        <tbody><?php foreach ($pending_applicants as $pending_applicant) : ?><tr><td><?php echo esc_html($pending_applicant->display_name ?: $pending_applicant->user_login); ?></td><td dir="ltr"><?php echo esc_html(Patient_Profile::user_mobile((int) $pending_applicant->ID)); ?></td><td><?php echo esc_html((string) get_user_meta($pending_applicant->ID, 'webtanan_doctor_medical_system_number', true)); ?></td><td><?php echo esc_html((string) get_user_meta($pending_applicant->ID, 'webtanan_doctor_specialty_request', true)); ?></td><td><a class="button button-primary" href="<?php echo esc_url(self::page_url('webtanan-booking-doctors', array('applicant_user_id' => (int) $pending_applicant->ID))); ?>"><?php esc_html_e('ساخت پروفایل پزشک', 'webtanan-booking'); ?></a> <a class="button" href="<?php echo esc_url(get_edit_user_link($pending_applicant->ID)); ?>"><?php esc_html_e('مشاهده حساب', 'webtanan-booking'); ?></a></td></tr><?php endforeach; ?></tbody>
+                    </table>
+                    <p class="description"><?php esc_html_e('برای تایید، یک پروفایل پزشک بسازید و حساب متقاضی را در فیلد «کاربر وردپرس پزشک» انتخاب کنید.', 'webtanan-booking'); ?></p>
+                </div>
+            <?php endif; ?>
             <div class="webtanan-admin-layout">
                 <div class="webtanan-admin-main">
                     <form method="get" class="webtanan-filter-bar">
@@ -400,7 +497,7 @@ final class Admin {
                     </table>
                 </div>
                 <div class="webtanan-admin-side">
-                    <?php self::render_doctor_form($edit); ?>
+                    <?php self::render_doctor_form($edit, $applicant instanceof \WP_User ? $applicant : null); ?>
                 </div>
             </div>
         </div>
@@ -538,10 +635,11 @@ final class Admin {
                         <?php submit_button(__('فیلتر', 'webtanan-booking'), 'secondary', '', false); ?>
                     </form>
                     <table class="widefat striped">
-                        <thead><tr><th><?php esc_html_e('نام', 'webtanan-booking'); ?></th><th><?php esc_html_e('اسلاگ', 'webtanan-booking'); ?></th><th><?php esc_html_e('ترتیب', 'webtanan-booking'); ?></th><th><?php esc_html_e('وضعیت', 'webtanan-booking'); ?></th><th><?php esc_html_e('عملیات', 'webtanan-booking'); ?></th></tr></thead>
+                        <thead><tr><th><?php esc_html_e('آیکن', 'webtanan-booking'); ?></th><th><?php esc_html_e('نام', 'webtanan-booking'); ?></th><th><?php esc_html_e('اسلاگ', 'webtanan-booking'); ?></th><th><?php esc_html_e('ترتیب', 'webtanan-booking'); ?></th><th><?php esc_html_e('وضعیت', 'webtanan-booking'); ?></th><th><?php esc_html_e('عملیات', 'webtanan-booking'); ?></th></tr></thead>
                         <tbody>
                         <?php foreach ($rows as $row) : ?>
                             <tr>
+                                <td><?php echo !empty($row['icon_attachment_id']) ? wp_get_attachment_image((int) $row['icon_attachment_id'], array(42, 42), false, array('class' => 'webtanan-specialty-admin-icon')) : '—'; ?></td>
                                 <td><?php echo esc_html($row['name']); ?></td>
                                 <td><code><?php echo esc_html($row['slug']); ?></code></td>
                                 <td><?php echo esc_html((string) $row['sort_order']); ?></td>
@@ -552,7 +650,7 @@ final class Admin {
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                        <?php if (!$rows) : ?><tr><td colspan="5"><?php esc_html_e('تخصصی یافت نشد.', 'webtanan-booking'); ?></td></tr><?php endif; ?>
+                        <?php if (!$rows) : ?><tr><td colspan="6"><?php esc_html_e('تخصصی یافت نشد.', 'webtanan-booking'); ?></td></tr><?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -1277,8 +1375,16 @@ final class Admin {
         <div class="wrap webtanan-admin" dir="rtl">
             <h1><?php esc_html_e('تنظیمات افزونه', 'webtanan-booking'); ?></h1>
             <?php self::render_notice(); ?>
+            <nav class="webtanan-settings-tabs" aria-label="<?php esc_attr_e('دسته‌بندی تنظیمات', 'webtanan-booking'); ?>">
+                <button type="button" class="is-active" data-settings-tab="general"><?php esc_html_e('عمومی', 'webtanan-booking'); ?></button>
+                <button type="button" data-settings-tab="homepage"><?php esc_html_e('صفحه اصلی', 'webtanan-booking'); ?></button>
+                <button type="button" data-settings-tab="cancellation"><?php esc_html_e('لغو و استرداد', 'webtanan-booking'); ?></button>
+                <button type="button" data-settings-tab="payment"><?php esc_html_e('درگاه پرداخت', 'webtanan-booking'); ?></button>
+                <button type="button" data-settings-tab="sms"><?php esc_html_e('پیامک', 'webtanan-booking'); ?></button>
+            </nav>
             <form method="post" action="options.php">
                 <?php settings_fields('webtanan_booking_settings'); ?>
+                <section class="webtanan-settings-panel is-active" data-settings-panel="general">
                 <h2><?php esc_html_e('تنظیمات عمومی', 'webtanan-booking'); ?></h2>
                 <table class="form-table" role="presentation">
                     <tr><th scope="row"><?php esc_html_e('نوع کارمزد پیش‌فرض', 'webtanan-booking'); ?></th><td><select name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[default_commission_type]"><option value="percent" <?php selected($settings['default_commission_type'], 'percent'); ?>><?php esc_html_e('درصدی', 'webtanan-booking'); ?></option><option value="fixed" <?php selected($settings['default_commission_type'], 'fixed'); ?>><?php esc_html_e('مبلغ ثابت', 'webtanan-booking'); ?></option></select></td></tr>
@@ -1291,12 +1397,24 @@ final class Admin {
                     <tr><th scope="row"><?php esc_html_e('محدوده شارژ کیف پول', 'webtanan-booking'); ?></th><td><input type="number" min="1000" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[wallet_topup_min_amount]" value="<?php echo esc_attr((string) ($settings['wallet_topup_min_amount'] ?? 10000)); ?>"> <input type="number" min="1000" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[wallet_topup_max_amount]" value="<?php echo esc_attr((string) ($settings['wallet_topup_max_amount'] ?? 50000000)); ?>"> <span class="description"><?php esc_html_e('حداقل و حداکثر شارژ آنلاین کیف پول بیمار.', 'webtanan-booking'); ?></span></td></tr>
                     <?php self::render_font_settings_fields($settings); ?>
                 </table>
+                </section>
+                <section class="webtanan-settings-panel" data-settings-panel="homepage">
+                <?php self::render_homepage_settings_fields($settings); ?>
+                </section>
+                <section class="webtanan-settings-panel" data-settings-panel="cancellation">
                 <?php self::render_cancellation_settings_fields($settings); ?>
+                </section>
+                <section class="webtanan-settings-panel" data-settings-panel="payment">
                 <?php self::render_gateway_settings_fields($settings); ?>
+                </section>
+                <section class="webtanan-settings-panel" data-settings-panel="sms">
                 <?php self::render_sms_settings_fields($settings); ?>
+                </section>
                 <?php submit_button(__('ذخیره تنظیمات', 'webtanan-booking')); ?>
             </form>
+            <section class="webtanan-settings-panel" data-settings-panel="sms">
             <?php self::render_sms_test_forms(); ?>
+            </section>
         </div>
         <?php
     }
@@ -1399,6 +1517,18 @@ final class Admin {
 
         $post_id = absint($raw['post_id'] ?? 0);
         $user_id = absint($raw['user_id'] ?? 0);
+        $login_mobile = OTP::normalize_mobile((string) ($raw['login_mobile'] ?? ''));
+        if ($user_id > 0 && '' === $login_mobile) {
+            self::set_notice('error', __('شماره موبایل ورود پزشک معتبر نیست.', 'webtanan-booking'));
+            self::redirect('webtanan-booking-doctors', $post_id ? array('doctor_id' => absint($raw['id'] ?? 0)) : array());
+        }
+        if ($user_id > 0) {
+            $mobile_owner = self::find_user_by_login_mobile($login_mobile, $user_id);
+            if ($mobile_owner > 0) {
+                self::set_notice('error', __('این شماره موبایل قبلاً به حساب کاربری دیگری متصل شده است.', 'webtanan-booking'));
+                self::redirect('webtanan-booking-doctors', $post_id ? array('doctor_id' => absint($raw['id'] ?? 0)) : array());
+            }
+        }
         $postarr = array(
             'ID' => $post_id,
             'post_type' => 'saas_doctors',
@@ -1424,8 +1554,22 @@ final class Admin {
 
         $gallery_ids = self::sanitize_id_list($raw['gallery_image_ids'] ?? '');
         update_post_meta((int) $result, '_webtanan_doctor_gallery_ids', implode(',', $gallery_ids));
+        update_post_meta((int) $result, '_webtanan_doctor_services', self::sanitize_profile_list($raw['profile_services'] ?? ''));
+        update_post_meta((int) $result, '_webtanan_doctor_certificates', self::sanitize_profile_list($raw['profile_certificates'] ?? ''));
+        update_post_meta((int) $result, '_webtanan_doctor_faq', self::sanitize_profile_faq($raw['profile_faq'] ?? ''));
 
         $doctor_id = self::upsert_doctor((int) $result, $raw);
+        if ($user_id > 0) {
+            update_user_meta($user_id, 'webtanan_mobile', $login_mobile);
+            $doctor_user = get_user_by('id', $user_id);
+            if ($doctor_user instanceof \WP_User && !in_array('webtanan_doctor', (array) $doctor_user->roles, true)) {
+                $doctor_user->add_role('webtanan_doctor');
+            }
+            delete_user_meta($user_id, 'webtanan_requested_role');
+            delete_user_meta($user_id, 'webtanan_doctor_application_status');
+            delete_user_meta($user_id, 'webtanan_doctor_medical_system_number');
+            delete_user_meta($user_id, 'webtanan_doctor_specialty_request');
+        }
         self::set_notice('success', __('پزشک ذخیره شد.', 'webtanan-booking'));
         self::redirect('webtanan-booking-doctors', array('doctor_id' => $doctor_id));
     }
@@ -1469,6 +1613,7 @@ final class Admin {
             'name' => $name,
             'slug' => sanitize_title(wp_unslash($_POST['slug'] ?? $name)),
             'parent_id' => absint($_POST['parent_id'] ?? 0),
+            'icon_attachment_id' => absint($_POST['icon_attachment_id'] ?? 0),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'sort_order' => (int) ($_POST['sort_order'] ?? 0),
             'updated_at' => $now,
@@ -1762,7 +1907,7 @@ final class Admin {
         self::redirect('webtanan-booking-settings');
     }
 
-    private static function render_doctor_form(?array $doctor): void {
+    private static function render_doctor_form(?array $doctor, ?\WP_User $applicant = null): void {
         $doctor = $doctor ?: array();
         $post = !empty($doctor['post_id']) ? get_post((int) $doctor['post_id']) : null;
         $settings = DB::get_settings();
@@ -1770,6 +1915,23 @@ final class Admin {
         $featured_image_id = $post_id ? (int) get_post_thumbnail_id($post_id) : 0;
         $featured_image_url = $featured_image_id ? wp_get_attachment_image_url($featured_image_id, 'thumbnail') : '';
         $gallery_ids = $post_id ? self::sanitize_id_list(get_post_meta($post_id, '_webtanan_doctor_gallery_ids', true)) : array();
+        $profile_services = $post_id ? implode("\n", self::sanitize_profile_list(get_post_meta($post_id, '_webtanan_doctor_services', true))) : '';
+        $profile_certificates = $post_id ? implode("\n", self::sanitize_profile_list(get_post_meta($post_id, '_webtanan_doctor_certificates', true))) : '';
+        $profile_faq = $post_id ? self::profile_faq_text(get_post_meta($post_id, '_webtanan_doctor_faq', true)) : '';
+        $doctor_user_id = (int) ($doctor['user_id'] ?? ($applicant ? $applicant->ID : 0));
+        $doctor_login_mobile = $doctor_user_id > 0 ? Patient_Profile::user_mobile($doctor_user_id) : '';
+        $applicant_title = $applicant ? trim((string) get_user_meta($applicant->ID, 'first_name', true) . ' ' . (string) get_user_meta($applicant->ID, 'last_name', true)) : '';
+        if ('' === $applicant_title && $applicant) {
+            $applicant_title = (string) $applicant->display_name;
+        }
+        $applicant_specialty = $applicant ? trim((string) get_user_meta($applicant->ID, 'webtanan_doctor_specialty_request', true)) : '';
+        $applicant_specialty_id = 0;
+        foreach (self::specialty_options() as $specialty_option) {
+            if ('' !== $applicant_specialty && 0 === strcasecmp($applicant_specialty, (string) $specialty_option['name'])) {
+                $applicant_specialty_id = (int) $specialty_option['id'];
+                break;
+            }
+        }
 
         ?>
         <div class="webtanan-admin-panel">
@@ -1779,13 +1941,19 @@ final class Admin {
                 <input type="hidden" name="action" value="webtanan_booking_save_doctor">
                 <input type="hidden" name="doctor[post_id]" value="<?php echo esc_attr((string) ($doctor['post_id'] ?? 0)); ?>">
                 <input type="hidden" name="doctor[id]" value="<?php echo esc_attr((string) ($doctor['id'] ?? 0)); ?>">
-                <p><label><?php esc_html_e('نام پزشک', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[title]" value="<?php echo esc_attr($post ? $post->post_title : ''); ?>" required></p>
+                <p>
+                    <label><?php esc_html_e('شماره موبایل ورود پزشک', 'webtanan-booking'); ?></label>
+                    <input type="tel" inputmode="numeric" dir="ltr" class="widefat" name="doctor[login_mobile]" value="<?php echo esc_attr($doctor_login_mobile); ?>" placeholder="09123456789">
+                    <span class="description"><?php esc_html_e('پزشک با این شماره و کد یک‌بارمصرف وارد پیشخوان خود می‌شود.', 'webtanan-booking'); ?></span>
+                </p>
+                <?php if ($applicant) : ?><div class="notice notice-info inline"><p><?php esc_html_e('این فرم از درخواست عضویت پزشک پر شده است. اطلاعات را بررسی و سپس پروفایل را ذخیره کنید.', 'webtanan-booking'); ?></p></div><?php endif; ?>
+                <p><label><?php esc_html_e('نام پزشک', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[title]" value="<?php echo esc_attr($post ? $post->post_title : $applicant_title); ?>" required></p>
                 <p><label><?php esc_html_e('وضعیت انتشار پروفایل', 'webtanan-booking'); ?></label><select class="widefat" name="doctor[post_status]"><option value="publish" <?php selected($post ? $post->post_status : 'publish', 'publish'); ?>><?php esc_html_e('منتشر شده', 'webtanan-booking'); ?></option><option value="draft" <?php selected($post ? $post->post_status : '', 'draft'); ?>><?php esc_html_e('پیش‌نویس', 'webtanan-booking'); ?></option><option value="pending" <?php selected($post ? $post->post_status : '', 'pending'); ?>><?php esc_html_e('در انتظار بررسی', 'webtanan-booking'); ?></option></select></p>
-                <p><label><?php esc_html_e('کاربر وردپرس پزشک', 'webtanan-booking'); ?></label><?php wp_dropdown_users(array('name' => 'doctor[user_id]', 'selected' => (int) ($doctor['user_id'] ?? 0), 'show_option_none' => __('انتخاب کاربر', 'webtanan-booking'), 'class' => 'widefat')); ?></p>
+                <p><label><?php esc_html_e('کاربر وردپرس پزشک', 'webtanan-booking'); ?></label><?php wp_dropdown_users(array('name' => 'doctor[user_id]', 'selected' => $doctor_user_id, 'show_option_none' => __('انتخاب کاربر', 'webtanan-booking'), 'class' => 'widefat')); ?></p>
                 <p><label><?php esc_html_e('منشی دریافت‌کننده سهم نوبت‌دهی', 'webtanan-booking'); ?></label><?php wp_dropdown_users(array('name' => 'doctor[secretary_user_id]', 'selected' => (int) ($doctor['secretary_user_id'] ?? 0), 'show_option_none' => __('بدون منشی؛ سهم به پزشک ثبت شود', 'webtanan-booking'), 'class' => 'widefat')); ?></p>
                 <p><label><?php esc_html_e('کد پزشک', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[doctor_code]" value="<?php echo esc_attr($doctor['doctor_code'] ?? ''); ?>"></p>
-                <p><label><?php esc_html_e('شماره نظام پزشکی', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[medical_system_number]" value="<?php echo esc_attr($doctor['medical_system_number'] ?? ''); ?>"></p>
-                <p><label><?php esc_html_e('تخصص', 'webtanan-booking'); ?></label><?php self::specialty_select('doctor[specialty_id]', (int) ($doctor['specialty_id'] ?? 0)); ?></p>
+                <p><label><?php esc_html_e('شماره نظام پزشکی', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[medical_system_number]" value="<?php echo esc_attr($doctor['medical_system_number'] ?? ($applicant ? get_user_meta($applicant->ID, 'webtanan_doctor_medical_system_number', true) : '')); ?>"></p>
+                <p><label><?php esc_html_e('تخصص', 'webtanan-booking'); ?></label><?php self::specialty_select('doctor[specialty_id]', (int) ($doctor['specialty_id'] ?? $applicant_specialty_id)); ?><?php if ($applicant_specialty && !$applicant_specialty_id) : ?><span class="description"><?php echo esc_html(sprintf(__('تخصص درخواستی: %s', 'webtanan-booking'), $applicant_specialty)); ?></span><?php endif; ?></p>
                 <p><label><?php esc_html_e('شناسه استان', 'webtanan-booking'); ?></label><input type="number" min="0" class="widefat" name="doctor[province_id]" value="<?php echo esc_attr((string) ($doctor['province_id'] ?? 0)); ?>"><span class="description"><?php esc_html_e('برای فیلتر عمومی و ویجت المنتور استفاده می‌شود.', 'webtanan-booking'); ?></span></p>
                 <p><label><?php esc_html_e('شناسه شهر', 'webtanan-booking'); ?></label><input type="number" min="0" class="widefat" name="doctor[city_id]" value="<?php echo esc_attr((string) ($doctor['city_id'] ?? 0)); ?>"><span class="description"><?php esc_html_e('در نسخه‌های بعد می‌تواند به جدول شهرها متصل شود.', 'webtanan-booking'); ?></span></p>
                 <p><label><?php esc_html_e('نام مطب', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[clinic_name]" value="<?php echo esc_attr($doctor['clinic_name'] ?? ''); ?>"></p>
@@ -1801,6 +1969,9 @@ final class Admin {
                 <p><label><?php esc_html_e('صاحب حساب', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="doctor[bank_account_owner]" value="<?php echo esc_attr($doctor['bank_account_owner'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('خلاصه پروفایل', 'webtanan-booking'); ?></label><textarea class="widefat" rows="2" name="doctor[profile_excerpt]"><?php echo esc_textarea($post ? $post->post_excerpt : ''); ?></textarea></p>
                 <p><label><?php esc_html_e('متن پروفایل', 'webtanan-booking'); ?></label><textarea class="widefat" rows="4" name="doctor[profile_content]"><?php echo esc_textarea($post ? $post->post_content : ''); ?></textarea></p>
+                <p><label><?php esc_html_e('خدمات و حوزه‌های فعالیت', 'webtanan-booking'); ?></label><textarea class="widefat" rows="4" name="doctor[profile_services]" placeholder="<?php esc_attr_e('هر خدمت در یک خط', 'webtanan-booking'); ?>"><?php echo esc_textarea($profile_services); ?></textarea></p>
+                <p><label><?php esc_html_e('مدارک و گواهی‌ها', 'webtanan-booking'); ?></label><textarea class="widefat" rows="4" name="doctor[profile_certificates]" placeholder="<?php esc_attr_e('هر مدرک در یک خط', 'webtanan-booking'); ?>"><?php echo esc_textarea($profile_certificates); ?></textarea></p>
+                <p><label><?php esc_html_e('پرسش‌های پرتکرار', 'webtanan-booking'); ?></label><textarea class="widefat" rows="5" name="doctor[profile_faq]" placeholder="<?php esc_attr_e('پرسش | پاسخ', 'webtanan-booking'); ?>"><?php echo esc_textarea($profile_faq); ?></textarea><span class="description"><?php esc_html_e('هر پرسش و پاسخ را در یک خط و با نویسه | از هم جدا کنید.', 'webtanan-booking'); ?></span></p>
                 <div class="webtanan-admin-media-field">
                     <label><?php esc_html_e('تصویر پزشک', 'webtanan-booking'); ?></label>
                     <input type="hidden" name="doctor[featured_image_id]" id="webtanan_doctor_featured_image_id" value="<?php echo esc_attr((string) $featured_image_id); ?>">
@@ -1833,6 +2004,8 @@ final class Admin {
 
     private static function render_specialty_form(?array $specialty): void {
         $specialty = $specialty ?: array();
+        $icon_id = absint($specialty['icon_attachment_id'] ?? 0);
+        $icon_url = $icon_id ? wp_get_attachment_image_url($icon_id, 'thumbnail') : '';
         ?>
         <div class="webtanan-admin-panel">
             <h2><?php echo esc_html($specialty ? __('ویرایش تخصص', 'webtanan-booking') : __('افزودن تخصص', 'webtanan-booking')); ?></h2>
@@ -1843,6 +2016,13 @@ final class Admin {
                 <p><label><?php esc_html_e('نام تخصص', 'webtanan-booking'); ?></label><input type="text" class="widefat" name="name" value="<?php echo esc_attr($specialty['name'] ?? ''); ?>" required></p>
                 <p><label><?php esc_html_e('اسلاگ', 'webtanan-booking'); ?></label><input type="text" class="widefat" dir="ltr" name="slug" value="<?php echo esc_attr($specialty['slug'] ?? ''); ?>"></p>
                 <p><label><?php esc_html_e('والد', 'webtanan-booking'); ?></label><?php self::specialty_select('parent_id', (int) ($specialty['parent_id'] ?? 0), __('بدون والد', 'webtanan-booking')); ?></p>
+                <div class="webtanan-admin-media-field">
+                    <label><?php esc_html_e('آیکن یا تصویر تخصص', 'webtanan-booking'); ?></label>
+                    <input type="hidden" name="icon_attachment_id" id="webtanan_specialty_icon_id" value="<?php echo esc_attr((string) $icon_id); ?>">
+                    <div class="webtanan-media-preview" id="webtanan_specialty_icon_preview"><?php if ($icon_url) : ?><img src="<?php echo esc_url($icon_url); ?>" alt=""><?php endif; ?></div>
+                    <button type="button" class="button webtanan-media-upload" data-target="#webtanan_specialty_icon_id" data-preview="#webtanan_specialty_icon_preview"><?php esc_html_e('انتخاب تصویر', 'webtanan-booking'); ?></button>
+                    <button type="button" class="button webtanan-media-clear" data-target="#webtanan_specialty_icon_id" data-preview="#webtanan_specialty_icon_preview"><?php esc_html_e('حذف تصویر', 'webtanan-booking'); ?></button>
+                </div>
                 <p><label><?php esc_html_e('ترتیب نمایش', 'webtanan-booking'); ?></label><input type="number" class="widefat" name="sort_order" value="<?php echo esc_attr((string) ($specialty['sort_order'] ?? 0)); ?>"></p>
                 <p><label><input type="checkbox" name="is_active" value="1" <?php checked((int) ($specialty['is_active'] ?? 1), 1); ?>> <?php esc_html_e('فعال', 'webtanan-booking'); ?></label></p>
                 <?php submit_button(__('ذخیره تخصص', 'webtanan-booking')); ?>
@@ -2034,6 +2214,77 @@ final class Admin {
         <?php
     }
 
+    private static function render_homepage_settings_fields(array $settings): void {
+        $homepage = isset($settings['homepage']) && is_array($settings['homepage']) ? $settings['homepage'] : array();
+        $sections = array_values((array) ($homepage['custom_sections'] ?? array()));
+        while (count($sections) < 3) {
+            $sections[] = array();
+        }
+        $section_labels = array(
+            'specialties' => __('تخصص‌ها', 'webtanan-booking'),
+            'latest_doctors' => __('جدیدترین پزشکان', 'webtanan-booking'),
+            'popular_doctors' => __('پزشکان پرمراجعه', 'webtanan-booking'),
+            'custom_1' => __('سکشن سفارشی ۱', 'webtanan-booking'),
+            'custom_2' => __('سکشن سفارشی ۲', 'webtanan-booking'),
+            'custom_3' => __('سکشن سفارشی ۳', 'webtanan-booking'),
+        );
+        $section_order = array_values(array_intersect((array) ($homepage['section_order'] ?? array()), array_keys($section_labels)));
+        $section_order = array_merge($section_order, array_values(array_diff(array_keys($section_labels), $section_order)));
+        ?>
+        <h2><?php esc_html_e('چیدمان صفحه اصلی', 'webtanan-booking'); ?></h2>
+        <div class="webtanan-admin-panel webtanan-home-settings">
+            <div class="webtanan-admin-grid">
+                <p><label><?php esc_html_e('عنوان اصلی Hero', 'webtanan-booking'); ?></label><input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][hero_title]" value="<?php echo esc_attr((string) ($homepage['hero_title'] ?? '')); ?>"></p>
+                <p><label><?php esc_html_e('عبارت برجسته Hero', 'webtanan-booking'); ?></label><input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][hero_highlight]" value="<?php echo esc_attr((string) ($homepage['hero_highlight'] ?? '')); ?>"></p>
+                <p class="webtanan-admin-grid-full"><label><?php esc_html_e('توضیح Hero', 'webtanan-booking'); ?></label><textarea class="widefat" rows="2" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][hero_description]"><?php echo esc_textarea((string) ($homepage['hero_description'] ?? '')); ?></textarea></p>
+                <p><label><?php esc_html_e('عنوان بخش تخصص‌ها', 'webtanan-booking'); ?></label><input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][specialty_title]" value="<?php echo esc_attr((string) ($homepage['specialty_title'] ?? '')); ?>"></p>
+                <p><label><?php esc_html_e('جای تصویر تخصص', 'webtanan-booking'); ?></label><select class="widefat" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][specialty_layout]"><option value="top" <?php selected($homepage['specialty_layout'] ?? 'top', 'top'); ?>><?php esc_html_e('بالای عنوان', 'webtanan-booking'); ?></option><option value="right" <?php selected($homepage['specialty_layout'] ?? '', 'right'); ?>><?php esc_html_e('سمت راست عنوان', 'webtanan-booking'); ?></option><option value="left" <?php selected($homepage['specialty_layout'] ?? '', 'left'); ?>><?php esc_html_e('سمت چپ عنوان', 'webtanan-booking'); ?></option></select></p>
+                <p><label><?php esc_html_e('تعداد ستون تخصص‌ها', 'webtanan-booking'); ?></label><input class="widefat" type="number" min="2" max="6" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][specialty_columns]" value="<?php echo esc_attr((string) ($homepage['specialty_columns'] ?? 4)); ?>"></p>
+                <p><label><?php esc_html_e('تعداد تخصص قابل نمایش', 'webtanan-booking'); ?></label><input class="widefat" type="number" min="1" max="24" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][specialty_limit]" value="<?php echo esc_attr((string) ($homepage['specialty_limit'] ?? 8)); ?>"></p>
+                <p><label><?php esc_html_e('عنوان جدیدترین پزشکان', 'webtanan-booking'); ?></label><input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][latest_title]" value="<?php echo esc_attr((string) ($homepage['latest_title'] ?? 'جدیدترین پزشکان')); ?>"></p>
+                <p><label><?php esc_html_e('توضیح جدیدترین پزشکان', 'webtanan-booking'); ?></label><input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][latest_subtitle]" value="<?php echo esc_attr((string) ($homepage['latest_subtitle'] ?? '')); ?>"></p>
+                <p><label><?php esc_html_e('عنوان پزشکان پرمراجعه', 'webtanan-booking'); ?></label><input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][popular_title]" value="<?php echo esc_attr((string) ($homepage['popular_title'] ?? 'پزشکان پرمراجعه')); ?>"></p>
+                <p><label><?php esc_html_e('توضیح پزشکان پرمراجعه', 'webtanan-booking'); ?></label><input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][popular_subtitle]" value="<?php echo esc_attr((string) ($homepage['popular_subtitle'] ?? '')); ?>"></p>
+                <p><label><?php esc_html_e('تعداد پزشک در هر سکشن', 'webtanan-booking'); ?></label><input class="widefat" type="number" min="1" max="12" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][doctor_section_limit]" value="<?php echo esc_attr((string) ($homepage['doctor_section_limit'] ?? 4)); ?>"></p>
+            </div>
+            <h3><?php esc_html_e('ترتیب و نمایش سکشن‌ها', 'webtanan-booking'); ?></h3>
+            <p class="description"><?php esc_html_e('ردیف‌ها را با دستگیره جابه‌جا کنید. ترتیب ذخیره‌شده مستقیماً در صفحه اصلی اعمال می‌شود.', 'webtanan-booking'); ?></p>
+            <input type="hidden" class="webtanan-home-section-order-value" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][section_order]" value="<?php echo esc_attr(implode(',', $section_order)); ?>">
+            <ul class="webtanan-home-section-order">
+                <?php foreach ($section_order as $section_key) : ?>
+                    <li data-section="<?php echo esc_attr($section_key); ?>">
+                        <span class="dashicons dashicons-move" aria-hidden="true"></span>
+                        <strong><?php echo esc_html($section_labels[$section_key]); ?></strong>
+                        <?php if ('specialties' === $section_key) : ?>
+                            <label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][show_specialties]" value="1" <?php checked(!isset($homepage['show_specialties']) || !empty($homepage['show_specialties'])); ?>> <?php esc_html_e('نمایش', 'webtanan-booking'); ?></label>
+                        <?php elseif ('latest_doctors' === $section_key) : ?>
+                            <label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][show_latest_doctors]" value="1" <?php checked(!isset($homepage['show_latest_doctors']) || !empty($homepage['show_latest_doctors'])); ?>> <?php esc_html_e('نمایش', 'webtanan-booking'); ?></label>
+                        <?php elseif ('popular_doctors' === $section_key) : ?>
+                            <label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][show_popular_doctors]" value="1" <?php checked(!isset($homepage['show_popular_doctors']) || !empty($homepage['show_popular_doctors'])); ?>> <?php esc_html_e('نمایش', 'webtanan-booking'); ?></label>
+                        <?php else : ?>
+                            <span class="description"><?php esc_html_e('نمایش از گزینه فعال خود سکشن', 'webtanan-booking'); ?></span>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <h3><?php esc_html_e('سکشن‌های سفارشی', 'webtanan-booking'); ?></h3>
+            <p class="description"><?php esc_html_e('حداکثر سه سکشن متنی را بدون ویرایش قالب به صفحه اصلی اضافه کنید.', 'webtanan-booking'); ?></p>
+            <div class="webtanan-custom-sections">
+                <?php foreach (array_slice($sections, 0, 3) as $index => $section) : ?>
+                    <fieldset>
+                        <legend><?php echo esc_html(sprintf(__('سکشن %d', 'webtanan-booking'), $index + 1)); ?></legend>
+                        <label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][custom_sections][<?php echo esc_attr((string) $index); ?>][enabled]" value="1" <?php checked(!empty($section['enabled'])); ?>> <?php esc_html_e('فعال', 'webtanan-booking'); ?></label>
+                        <input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][custom_sections][<?php echo esc_attr((string) $index); ?>][title]" value="<?php echo esc_attr((string) ($section['title'] ?? '')); ?>" placeholder="<?php esc_attr_e('عنوان سکشن', 'webtanan-booking'); ?>">
+                        <textarea class="widefat" rows="3" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][custom_sections][<?php echo esc_attr((string) $index); ?>][body]" placeholder="<?php esc_attr_e('متن سکشن', 'webtanan-booking'); ?>"><?php echo esc_textarea((string) ($section['body'] ?? '')); ?></textarea>
+                        <input class="widefat" type="text" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][custom_sections][<?php echo esc_attr((string) $index); ?>][button_label]" value="<?php echo esc_attr((string) ($section['button_label'] ?? '')); ?>" placeholder="<?php esc_attr_e('عنوان دکمه', 'webtanan-booking'); ?>">
+                        <input class="widefat" type="url" dir="ltr" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[homepage][custom_sections][<?php echo esc_attr((string) $index); ?>][button_url]" value="<?php echo esc_attr((string) ($section['button_url'] ?? '')); ?>" placeholder="https://">
+                    </fieldset>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php
+    }
+
     private static function render_cancellation_settings_fields(array $settings): void {
         $policy = $settings['cancellation_policy'] ?? array();
         ?>
@@ -2072,13 +2323,44 @@ final class Admin {
 
     private static function render_sms_settings_fields(array $settings): void {
         $sms = $settings['sms_provider_settings'];
+        $otp_pattern = self::sms_pattern_for_settings($sms, 'otp');
+        $otp_missing = array();
+        if (empty($sms['enabled'])) {
+            $otp_missing[] = __('ماژول پیامک غیرفعال است', 'webtanan-booking');
+        }
+        if (empty($sms['api_key'])) {
+            $otp_missing[] = __('کلید API وارد نشده است', 'webtanan-booking');
+        }
+        if (empty($sms['from_number']) && empty($sms['originator'])) {
+            $otp_missing[] = __('شماره فرستنده وارد نشده است', 'webtanan-booking');
+        }
+        if (empty($otp_pattern['enabled']) || empty($otp_pattern['code'])) {
+            $otp_missing[] = __('پترن OTP فعال و تکمیل نشده است', 'webtanan-booking');
+        }
         ?>
         <h2><?php esc_html_e('تنظیمات پیامک IPPanel', 'webtanan-booking'); ?></h2>
+        <div class="webtanan-admin-help-card <?php echo $otp_missing ? 'webtanan-admin-help-warning' : 'webtanan-admin-help-success'; ?>">
+            <strong><?php echo $otp_missing ? esc_html__('آمادگی ارسال OTP: نیازمند تنظیم', 'webtanan-booking') : esc_html__('آمادگی ارسال OTP: کامل', 'webtanan-booking'); ?></strong>
+            <?php if ($otp_missing) : ?>
+                <p><?php echo esc_html(implode('، ', $otp_missing)); ?></p>
+            <?php elseif (!empty($sms['test_mode'])) : ?>
+                <p><?php esc_html_e('حالت تست روشن است؛ درخواست واقعی به IPPanel ارسال نمی‌شود.', 'webtanan-booking'); ?></p>
+            <?php else : ?>
+                <p><?php esc_html_e('پس از ذخیره، از ابزار «ارسال پیامک تست» برای تایید credential و پترن استفاده کنید.', 'webtanan-booking'); ?></p>
+            <?php endif; ?>
+        </div>
         <table class="form-table" role="presentation">
             <tr><th scope="row"><?php esc_html_e('فعال‌سازی پیامک', 'webtanan-booking'); ?></th><td><label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][enabled]" value="1" <?php checked(!empty($sms['enabled'])); ?>> <?php esc_html_e('ارسال پیامک از طریق IPPanel', 'webtanan-booking'); ?></label></td></tr>
             <tr><th scope="row"><?php esc_html_e('آدرس پایه API', 'webtanan-booking'); ?></th><td><input type="url" class="regular-text" dir="ltr" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][base_url]" value="<?php echo esc_attr($sms['base_url'] ?? 'https://edge.ippanel.com/v1'); ?>"></td></tr>
             <tr><th scope="row"><?php esc_html_e('کلید API', 'webtanan-booking'); ?></th><td><input type="password" class="regular-text" dir="ltr" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][api_key]" value="<?php echo esc_attr($sms['api_key'] ?? ''); ?>"></td></tr>
             <tr><th scope="row"><?php esc_html_e('شماره فرستنده', 'webtanan-booking'); ?></th><td><input type="text" class="regular-text" dir="ltr" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][from_number]" value="<?php echo esc_attr($sms['from_number'] ?: ($sms['originator'] ?? '')); ?>" placeholder="+983000505"></td></tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('نام متغیر کد ورود', 'webtanan-booking'); ?></th>
+                <td>
+                    <input type="text" class="regular-text" dir="ltr" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][otp_parameter_name]" value="<?php echo esc_attr((string) ($sms['otp_parameter_name'] ?? 'verifyotp')); ?>" placeholder="verifyotp" pattern="[A-Za-z0-9_]+">
+                    <p class="description"><?php esc_html_e('این مقدار باید دقیقاً با نام متغیر تعریف‌شده در پترن IPPanel یکسان باشد؛ برای مثال verifyotp یا code. فقط کد عددی به این متغیر ارسال می‌شود.', 'webtanan-booking'); ?></p>
+                </td>
+            </tr>
             <tr><th scope="row"><?php esc_html_e('رفتار پیامک', 'webtanan-booking'); ?></th><td><label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][test_mode]" value="1" <?php checked(!empty($sms['test_mode'])); ?>> <?php esc_html_e('حالت تست', 'webtanan-booking'); ?></label><br><label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][log_enabled]" value="1" <?php checked(!empty($sms['log_enabled'])); ?>> <?php esc_html_e('ذخیره لاگ', 'webtanan-booking'); ?></label><br><label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][send_to_patient]" value="1" <?php checked(!empty($sms['send_to_patient'])); ?>> <?php esc_html_e('ارسال به بیمار', 'webtanan-booking'); ?></label><br><label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][send_to_doctor]" value="1" <?php checked(!empty($sms['send_to_doctor'])); ?>> <?php esc_html_e('ارسال به پزشک', 'webtanan-booking'); ?></label><br><label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][send_to_secretary]" value="1" <?php checked(!empty($sms['send_to_secretary'])); ?>> <?php esc_html_e('ارسال به منشی', 'webtanan-booking'); ?></label><br><label><input type="checkbox" name="<?php echo esc_attr(DB::OPTION_SETTINGS); ?>[sms_provider_settings][reminder_enabled]" value="1" <?php checked(!empty($sms['reminder_enabled'])); ?>> <?php esc_html_e('یادآوری نوبت', 'webtanan-booking'); ?></label></td></tr>
         </table>
         <h2><?php esc_html_e('کد پترن‌ها', 'webtanan-booking'); ?></h2>
@@ -2182,6 +2464,10 @@ final class Admin {
         $wpdb->insert(DB::table('doctors'), $data);
 
         return (int) $wpdb->insert_id;
+    }
+
+    private static function find_user_by_login_mobile(string $mobile, int $exclude_user_id = 0): int {
+        return Patient_Profile::find_user_id_by_mobile($mobile, $exclude_user_id);
     }
 
     private static function filtered_doctors(): array {
@@ -2330,7 +2616,7 @@ final class Admin {
     }
 
     private static function public_specialty_url(int $specialty_id): string {
-        return self::public_doctors_archive_url(array('specialty_id' => $specialty_id));
+        return Post_Types::specialty_url($specialty_id);
     }
 
     private static function shortcode_rows(): array {
@@ -2422,6 +2708,62 @@ final class Admin {
         return array_values(array_unique(array_filter(array_map('absint', $ids))));
     }
 
+    private static function sanitize_profile_list($value): array {
+        if (is_string($value)) {
+            $value = preg_split('/[\r\n,،]+/u', $value);
+        }
+        if (!is_array($value)) {
+            return array();
+        }
+        $items = array_map(
+            static function ($item): string {
+                return sanitize_text_field((string) $item);
+            },
+            $value
+        );
+
+        return array_values(array_unique(array_filter($items)));
+    }
+
+    private static function sanitize_profile_faq($value): array {
+        if (is_string($value)) {
+            $rows = preg_split('/\r\n|\r|\n/', $value);
+            $value = array();
+            foreach ((array) $rows as $row) {
+                $parts = preg_split('/\s*[|｜]\s*/u', (string) $row, 2);
+                if (2 === count($parts)) {
+                    $value[] = array('question' => $parts[0], 'answer' => $parts[1]);
+                }
+            }
+        }
+        if (!is_array($value)) {
+            return array();
+        }
+
+        $items = array();
+        foreach ($value as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $question = sanitize_text_field((string) ($item['question'] ?? ''));
+            $answer = sanitize_textarea_field((string) ($item['answer'] ?? ''));
+            if ('' !== $question && '' !== $answer) {
+                $items[] = array('question' => $question, 'answer' => $answer);
+            }
+        }
+
+        return $items;
+    }
+
+    private static function profile_faq_text($value): string {
+        $rows = array();
+        foreach (self::sanitize_profile_faq($value) as $item) {
+            $rows[] = $item['question'] . ' | ' . $item['answer'];
+        }
+
+        return implode("\n", $rows);
+    }
+
     private static function normalize_time($time): string {
         $time = sanitize_text_field(wp_unslash($time));
         if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
@@ -2497,6 +2839,7 @@ final class Admin {
 
     private static function sms_pattern_variables(): array {
         return array(
+            'verifyotp',
             'code',
             'doctor_name',
             'patient_name',
@@ -2519,7 +2862,7 @@ final class Admin {
 
     private static function sms_pattern_examples(string $type): array {
         $examples = array(
-            'otp' => array('code' => 'otp_login_001', 'text' => 'کد ورود شما: {code}'),
+            'otp' => array('code' => 'otp_login_001', 'text' => 'کد ورود شما: {verifyotp}'),
             'appointment_confirmed' => array('code' => 'appointment_confirmed_001', 'text' => '{patient_name} عزیز، نوبت شما با {doctor_name} در تاریخ {date} ساعت {time} قطعی شد. کد نوبت: {appointment_code}'),
             'staff_appointment_confirmed' => array('code' => 'staff_appointment_confirmed_001', 'text' => 'نوبت جدید برای {doctor_name}: {patient_name} در {date} ساعت {time}. کد: {appointment_code}'),
             'appointment_cancelled' => array('code' => 'appointment_cancelled_001', 'text' => '{patient_name} عزیز، نوبت {appointment_code} لغو شد. وضعیت استرداد: {refund_status}'),
@@ -2542,12 +2885,13 @@ final class Admin {
 
     private static function sample_sms_variables(string $message_type): array {
         return array(
+            'verifyotp' => '458921',
             'code' => '458921',
             'doctor_name' => 'دکتر احمدی',
             'patient_name' => 'علی رضایی',
             'date' => current_time('Y-m-d'),
             'time' => current_time('H:i'),
-            'appointment_code' => 'APT-TEST',
+            'appointment_code' => '4839201756',
             'amount' => '100000',
             'reason' => 'تست سیستم',
             'refund_status' => 'شارژ کیف پول',

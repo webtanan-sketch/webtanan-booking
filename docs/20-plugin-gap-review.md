@@ -1,4 +1,36 @@
-# Webtanan Booking Gap Review - v1.3.0
+# Webtanan Booking Gap Review - v1.4.5
+
+## Final Audit In v1.4.3
+
+- روز بدون ساعت آزاد در تقویم عمومی و مودال رزرو، دکمه «نمایش اولین نوبت آزاد» دارد. تاریخ مقصد از REST خوانده می‌شود و تقویم روی همان بازه جابه‌جا می‌شود.
+- ارسال OTP تنها زمانی موفق اعلام می‌شود که IPPanel وضعیت `sent`، `queued` یا `test_mode` برگرداند؛ رکورد کدی که ارسال نشده حذف می‌شود.
+- نام پارامتر OTP پترن قابل تنظیم است و باید دقیقاً با placeholder تاییدشده IPPanel برابر باشد. مقدار ارسالی فقط کد عددی است.
+- شماره و کد نوشته‌شده با ارقام فارسی، عربی یا لاتین به شکل یکسان پردازش می‌شوند.
+- مسیر تخصص‌ها در حالت permalink به شکل `/doctors/specialty/{slug}/` است و URL قدیمی `specialty_id` به مسیر تمیز هدایت می‌شود.
+- صفحات خصوصی حساب، پرداخت، پنل‌ها، صف و نظرسنجی از طریق `wp_robots` و فیلتر رسمی Rank Math با `noindex,nofollow` مشخص می‌شوند.
+- آرشیو تخصص canonical، title و description اختصاصی دارد؛ فیلترهای جستجوی موقت noindex هستند.
+- schema تکراری داخل بدنه صفحه پزشک حذف شد و فقط JSON-LD کامل `Physician` در `wp_head` باقی ماند.
+- امتیاز و تعداد نظر ساختگی حذف شد و کارت‌ها فقط دیدگاه‌های تاییدشده دارای امتیاز را نمایش می‌دهند.
+- ستون ایندکس‌شده `next_free_slot_cache` اضافه شد؛ کران ۱۵ دقیقه‌ای آن را به‌روزرسانی می‌کند و مرتب‌سازی لیست پزشکان ابتدا از cache استفاده می‌کند.
+
+## UX Audit In v1.4.4
+
+- تمام requestهای استفاده‌شده در `frontend.js` با routeهای ثبت‌شده REST تطبیق داده شدند و مسیر فرانت بدون route متناظر پیدا نشد.
+- خطای قطع شبکه در تمام فرم‌ها به پیام فارسی قابل اقدام تبدیل شد.
+- فوکوس مودال‌ها، بازگشت فوکوس، کلید Escape و بستن منوی موبایل اصلاح شد.
+- منوی بیمار دارای نمای واقعی راهنما است و لینک‌های بیرونی دیگر توسط router داخلی داشبورد بلعیده نمی‌شوند.
+- خدمات، مدارک و پرسش‌های پرتکرار پزشک از پنل پزشک و مدیریت قابل ویرایش هستند.
+- برنامه هفتگی و روزهای خاص اکنون حذف امن، بررسی مالکیت و ثبت تکراری بدون duplicate دارند.
+- کد OTP حتی در `WP_DEBUG` داخل پاسخ REST برگردانده نمی‌شود.
+
+## Recovery And Mobile UX In v1.4.5
+
+- کاربر لاگین‌شده برای ادامه پرداخت نوبت خودش دوباره OTP وارد نمی‌کند.
+- مهلت قفل در فاکتور پرداخت مجدد به‌صورت زنده نمایش داده می‌شود؛ پس از پایان، همان ساعت با یک دکمه دوباره بررسی و در صورت آزاد بودن قفل می‌شود.
+- خطاهای موقت IPPanel حداکثر سه بار و با قفل کران retry می‌شوند؛ OTP برای جلوگیری از ارسال تکراری خودکار retry نمی‌شود.
+- متغیرهای هر پترن پیامک whitelist مستقل دارند و آرگومان‌های نامرتبط به IPPanel ارسال نمی‌شوند.
+- در قالب همراه، موبایل فقط یک همبرگر در هدر دارد و لینک‌های نقش‌محور پنل داخل همان منو قرار می‌گیرند؛ سایدبار دسکتاپ حفظ شده است.
+- نظر بیمار مستقیماً داخل پنل قابل ثبت و ویرایش است و خطای دیتابیس دیگر پاسخ موفق کاذب تولید نمی‌کند.
 
 ## Completed In This Pass
 
@@ -58,22 +90,21 @@
 
 ## Partially Complete
 
-- Survey submission stores a private response and creates a pending public WordPress comment when the patient consents. The new admin survey screen can mark responses as approved, private, pending, or rejected.
-- Waiting-list live view is now available through both the signed REST endpoint and a polished public HTML page with 30-second polling.
 - Medical records support text fields, notes, and uploaded files. Prescription-specific structured data is not yet implemented.
+- کد و لاگ خطای واقعی IPPanel تکمیل است، اما تحویل پیامک و پرداخت فقط با credential واقعی دامنه مقصد قابل تایید نهایی است.
 
 ## Still Missing / Recommended Next
 
 - Structured prescription module and prescription-specific print/export templates.
 - Optional per-note file binding UI; the backend table already supports `note_id`.
-- SaaS canvas template override for dashboard pages.
-- Cron-cached `next_free_slot_cache` column and first-available sorting by cache.
+- Automated concurrency tests for simultaneous slot locks and repeated payment callbacks.
 - Automated browser QA for 390, 768, 1366, and 1920 pixel widths.
 - Deeper browser QA against real Elementor templates, sticky theme headers, and production cache plugins.
+- Real IPPanel delivery, Rank Math sitemap output and low-value gateway callback must be smoke-tested on the deployed WordPress site.
 
 ## Operational Notes
 
-- Plugin version is bumped to `1.3.0`. The v1.2.7 pass added medical-record file/audit tables, and v1.3.0 hardens seeding plus replaces public slot output with the virtual slot generator.
+- Plugin version is `1.4.5`. Full-canvas dashboards are intentionally not used; dashboards remain under the active theme header/footer according to the approved product layout.
 - `DB::create_tables()` still runs on boot when the stored version differs.
 - Refund idempotency remains centralized in `Booking::cancel_appointment()` and `wp_saas_wallets_ledger`.
 - Survey and waiting-list public access relies on HMAC tokens generated from appointment id/code/mobile and purpose.

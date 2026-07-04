@@ -10,11 +10,22 @@ namespace Webtanan\Booking;
 defined('ABSPATH') || exit;
 
 final class Frontend {
+    private static $doctor_rating_cache = array();
+
     public static function init(): void {
         add_action('wp_enqueue_scripts', array(__CLASS__, 'register_assets'));
-        add_action('wp_head', array(__CLASS__, 'maybe_noindex_private_pages'), 1);
         add_action('wp_head', array(__CLASS__, 'render_doctor_schema_markup'), 20);
+        add_action('wp_head', array(__CLASS__, 'render_fallback_archive_meta'), 3);
+        add_filter('wp_robots', array(__CLASS__, 'filter_wp_robots'));
+        add_filter('rank_math/frontend/robots', array(__CLASS__, 'filter_rank_math_robots'));
+        add_filter('rank_math/frontend/canonical', array(__CLASS__, 'filter_canonical_url'));
+        add_filter('rank_math/opengraph/url', array(__CLASS__, 'filter_canonical_url'));
+        add_filter('rank_math/frontend/title', array(__CLASS__, 'filter_seo_title'));
+        add_filter('rank_math/frontend/description', array(__CLASS__, 'filter_seo_description'));
+        add_filter('document_title_parts', array(__CLASS__, 'filter_document_title_parts'));
+        add_filter('show_admin_bar', array(__CLASS__, 'filter_admin_bar_visibility'));
         add_filter('query_vars', array(__CLASS__, 'query_vars'));
+        add_action('template_redirect', array(__CLASS__, 'maybe_render_auth_page'));
         add_action('template_redirect', array(__CLASS__, 'maybe_render_payment_result_page'));
         add_action('template_redirect', array(__CLASS__, 'maybe_render_resume_payment_page'));
         add_action('template_redirect', array(__CLASS__, 'maybe_render_public_flow_page'));
@@ -34,10 +45,22 @@ final class Frontend {
         add_shortcode('webtanan_booking_survey', array(__CLASS__, 'survey_shortcode'));
     }
 
+    public static function filter_admin_bar_visibility(bool $show): bool {
+        if (!is_user_logged_in() || current_user_can('manage_options')) {
+            return $show;
+        }
+
+        $user = wp_get_current_user();
+        $private_roles = array('webtanan_patient', 'webtanan_doctor', 'webtanan_secretary');
+
+        return array_intersect($private_roles, (array) $user->roles) ? false : $show;
+    }
+
     public static function register_assets(): void {
         wp_register_style('webtanan-booking-fontawesome', WEBTANAN_BOOKING_URL . 'assets/vendor/fontawesome/css/all.min.css', array(), self::asset_version('assets/vendor/fontawesome/css/all.min.css'));
         wp_register_style('webtanan-booking-frontend', WEBTANAN_BOOKING_URL . 'assets/css/frontend.css', array('webtanan-booking-fontawesome'), self::asset_version('assets/css/frontend.css'));
-        wp_register_script('webtanan-booking-jalali', WEBTANAN_BOOKING_URL . 'assets/js/jalali-calendar.js', array(), self::asset_version('assets/js/jalali-calendar.js'), true);
+        wp_register_script('webtanan-booking-jalaali-engine', WEBTANAN_BOOKING_URL . 'assets/vendor/jalaali-js/jalaali.min.js', array(), self::asset_version('assets/vendor/jalaali-js/jalaali.min.js'), true);
+        wp_register_script('webtanan-booking-jalali', WEBTANAN_BOOKING_URL . 'assets/js/jalali-calendar.js', array('webtanan-booking-jalaali-engine'), self::asset_version('assets/js/jalali-calendar.js'), true);
         wp_register_script('webtanan-booking-chartjs', WEBTANAN_BOOKING_URL . 'assets/vendor/chartjs/chart.umd.min.js', array(), self::asset_version('assets/vendor/chartjs/chart.umd.min.js'), true);
         wp_register_script('webtanan-booking-frontend', WEBTANAN_BOOKING_URL . 'assets/js/frontend.js', array('webtanan-booking-jalali', 'webtanan-booking-chartjs'), self::asset_version('assets/js/frontend.js'), true);
         wp_localize_script(
@@ -47,9 +70,11 @@ final class Frontend {
                 'restRoot' => esc_url_raw(rest_url()),
                 'restNamespace' => 'saas/v1',
                 'restUrl' => esc_url_raw(rest_url('saas/v1')),
+                'assetsUrl' => esc_url_raw(WEBTANAN_BOOKING_URL . 'assets/'),
                 'archiveUrl' => esc_url_raw(get_post_type_archive_link('saas_doctors') ?: add_query_arg('post_type', 'saas_doctors', home_url('/'))),
                 'nonce' => wp_create_nonce('wp_rest'),
                 'isLoggedIn' => is_user_logged_in(),
+                'loginUrl' => esc_url_raw(Patient_Profile::login_url()),
                 'today' => current_time('Y-m-d'),
                 'strings' => array(
                     'loading' => __('در حال بارگذاری...', 'webtanan-booking'),
@@ -68,6 +93,7 @@ final class Frontend {
 
     public static function query_vars(array $vars): array {
         $vars[] = 'webtanan_payment_result';
+        $vars[] = 'webtanan_auth_page';
         $vars[] = 'webtanan_resume_payment';
         $vars[] = 'webtanan_waiting_list';
         $vars[] = 'webtanan_survey';
@@ -76,6 +102,22 @@ final class Frontend {
         $vars[] = 'token';
 
         return $vars;
+    }
+
+    public static function maybe_render_auth_page(): void {
+        if (!get_query_var('webtanan_auth_page') && empty($_GET['webtanan_auth_page'])) {
+            return;
+        }
+
+        self::enqueue();
+        status_header(200);
+        get_header();
+        echo '<main class="webtanan-booking wb-auth-page" dir="rtl"><div class="wb-auth-page-inner">';
+        echo '<header class="wb-auth-page-head"><span>' . esc_html__('حساب کاربری وب‌تنان', 'webtanan-booking') . '</span><h1>' . esc_html__('ورود یا ثبت‌نام با شماره موبایل', 'webtanan-booking') . '</h1><p>' . esc_html__('برای مدیریت نوبت‌ها و ادامه رزرو، شماره موبایل خود را تایید کنید.', 'webtanan-booking') . '</p></header>';
+        echo self::auth_shortcode();
+        echo '</div></main>';
+        get_footer();
+        exit;
     }
 
     private static function asset_version(string $relative_path): string {
@@ -88,6 +130,10 @@ final class Frontend {
     }
 
     private static function add_custom_font_inline_style(string $handle): void {
+        if ('webtanan-saas-theme' === get_template()) {
+            return;
+        }
+
         $settings = DB::get_settings();
         $font_family = sanitize_text_field((string) ($settings['ui_font_family'] ?? ''));
         $font_url = esc_url_raw((string) ($settings['ui_font_url'] ?? ''));
@@ -108,7 +154,7 @@ final class Frontend {
         }
 
         $css = '@font-face{font-family:"' . esc_attr($font_family) . '";src:url("' . esc_url($font_url) . '") format("' . esc_attr($format) . '");font-display:swap;}';
-        $css .= '.webtanan-booking,.webtanan-booking *,.webtanan-dashboard-fullscreen-wrapper,.webtanan-dashboard-fullscreen-wrapper *{font-family:"' . esc_attr($font_family) . '",inherit;}';
+        $css .= '.webtanan-booking,.webtanan-booking *{font-family:"' . esc_attr($font_family) . '",inherit;}';
         wp_add_inline_style($handle, $css);
     }
 
@@ -170,32 +216,92 @@ final class Frontend {
         exit;
     }
 
-    public static function maybe_noindex_private_pages(): void {
-        if (get_query_var('webtanan_payment_result') || get_query_var('webtanan_resume_payment') || get_query_var('webtanan_waiting_list') || get_query_var('webtanan_survey')) {
-            echo "<meta name=\"robots\" content=\"noindex,nofollow\">\n";
-            return;
+    public static function filter_wp_robots(array $robots): array {
+        if (!self::should_noindex_request()) {
+            return $robots;
         }
 
-        if (!is_singular()) {
-            return;
+        $robots['noindex'] = true;
+        $robots['nofollow'] = true;
+        unset($robots['index'], $robots['follow']);
+
+        return $robots;
+    }
+
+    public static function filter_rank_math_robots(array $robots): array {
+        if (!self::should_noindex_request()) {
+            return $robots;
         }
 
-        $post = get_post();
-        if (!$post || empty($post->post_content)) {
-            return;
+        $robots['index'] = 'noindex';
+        $robots['follow'] = 'nofollow';
+
+        return $robots;
+    }
+
+    public static function filter_canonical_url($canonical) {
+        if (self::is_private_request()) {
+            return '';
         }
 
-        $private_shortcodes = array(
-            'webtanan_booking_auth',
-            'webtanan_booking_patient_panel',
-            'webtanan_booking_doctor_dashboard',
-        );
-
-        foreach ($private_shortcodes as $shortcode) {
-            if (has_shortcode($post->post_content, $shortcode)) {
-                echo "<meta name=\"robots\" content=\"noindex,nofollow\">\n";
-                return;
+        if (is_post_type_archive('saas_doctors')) {
+            $specialty_id = Post_Types::specialty_id_from_request();
+            if ($specialty_id > 0) {
+                return Post_Types::specialty_url($specialty_id);
             }
+
+            return get_post_type_archive_link('saas_doctors') ?: $canonical;
+        }
+
+        return $canonical;
+    }
+
+    public static function filter_seo_title(string $title): string {
+        if (!is_post_type_archive('saas_doctors')) {
+            return $title;
+        }
+
+        $specialty = Post_Types::specialty(Post_Types::specialty_id_from_request());
+        if ($specialty) {
+            return sprintf(__('پزشکان %s و رزرو نوبت آنلاین', 'webtanan-booking'), $specialty['name']);
+        }
+
+        return __('لیست پزشکان و رزرو نوبت آنلاین', 'webtanan-booking');
+    }
+
+    public static function filter_seo_description(string $description): string {
+        if (!is_post_type_archive('saas_doctors')) {
+            return $description;
+        }
+
+        $specialty = Post_Types::specialty(Post_Types::specialty_id_from_request());
+        if ($specialty) {
+            return sprintf(__('پزشکان تخصص %s را مقایسه کنید، نزدیک‌ترین ساعت آزاد را ببینید و نوبت خود را آنلاین رزرو کنید.', 'webtanan-booking'), $specialty['name']);
+        }
+
+        return __('پزشک مناسب را بر اساس نام و تخصص پیدا کنید، ساعت‌های آزاد را مقایسه کنید و نوبت بگیرید.', 'webtanan-booking');
+    }
+
+    public static function filter_document_title_parts(array $parts): array {
+        if (is_post_type_archive('saas_doctors')) {
+            $parts['title'] = self::filter_seo_title((string) ($parts['title'] ?? ''));
+        }
+
+        return $parts;
+    }
+
+    public static function render_fallback_archive_meta(): void {
+        if (defined('RANK_MATH_VERSION') || defined('WPSEO_VERSION') || !is_post_type_archive('saas_doctors')) {
+            return;
+        }
+
+        $canonical = self::filter_canonical_url(get_post_type_archive_link('saas_doctors'));
+        $description = self::filter_seo_description('');
+        if ($canonical) {
+            echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
+        }
+        if ($description) {
+            echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
         }
     }
 
@@ -233,9 +339,6 @@ final class Frontend {
         }
 
         $image_url = get_the_post_thumbnail_url($post_id, 'full');
-        $booking_fee = Booking::doctor_booking_fee($doctor);
-        $visit_price = (float) ($doctor['visit_price'] ?? 0);
-        $display_price = $booking_fee > 0 ? $booking_fee : $visit_price;
         $schema = array(
             '@context' => 'https://schema.org',
             '@type' => 'Physician',
@@ -246,7 +349,6 @@ final class Frontend {
             'image' => $image_url ?: '',
             'telephone' => !empty($doctor['clinic_phone']) ? wp_strip_all_tags((string) $doctor['clinic_phone']) : '',
             'medicalSpecialty' => !empty($doctor['specialty_name']) ? wp_strip_all_tags((string) $doctor['specialty_name']) : '',
-            'priceRange' => $display_price > 0 ? number_format_i18n($display_price) . ' ' . __('تومان', 'webtanan-booking') : '',
             'address' => !empty($doctor['clinic_address']) ? array(
                 '@type' => 'PostalAddress',
                 'streetAddress' => wp_strip_all_tags((string) $doctor['clinic_address']),
@@ -323,11 +425,17 @@ final class Frontend {
                     </div>
                 </div>
 
-                <div class="wb-factor-card">
-                    <header>
-                        <span><?php esc_html_e('فاکتور نوبت', 'webtanan-booking'); ?></span>
-                        <strong><?php echo esc_html((string) ($appointment['appointment_code'] ?? $transaction['transaction_code'] ?? '')); ?></strong>
+                <div class="wb-factor-card wb-receipt-paper">
+                    <div class="wb-receipt-watermark" aria-hidden="true">+</div>
+                    <header class="wb-receipt-paper-head">
+                        <div>
+                            <span><?php esc_html_e('فاکتور نوبت', 'webtanan-booking'); ?></span>
+                            <strong><?php echo esc_html('confirmed' === $status ? __('رسید نوبت شما', 'webtanan-booking') : __('وضعیت پرداخت نوبت', 'webtanan-booking')); ?></strong>
+                        </div>
                     </header>
+                    <?php if (!empty($appointment['appointment_code']) || !empty($transaction['transaction_code'])) : ?>
+                        <div class="wb-receipt-hero-code"><span><?php esc_html_e('کد پیگیری نوبت', 'webtanan-booking'); ?></span><strong><?php echo esc_html((string) ($appointment['appointment_code'] ?? $transaction['transaction_code'])); ?></strong></div>
+                    <?php endif; ?>
                     <dl class="wb-factor-list">
                         <?php if ($appointment) : ?>
                             <dt><?php esc_html_e('پزشک', 'webtanan-booking'); ?></dt>
@@ -335,8 +443,8 @@ final class Frontend {
                             <dt><?php esc_html_e('بیمار', 'webtanan-booking'); ?></dt>
                             <dd><?php echo esc_html(trim((string) $appointment['patient_first_name'] . ' ' . (string) $appointment['patient_last_name'])); ?></dd>
                             <dt><?php esc_html_e('تاریخ و ساعت', 'webtanan-booking'); ?></dt>
-                            <dd><?php echo esc_html((string) $appointment['appointment_date'] . ' - ' . substr((string) $appointment['start_time'], 0, 5)); ?></dd>
-                            <dt><?php esc_html_e('پیش‌پرداخت دریافت نوبت', 'webtanan-booking'); ?></dt>
+                            <dd><?php echo esc_html(self::localized_appointment_date((string) $appointment['appointment_date']) . ' - ' . substr((string) $appointment['start_time'], 0, 5)); ?></dd>
+                            <dt><?php esc_html_e('هزینه خدمات رزرو نوبت', 'webtanan-booking'); ?></dt>
                             <dd><?php echo esc_html(number_format_i18n((float) ($transaction['amount'] ?? 0))); ?> <?php esc_html_e('تومان', 'webtanan-booking'); ?></dd>
                             <dt><?php esc_html_e('وضعیت پرداخت', 'webtanan-booking'); ?></dt>
                             <dd><?php echo esc_html(self::payment_result_status_label($status)); ?></dd>
@@ -357,6 +465,10 @@ final class Frontend {
                             <dd><?php echo esc_html(self::payment_result_status_label($status)); ?></dd>
                         <?php endif; ?>
                     </dl>
+                    <table class="wb-receipt-accounting">
+                        <tbody><tr><th><?php esc_html_e('هزینه خدمات رزرو نوبت', 'webtanan-booking'); ?></th><td><?php echo esc_html(number_format_i18n((float) ($transaction['amount'] ?? 0))); ?> <?php esc_html_e('تومان', 'webtanan-booking'); ?></td></tr></tbody>
+                    </table>
+                    <p class="webtanan-checkout-note"><?php esc_html_e('این فاکتور برای پیگیری پرداخت و نوبت شما صادر شده است.', 'webtanan-booking'); ?></p>
                 </div>
 
                 <?php if ('wallet_refunded' === $status && !empty($data['suggested_slots'])) : ?>
@@ -371,7 +483,16 @@ final class Frontend {
                 <?php endif; ?>
 
                 <?php if ($appointment && in_array($status, array('failed', 'pending'), true)) : ?>
-                    <?php echo self::resume_payment_shortcode(array('appointment_code' => (string) $appointment['appointment_code'], 'mobile' => (string) $appointment['patient_mobile'])); ?>
+                    <?php
+                    $is_owner = is_user_logged_in() && (int) ($appointment['patient_user_id'] ?? 0) === get_current_user_id();
+                    echo self::resume_payment_shortcode(
+                        array(
+                            'appointment_id' => $is_owner ? (int) $appointment['id'] : 0,
+                            'appointment_code' => (string) $appointment['appointment_code'],
+                            'mobile' => (string) $appointment['patient_mobile'],
+                        )
+                    );
+                    ?>
                 <?php endif; ?>
 
                 <div class="wb-result-actions">
@@ -400,10 +521,30 @@ final class Frontend {
         return $labels[$status] ?? __('در حال بررسی', 'webtanan-booking');
     }
 
+    private static function localized_appointment_date(string $date): string {
+        $timestamp = strtotime($date . ' 12:00:00');
+        if (!$timestamp || !class_exists('IntlDateFormatter')) {
+            return $date;
+        }
+
+        $formatter = new \IntlDateFormatter(
+            'fa_IR@calendar=persian',
+            \IntlDateFormatter::NONE,
+            \IntlDateFormatter::NONE,
+            wp_timezone_string(),
+            \IntlDateFormatter::TRADITIONAL,
+            'yyyy/MM/dd'
+        );
+        $formatted = $formatter->format($timestamp);
+
+        return is_string($formatted) && '' !== $formatted ? $formatted : $date;
+    }
+
     public static function resume_payment_shortcode($atts = array()): string {
         self::enqueue();
         $atts = shortcode_atts(
             array(
+                'appointment_id' => 0,
                 'appointment_code' => '',
                 'mobile' => '',
             ),
@@ -447,13 +588,14 @@ final class Frontend {
     private static function resume_payment_markup(array $atts): string {
         ob_start();
         ?>
-        <section class="webtanan-booking webtanan-resume-payment" data-webtanan-widget="resume-payment" dir="rtl">
+        <?php $appointment_id = absint($atts['appointment_id'] ?? 0); ?>
+        <section class="webtanan-booking webtanan-resume-payment" data-webtanan-widget="resume-payment" data-appointment-id="<?php echo esc_attr((string) $appointment_id); ?>" dir="rtl">
             <header>
                 <span><?php esc_html_e('ادامه پرداخت', 'webtanan-booking'); ?></span>
                 <h2><?php esc_html_e('پرداخت نوبت را کامل کن', 'webtanan-booking'); ?></h2>
-                <p><?php esc_html_e('کد نوبت و موبایل را وارد کن؛ کد تایید می‌فرستیم و اگر ساعت هنوز قابل رزرو باشد، پرداخت ادامه پیدا می‌کند.', 'webtanan-booking'); ?></p>
+                <p><?php echo esc_html($appointment_id ? __('روش پرداخت را انتخاب کن و نوبتت را قطعی کن.', 'webtanan-booking') : __('کد نوبت و موبایل را وارد کن؛ بعد از تایید شماره، پرداخت ادامه پیدا می‌کند.', 'webtanan-booking')); ?></p>
             </header>
-            <form class="wb-resume-form">
+            <form class="wb-resume-form" <?php echo $appointment_id ? 'hidden' : ''; ?>>
                 <label>
                     <span><?php esc_html_e('کد نوبت', 'webtanan-booking'); ?></span>
                     <input type="text" name="appointment_code" value="<?php echo esc_attr((string) $atts['appointment_code']); ?>" required>
@@ -510,7 +652,14 @@ final class Frontend {
         $code = sanitize_text_field((string) ($atts['code'] ?: ($_GET['appointment_code'] ?? ($_GET['code'] ?? ''))));
         $token = sanitize_text_field((string) ($atts['token'] ?: ($_GET['token'] ?? '')));
 
-        return '<section class="webtanan-booking wb-public-flow wb-survey-widget" data-webtanan-widget="survey" data-code="' . esc_attr($code) . '" data-token="' . esc_attr($token) . '" dir="rtl"></section>';
+        return '<section class="webtanan-booking wb-public-flow wb-survey-widget" data-webtanan-widget="survey" data-code="' . esc_attr($code) . '" data-token="' . esc_attr($token) . '" dir="rtl" aria-live="polite" aria-busy="true">'
+            . '<div class="wb-public-card wb-public-loading">'
+            . '<span class="wb-kicker">نظرسنجی نوبت</span>'
+            . '<h1>ثبت تجربه مراجعه</h1>'
+            . '<p>در حال آماده‌سازی فرم نظرسنجی...</p>'
+            . '<span class="wb-public-spinner" aria-hidden="true"></span>'
+            . '</div>'
+            . '</section>';
     }
 
     public static function homepage_shortcode($atts = array()): string {
@@ -527,18 +676,24 @@ final class Frontend {
 
     public static function auth_shortcode(): string {
         self::enqueue();
+        $context = Patient_Profile::context();
 
         ob_start();
         ?>
-        <div class="webtanan-booking webtanan-auth-box" data-webtanan-widget="auth" dir="rtl">
+        <div class="webtanan-booking webtanan-auth-box" data-webtanan-widget="auth" data-redirect-url="<?php echo esc_attr((string) ($context['redirect_url'] ?? '')); ?>" dir="rtl">
             <div class="webtanan-auth-head">
-                <span><?php esc_html_e('ورود امن', 'webtanan-booking'); ?></span>
-                <strong><?php esc_html_e('ورود به سامانه نوبت‌دهی', 'webtanan-booking'); ?></strong>
+                <span><?php esc_html_e('ورود امن با پیامک', 'webtanan-booking'); ?></span>
+                <strong><?php esc_html_e('خوش آمدید', 'webtanan-booking'); ?></strong>
             </div>
             <form class="webtanan-auth-mobile">
+                <fieldset class="wb-account-type" aria-label="<?php esc_attr_e('نوع حساب', 'webtanan-booking'); ?>">
+                    <legend><?php esc_html_e('نوع حساب', 'webtanan-booking'); ?></legend>
+                    <label><input type="radio" name="account_type" value="patient" checked><span><i class="fas fa-user" aria-hidden="true"></i><?php esc_html_e('بیمار هستم', 'webtanan-booking'); ?></span></label>
+                    <label><input type="radio" name="account_type" value="doctor"><span><i class="fas fa-user-md" aria-hidden="true"></i><?php esc_html_e('پزشک هستم', 'webtanan-booking'); ?></span></label>
+                </fieldset>
                 <label>
                     <span><?php esc_html_e('شماره موبایل', 'webtanan-booking'); ?></span>
-                    <input type="tel" name="mobile" placeholder="09123456789" required>
+                    <input type="tel" name="mobile" inputmode="tel" autocomplete="tel" placeholder="09123456789" required>
                 </label>
                 <button type="submit" class="webtanan-button webtanan-button-primary"><?php esc_html_e('ارسال کد ورود', 'webtanan-booking'); ?></button>
             </form>
@@ -548,7 +703,40 @@ final class Frontend {
                     <input type="text" name="otp" inputmode="numeric" autocomplete="one-time-code" required>
                 </label>
                 <button type="submit" class="webtanan-button webtanan-button-primary"><?php esc_html_e('ورود', 'webtanan-booking'); ?></button>
+                <button type="button" class="webtanan-button webtanan-auth-resend"><?php esc_html_e('ارسال دوباره کد', 'webtanan-booking'); ?></button>
                 <button type="button" class="webtanan-button webtanan-auth-back"><?php esc_html_e('تغییر شماره', 'webtanan-booking'); ?></button>
+            </form>
+            <form class="webtanan-auth-profile" hidden>
+                <div class="webtanan-auth-profile-head">
+                    <strong><?php esc_html_e('تکمیل اطلاعات حساب', 'webtanan-booking'); ?></strong>
+                    <p><?php esc_html_e('این اطلاعات برای ثبت دقیق نوبت و صدور رسید استفاده می‌شود.', 'webtanan-booking'); ?></p>
+                </div>
+                <div class="wb-booking-field-grid">
+                    <label class="wb-booking-field">
+                        <span><?php esc_html_e('نام', 'webtanan-booking'); ?></span>
+                        <input type="text" name="first_name" autocomplete="given-name" required>
+                    </label>
+                    <label class="wb-booking-field">
+                        <span><?php esc_html_e('نام خانوادگی', 'webtanan-booking'); ?></span>
+                        <input type="text" name="last_name" autocomplete="family-name" required>
+                    </label>
+                    <label class="wb-booking-field wb-booking-field-wide">
+                        <span><?php esc_html_e('کد ملی', 'webtanan-booking'); ?></span>
+                        <input type="text" name="national_code" inputmode="numeric" maxlength="10" autocomplete="off" required>
+                    </label>
+                    <div class="wb-doctor-application-fields wb-booking-field-wide" hidden>
+                        <label class="wb-booking-field">
+                            <span><?php esc_html_e('شماره نظام پزشکی', 'webtanan-booking'); ?></span>
+                            <input type="text" name="medical_system_number" autocomplete="off">
+                        </label>
+                        <label class="wb-booking-field">
+                            <span><?php esc_html_e('تخصص', 'webtanan-booking'); ?></span>
+                            <input type="text" name="specialty" autocomplete="organization-title">
+                        </label>
+                        <p><?php esc_html_e('حساب پزشک پس از بررسی و تایید مدیریت فعال می‌شود.', 'webtanan-booking'); ?></p>
+                    </div>
+                </div>
+                <button type="submit" class="webtanan-button webtanan-button-primary"><?php esc_html_e('ذخیره و ورود به پنل', 'webtanan-booking'); ?></button>
             </form>
             <div class="webtanan-auth-message" aria-live="polite"></div>
         </div>
@@ -573,6 +761,7 @@ final class Frontend {
                 'sort' => 'first_available',
                 'layout' => 'grid',
                 'show_filters' => 'yes',
+                'show_location' => 'yes',
                 'show_sort' => 'yes',
                 'available_only' => '0',
             ),
@@ -580,10 +769,11 @@ final class Frontend {
             'webtanan_booking_doctor_search'
         );
         $show_filters = 'no' !== strtolower((string) $atts['show_filters']);
+        $show_location = 'no' !== strtolower((string) $atts['show_location']);
         $show_sort = 'no' !== strtolower((string) $atts['show_sort']);
         $specialties = $show_filters ? $wpdb->get_results('SELECT id, name FROM ' . DB::table('specialties') . ' WHERE is_active = 1 ORDER BY sort_order ASC, name ASC LIMIT 300', ARRAY_A) : array();
-        $provinces = $show_filters ? $wpdb->get_results('SELECT DISTINCT province_id AS id FROM ' . DB::table('doctors') . ' WHERE province_id > 0 AND is_active = 1 AND is_verified = 1 ORDER BY province_id ASC LIMIT 300', ARRAY_A) : array();
-        $cities = $show_filters ? $wpdb->get_results('SELECT DISTINCT city_id AS id FROM ' . DB::table('doctors') . ' WHERE city_id > 0 AND is_active = 1 AND is_verified = 1 ORDER BY city_id ASC LIMIT 300', ARRAY_A) : array();
+        $provinces = $show_filters && $show_location ? $wpdb->get_results('SELECT DISTINCT province_id AS id FROM ' . DB::table('doctors') . ' WHERE province_id > 0 AND is_active = 1 AND is_verified = 1 ORDER BY province_id ASC LIMIT 300', ARRAY_A) : array();
+        $cities = $show_filters && $show_location ? $wpdb->get_results('SELECT DISTINCT city_id AS id FROM ' . DB::table('doctors') . ' WHERE city_id > 0 AND is_active = 1 AND is_verified = 1 ORDER BY city_id ASC LIMIT 300', ARRAY_A) : array();
         $payment_filter = sanitize_key((string) $atts['payment_filter']);
         $sort = sanitize_key((string) $atts['sort']);
         $layout = 'list' === sanitize_key((string) $atts['layout']) ? 'list' : 'grid';
@@ -593,7 +783,7 @@ final class Frontend {
         ob_start();
         ?>
         <div class="webtanan-booking webtanan-sample-ui webtanan-doctor-search wb-doctor-discovery" data-webtanan-widget="doctor-search" data-per-page="<?php echo esc_attr((string) absint($atts['per_page'])); ?>" data-specialty-id="<?php echo esc_attr((string) absint($atts['specialty_id'])); ?>" data-city-id="<?php echo esc_attr((string) absint($atts['city_id'])); ?>" data-province-id="<?php echo esc_attr((string) absint($atts['province_id'])); ?>" data-payment-filter="<?php echo esc_attr($payment_filter); ?>" data-sort="<?php echo esc_attr($sort ?: 'first_available'); ?>" data-layout="<?php echo esc_attr($layout); ?>" data-available-only="<?php echo esc_attr($available_only); ?>" dir="rtl">
-            <form class="search-section webtanan-doctor-search-form wb-discovery-form" action="#" method="get">
+            <form class="search-section webtanan-doctor-search-form wb-discovery-form" action="<?php echo esc_url(get_post_type_archive_link('saas_doctors') ?: home_url('/')); ?>" method="get">
                 <span class="screen-reader-text"><?php esc_html_e('جستجوی پزشک', 'webtanan-booking'); ?></span>
                 <div class="search-row wb-discovery-searchbar">
                     <input type="search" class="search-input webtanan-doctor-search-input" name="search" value="<?php echo esc_attr($default_search); ?>" placeholder="<?php echo esc_attr((string) $atts['search_placeholder']); ?>">
@@ -610,57 +800,26 @@ final class Frontend {
                             <?php endforeach; ?>
                         </select>
                     </label>
-                    <label class="filter-group wb-search-field">
-                        <span><?php esc_html_e('استان', 'webtanan-booking'); ?></span>
-                        <select class="webtanan-doctor-province-filter" name="province_id" aria-label="<?php esc_attr_e('استان', 'webtanan-booking'); ?>">
-                            <option value="0"><?php esc_html_e('همه استان‌ها', 'webtanan-booking'); ?></option>
-                            <?php foreach ($provinces as $province) : ?>
-                                <option value="<?php echo esc_attr((string) $province['id']); ?>" <?php selected(absint($atts['province_id']), (int) $province['id']); ?>><?php echo esc_html(sprintf(__('استان #%d', 'webtanan-booking'), (int) $province['id'])); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="filter-group wb-search-field">
-                        <span><?php esc_html_e('شهر', 'webtanan-booking'); ?></span>
-                        <select class="webtanan-doctor-city-filter" name="city_id" aria-label="<?php esc_attr_e('شهر', 'webtanan-booking'); ?>">
-                            <option value="0"><?php esc_html_e('همه شهرها', 'webtanan-booking'); ?></option>
-                            <?php foreach ($cities as $city) : ?>
-                                <option value="<?php echo esc_attr((string) $city['id']); ?>" <?php selected(absint($atts['city_id']), (int) $city['id']); ?>><?php echo esc_html(sprintf(__('شهر #%d', 'webtanan-booking'), (int) $city['id'])); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="filter-group wb-search-field">
-                        <span><?php esc_html_e('پرداخت', 'webtanan-booking'); ?></span>
-                        <select class="webtanan-doctor-payment-filter" name="payment_filter" aria-label="<?php esc_attr_e('روش پرداخت', 'webtanan-booking'); ?>">
-                            <option value="" <?php selected($payment_filter, ''); ?>><?php esc_html_e('همه روش‌های پرداخت', 'webtanan-booking'); ?></option>
-                            <option value="online" <?php selected($payment_filter, 'online'); ?>><?php esc_html_e('پرداخت آنلاین', 'webtanan-booking'); ?></option>
-                            <option value="clinic" <?php selected($payment_filter, 'clinic'); ?>><?php esc_html_e('پرداخت در مطب', 'webtanan-booking'); ?></option>
-                        </select>
-                    </label>
-                    <label class="filter-group wb-search-field">
-                        <span><?php esc_html_e('بیمه', 'webtanan-booking'); ?></span>
-                        <select class="webtanan-doctor-insurance-filter" name="insurance" aria-label="<?php esc_attr_e('بیمه', 'webtanan-booking'); ?>">
-                            <option value=""><?php esc_html_e('همه بیمه‌ها', 'webtanan-booking'); ?></option>
-                            <option value="basic"><?php esc_html_e('بیمه پایه', 'webtanan-booking'); ?></option>
-                            <option value="supplementary"><?php esc_html_e('بیمه تکمیلی', 'webtanan-booking'); ?></option>
-                        </select>
-                    </label>
-                    <label class="filter-group wb-search-field">
-                        <span><?php esc_html_e('جنسیت پزشک', 'webtanan-booking'); ?></span>
-                        <select class="webtanan-doctor-gender-filter" name="gender" aria-label="<?php esc_attr_e('جنسیت پزشک', 'webtanan-booking'); ?>">
-                            <option value=""><?php esc_html_e('فرقی ندارد', 'webtanan-booking'); ?></option>
-                            <option value="female"><?php esc_html_e('خانم', 'webtanan-booking'); ?></option>
-                            <option value="male"><?php esc_html_e('آقا', 'webtanan-booking'); ?></option>
-                        </select>
-                    </label>
-                    <label class="filter-group wb-search-field">
-                        <span><?php esc_html_e('حداکثر تعرفه ویزیت', 'webtanan-booking'); ?></span>
-                        <select class="webtanan-doctor-price-filter" name="price_max" aria-label="<?php esc_attr_e('محدوده قیمت', 'webtanan-booking'); ?>">
-                            <option value=""><?php esc_html_e('همه قیمت‌ها', 'webtanan-booking'); ?></option>
-                            <option value="300000"><?php esc_html_e('تا ۳۰۰ هزار تومان', 'webtanan-booking'); ?></option>
-                            <option value="500000"><?php esc_html_e('تا ۵۰۰ هزار تومان', 'webtanan-booking'); ?></option>
-                            <option value="800000"><?php esc_html_e('تا ۸۰۰ هزار تومان', 'webtanan-booking'); ?></option>
-                        </select>
-                    </label>
+                    <?php if ($show_location) : ?>
+                        <label class="filter-group wb-search-field">
+                            <span><?php esc_html_e('استان', 'webtanan-booking'); ?></span>
+                            <select class="webtanan-doctor-province-filter" name="province_id" aria-label="<?php esc_attr_e('استان', 'webtanan-booking'); ?>">
+                                <option value="0"><?php esc_html_e('همه استان‌ها', 'webtanan-booking'); ?></option>
+                                <?php foreach ($provinces as $province) : ?>
+                                    <option value="<?php echo esc_attr((string) $province['id']); ?>" <?php selected(absint($atts['province_id']), (int) $province['id']); ?>><?php echo esc_html(sprintf(__('استان #%d', 'webtanan-booking'), (int) $province['id'])); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="filter-group wb-search-field">
+                            <span><?php esc_html_e('شهر', 'webtanan-booking'); ?></span>
+                            <select class="webtanan-doctor-city-filter" name="city_id" aria-label="<?php esc_attr_e('شهر', 'webtanan-booking'); ?>">
+                                <option value="0"><?php esc_html_e('همه شهرها', 'webtanan-booking'); ?></option>
+                                <?php foreach ($cities as $city) : ?>
+                                    <option value="<?php echo esc_attr((string) $city['id']); ?>" <?php selected(absint($atts['city_id']), (int) $city['id']); ?>><?php echo esc_html(sprintf(__('شهر #%d', 'webtanan-booking'), (int) $city['id'])); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    <?php endif; ?>
                     <?php if ($show_sort) : ?>
                         <label class="filter-group wb-search-field">
                             <span><?php esc_html_e('مرتب‌سازی', 'webtanan-booking'); ?></span>
@@ -722,8 +881,6 @@ final class Frontend {
         $title = $doctor['post_title'] ?: $doctor['clinic_name'];
         $image_url = $post_id ? get_the_post_thumbnail_url($post_id, 'medium') : '';
         $permalink = $post_id ? get_permalink($post_id) : '#';
-        $booking_fee = Booking::doctor_booking_fee($doctor);
-        $visit_price = (float) ($doctor['visit_price'] ?? 0);
         $excerpt = $post_id ? get_the_excerpt($post_id) : '';
         if (!$excerpt && $post_id) {
             $excerpt = wp_trim_words(wp_strip_all_tags((string) get_post_field('post_content', $post_id)), 24);
@@ -731,50 +888,44 @@ final class Frontend {
         $clinic_name = (string) ($doctor['clinic_name'] ?? '');
         $address = !empty($doctor['clinic_address']) ? wp_trim_words((string) $doctor['clinic_address'], 14) : '';
         $medical_code = (string) ($doctor['medical_system_number'] ?? '');
+        $rating_summary = self::doctor_rating_summary($post_id);
+        $doctor_archive_url = get_post_type_archive_link('saas_doctors') ?: add_query_arg('post_type', 'saas_doctors', home_url('/'));
         $specialty_url = !empty($doctor['specialty_id'])
-            ? add_query_arg(array('post_type' => 'saas_doctors', 'specialty_id' => (int) $doctor['specialty_id']), home_url('/'))
-            : (get_post_type_archive_link('saas_doctors') ?: home_url('/'));
+            ? Post_Types::specialty_url((int) $doctor['specialty_id'])
+            : $doctor_archive_url;
 
         ob_start();
         ?>
-        <article class="webtanan-booking webtanan-sample-ui doctor-card webtanan-public-doctor-card webtanan-doctor-card-shortcode wb-doctor-card wb-doctor-card-unified" dir="rtl">
-            <a class="avatar webtanan-public-doctor-photo wb-doctor-card-photo" href="<?php echo esc_url($permalink); ?>" aria-label="<?php echo esc_attr($title); ?>">
-                <?php if ($image_url) : ?>
-                    <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy">
-                <?php else : ?>
-                    <span class="wb-doctor-card-initial"><?php echo esc_html(function_exists('mb_substr') ? mb_substr($title, 0, 1) : substr($title, 0, 1)); ?></span>
-                <?php endif; ?>
-            </a>
-            <div class="info webtanan-public-doctor-body wb-doctor-card-body">
-                <div class="webtanan-doctor-badges wb-doctor-card-badges">
-                    <span class="wb-rating-chip"><i class="fas fa-star" aria-hidden="true"></i><?php echo esc_html('4.8'); ?> <small><?php esc_html_e('(۱۲ نظر)', 'webtanan-booking'); ?></small></span>
-                    <span class="wb-status-chip <?php echo !empty($doctor['allow_online_payment']) ? 'is-online' : 'is-offline'; ?>"><i class="fas fa-circle" aria-hidden="true"></i><?php echo !empty($doctor['allow_online_payment']) ? esc_html__('آنلاین', 'webtanan-booking') : esc_html__('حضوری', 'webtanan-booking'); ?></span>
-                    <?php if (!empty($doctor['is_verified'])) : ?><span class="wb-badge wb-badge-success"><?php esc_html_e('پزشک تایید شده', 'webtanan-booking'); ?></span><?php endif; ?>
-                    <?php if (!empty($doctor['allow_online_payment'])) : ?><span class="wb-badge wb-badge-info"><?php esc_html_e('پرداخت آنلاین', 'webtanan-booking'); ?></span><?php endif; ?>
-                    <?php if (!empty($doctor['allow_pay_at_clinic'])) : ?><span class="wb-badge wb-badge-warning"><?php esc_html_e('پرداخت در مطب', 'webtanan-booking'); ?></span><?php endif; ?>
-                </div>
-                <div class="wb-doctor-card-identity">
-                    <h2 class="name wb-doctor-card-title"><a href="<?php echo esc_url($permalink); ?>"><?php echo esc_html($title); ?></a></h2>
-                    <?php if (!empty($doctor['specialty_name'])) : ?><a class="specialty webtanan-meta wb-doctor-card-meta wb-specialty-link" href="<?php echo esc_url($specialty_url); ?>"><?php echo esc_html($doctor['specialty_name']); ?></a><?php endif; ?>
-                </div>
-                <?php if ($medical_code || $clinic_name) : ?>
-                    <div class="wb-doctor-card-trust">
-                        <?php if ($medical_code) : ?><span><b><?php esc_html_e('کد نظام پزشکی', 'webtanan-booking'); ?></b><?php echo esc_html($medical_code); ?></span><?php endif; ?>
-                        <?php if ($clinic_name) : ?><span><b><?php esc_html_e('مطب', 'webtanan-booking'); ?></b><?php echo esc_html($clinic_name); ?></span><?php endif; ?>
-                    </div>
-                <?php endif; ?>
-                <?php if ($address) : ?><div class="wb-doctor-card-location"><span><?php esc_html_e('آدرس مطب', 'webtanan-booking'); ?></span><strong><?php echo esc_html($address); ?></strong></div><?php endif; ?>
-                <?php if ($excerpt) : ?><p class="wb-doctor-card-excerpt"><?php echo esc_html($excerpt); ?></p><?php endif; ?>
-                <div class="webtanan-public-fees wb-doctor-fees">
-                    <div class="wb-doctor-fee"><span><?php esc_html_e('پیش‌پرداخت دریافت نوبت', 'webtanan-booking'); ?></span><strong><?php echo esc_html(number_format_i18n($booking_fee)); ?> <?php esc_html_e('تومان', 'webtanan-booking'); ?></strong></div>
-                    <?php if ($visit_price > 0) : ?><div class="wb-doctor-fee"><span><?php esc_html_e('تعرفه ویزیت', 'webtanan-booking'); ?></span><strong><?php echo esc_html(number_format_i18n($visit_price)); ?> <?php esc_html_e('تومان', 'webtanan-booking'); ?></strong></div><?php endif; ?>
-                </div>
-                <div class="webtanan-next-available wb-next-available-wrap" data-webtanan-widget="next-available" data-doctor-id="<?php echo esc_attr((string) $doctor_id); ?>"></div>
-                <div class="actions webtanan-public-actions wb-doctor-card-actions">
-                    <a class="btn btn-success btn-sm webtanan-button webtanan-button-primary wb-btn wb-btn-primary" href="<?php echo esc_url($permalink . '#booking'); ?>"><?php esc_html_e('گرفتن نوبت', 'webtanan-booking'); ?></a>
-                    <a class="doctor-profile-link wb-btn wb-btn-ghost" href="<?php echo esc_url($permalink); ?>"><?php esc_html_e('مشاهده پروفایل', 'webtanan-booking'); ?></a>
+        <article class="webtanan-booking webtanan-sample-ui doctor-card" dir="rtl">
+            <div class="doc-header">
+                <a class="doc-avatar" href="<?php echo esc_url($permalink); ?>" aria-label="<?php echo esc_attr($title); ?>">
+                    <?php if ($image_url) : ?>
+                        <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy">
+                    <?php else : ?>
+                        <i class="fas fa-user-md" aria-hidden="true"></i>
+                    <?php endif; ?>
+                </a>
+                <div class="doc-info">
+                    <h3>
+                        <a href="<?php echo esc_url($permalink); ?>"><?php echo esc_html($title); ?></a>
+                        <?php if (!empty($doctor['is_verified'])) : ?>
+                            <span class="wb-verified-mark" title="<?php esc_attr_e('پزشک تاییدشده', 'webtanan-booking'); ?>" aria-label="<?php esc_attr_e('پزشک تاییدشده', 'webtanan-booking'); ?>"><i class="fas fa-check" aria-hidden="true"></i></span>
+                        <?php endif; ?>
+                    </h3>
+                    <?php if (!empty($doctor['specialty_name'])) : ?>
+                        <a class="specialty wb-specialty-link" href="<?php echo esc_url($specialty_url); ?>"><?php echo esc_html($doctor['specialty_name']); ?></a>
+                    <?php endif; ?>
+                    <div class="rating"><i class="fas fa-star" aria-hidden="true"></i><span><?php echo $rating_summary['count'] > 0 ? esc_html(sprintf(__('%1$s (%2$s نظر)', 'webtanan-booking'), number_format_i18n($rating_summary['rating'], 1), number_format_i18n($rating_summary['count']))) : esc_html__('بدون نظر', 'webtanan-booking'); ?></span></div>
                 </div>
             </div>
+            <div class="doc-meta">
+                <?php if ($address) : ?><p><i class="fas fa-map-marker-alt" aria-hidden="true"></i><?php echo esc_html($address); ?></p><?php endif; ?>
+                <?php if ($clinic_name) : ?><p><i class="fas fa-hospital" aria-hidden="true"></i><?php echo esc_html($clinic_name); ?></p><?php endif; ?>
+                <?php if ($medical_code) : ?><p><i class="fas fa-id-badge" aria-hidden="true"></i><?php echo esc_html(sprintf(__('کد نظام پزشکی: %s', 'webtanan-booking'), $medical_code)); ?></p><?php endif; ?>
+                <div class="wb-next-available-line"><i class="far fa-clock" aria-hidden="true"></i><div class="webtanan-next-available" data-webtanan-widget="next-available" data-doctor-id="<?php echo esc_attr((string) $doctor_id); ?>"></div></div>
+            </div>
+            <a class="btn btn-primary" href="<?php echo esc_url($permalink . '#booking'); ?>"><?php esc_html_e('رزرو نوبت', 'webtanan-booking'); ?></a>
+            <a class="doctor-profile-link" href="<?php echo esc_url($permalink); ?>"><?php esc_html_e('مشاهده پروفایل', 'webtanan-booking'); ?></a>
         </article>
         <?php
 
@@ -785,28 +936,34 @@ final class Frontend {
         global $wpdb;
 
         self::enqueue();
-        $atts = shortcode_atts(array('show_count' => 'yes'), $atts, 'webtanan_booking_specialty_list');
+        $homepage = (array) (DB::get_settings()['homepage'] ?? array());
+        $atts = shortcode_atts(array('show_count' => 'yes', 'show_icon' => 'yes', 'layout' => ($homepage['specialty_layout'] ?? 'top'), 'columns' => ($homepage['specialty_columns'] ?? 4), 'limit' => ($homepage['specialty_limit'] ?? 8)), $atts, 'webtanan_booking_specialty_list');
         $show_count = 'no' !== strtolower((string) $atts['show_count']);
+        $show_icon = 'no' !== strtolower((string) $atts['show_icon']);
+        $layout = in_array((string) $atts['layout'], array('top', 'right', 'left'), true) ? (string) $atts['layout'] : 'top';
+        $columns = min(6, max(2, absint($atts['columns'])));
+        $limit = min(50, max(1, absint($atts['limit'])));
         $archive_url = get_post_type_archive_link('saas_doctors') ?: home_url('/');
         $specialties = $wpdb->get_results(
-            'SELECT s.*, COUNT(d.id) AS doctor_count
+            $wpdb->prepare('SELECT s.*, COUNT(d.id) AS doctor_count
             FROM ' . DB::table('specialties') . ' s
             LEFT JOIN ' . DB::table('doctors') . ' d ON d.specialty_id = s.id AND d.is_active = 1 AND d.is_verified = 1
             WHERE s.is_active = 1
             GROUP BY s.id
             ORDER BY s.sort_order ASC, s.name ASC
-            LIMIT 300',
+            LIMIT %d', $limit),
             ARRAY_A
         );
 
         ob_start();
         ?>
-        <div class="webtanan-booking webtanan-specialty-list" dir="rtl">
+        <div class="webtanan-booking webtanan-specialty-list wb-specialty-layout-<?php echo esc_attr($layout); ?> wb-specialty-columns-<?php echo esc_attr((string) $columns); ?>" dir="rtl">
             <?php if (!$specialties) : ?>
                 <div class="webtanan-panel"><?php esc_html_e('تخصص فعالی ثبت نشده است.', 'webtanan-booking'); ?></div>
             <?php endif; ?>
             <?php foreach ($specialties as $specialty) : ?>
-                <a class="webtanan-specialty-chip" href="<?php echo esc_url(add_query_arg('specialty_id', (int) $specialty['id'], $archive_url)); ?>">
+                <a class="webtanan-specialty-chip" href="<?php echo esc_url(Post_Types::specialty_url((int) $specialty['id'])); ?>">
+                    <?php if ($show_icon && !empty($specialty['icon_attachment_id'])) : ?><?php echo wp_get_attachment_image((int) $specialty['icon_attachment_id'], 'thumbnail', false, array('class' => 'webtanan-specialty-icon')); ?><?php endif; ?>
                     <span><?php echo esc_html($specialty['name']); ?></span>
                     <?php if ($show_count) : ?><small><?php echo esc_html(number_format_i18n((int) $specialty['doctor_count'])); ?></small><?php endif; ?>
                 </a>
@@ -912,18 +1069,9 @@ final class Frontend {
         ob_start();
         ?>
         <div class="webtanan-booking webtanan-sample-ui webtanan-app-shell webtanan-patient-panel sample-dashboard-shell" data-webtanan-widget="patient-panel" dir="rtl">
-                <header class="sample-dashboard-header">
-                    <div class="container">
-                        <a href="<?php echo esc_url(home_url('/')); ?>" class="logo"><i class="fas fa-stethoscope" aria-hidden="true"></i> وب<span>‌تنان</span></a>
-                        <div class="header-left">
-                            <div class="notif"><i class="fas fa-bell" aria-hidden="true"></i><span class="count">2</span></div>
-                            <div class="user-badge"><div class="avatar-sm"><?php echo esc_html(function_exists('mb_substr') ? mb_substr(wp_get_current_user()->display_name ?: 'ب', 0, 1) : substr(wp_get_current_user()->display_name ?: 'ب', 0, 1)); ?></div><span class="name"><?php echo esc_html(wp_get_current_user()->display_name ?: __('بیمار', 'webtanan-booking')); ?></span><i class="fas fa-chevron-down" aria-hidden="true"></i></div>
-                            <button class="hamburger wb-sample-sidebar-toggle" type="button" aria-label="<?php esc_attr_e('منو', 'webtanan-booking'); ?>"><span></span><span></span><span></span></button>
-                        </div>
-                    </div>
-                </header>
                 <?php echo Sidebar_Menu::render('patient', 'patient-overview', array('id' => 'patient-sidebar')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 <main class="main-content wb-main">
+                    <button class="wb-dashboard-mobile-menu wb-sample-sidebar-toggle" type="button" aria-label="<?php esc_attr_e('باز کردن منو', 'webtanan-booking'); ?>"><i class="fas fa-bars" aria-hidden="true"></i><?php esc_html_e('منوی پنل', 'webtanan-booking'); ?></button>
                     <section class="wb-content" aria-live="polite"></section>
                     <div class="footer-bar">&copy; <?php echo esc_html(wp_date('Y')); ?> <strong><?php esc_html_e('وب‌تنان', 'webtanan-booking'); ?></strong> · <?php esc_html_e('خوشحالیم همراه شما هستیم', 'webtanan-booking'); ?></div>
                 </main>
@@ -939,18 +1087,9 @@ final class Frontend {
         ob_start();
         ?>
         <div class="webtanan-booking webtanan-sample-ui webtanan-app-shell webtanan-doctor-dashboard sample-dashboard-shell" data-webtanan-widget="doctor-dashboard" dir="rtl">
-                <header class="sample-dashboard-header">
-                    <div class="container">
-                        <a href="<?php echo esc_url(home_url('/')); ?>" class="logo"><i class="fas fa-stethoscope" aria-hidden="true"></i> وب<span>‌تنان</span></a>
-                        <div class="header-left">
-                            <div class="notif"><i class="fas fa-bell" aria-hidden="true"></i><span class="count">3</span></div>
-                            <div class="doctor-badge"><div class="avatar-sm">د</div><span class="name"><?php echo esc_html(wp_get_current_user()->display_name ?: __('پزشک', 'webtanan-booking')); ?></span><i class="fas fa-chevron-down" aria-hidden="true"></i></div>
-                            <button class="hamburger wb-sample-sidebar-toggle" type="button" aria-label="<?php esc_attr_e('منو', 'webtanan-booking'); ?>"><span></span><span></span><span></span></button>
-                        </div>
-                    </div>
-                </header>
                 <?php echo Sidebar_Menu::render(Sidebar_Menu::context_for_current_user(), 'today', array('id' => 'doctor-sidebar')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 <main class="main-content wb-main">
+                    <button class="wb-dashboard-mobile-menu wb-sample-sidebar-toggle" type="button" aria-label="<?php esc_attr_e('باز کردن منو', 'webtanan-booking'); ?>"><i class="fas fa-bars" aria-hidden="true"></i><?php esc_html_e('منوی پنل', 'webtanan-booking'); ?></button>
                     <div class="sample-doctor-toolbar">
                         <select class="wb-doctor-select" aria-label="<?php esc_attr_e('پزشک', 'webtanan-booking'); ?>"></select>
                         <button type="button" class="btn btn-primary wb-open-walkin"><i class="fas fa-plus-circle" aria-hidden="true"></i><?php esc_html_e('ثبت نوبت حضوری', 'webtanan-booking'); ?></button>
@@ -959,7 +1098,7 @@ final class Frontend {
                     <div class="footer-bar">&copy; <?php echo esc_html(wp_date('Y')); ?> <strong><?php esc_html_e('وب‌تنان', 'webtanan-booking'); ?></strong> · <?php esc_html_e('آخرین بروزرسانی: امروز', 'webtanan-booking'); ?></div>
                 </main>
                 <div class="wb-modal" hidden>
-                    <div class="wb-modal-panel" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('ثبت نوبت', 'webtanan-booking'); ?>">
+                    <div class="wb-modal-panel" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('ثبت نوبت', 'webtanan-booking'); ?>" tabindex="-1">
                         <div class="wb-modal-head">
                             <strong><?php esc_html_e('ثبت نوبت حضوری', 'webtanan-booking'); ?></strong>
                             <button type="button" class="wb-icon-button wb-close-modal" aria-label="<?php esc_attr_e('بستن', 'webtanan-booking'); ?>">×</button>
@@ -992,34 +1131,135 @@ final class Frontend {
         return (string) ob_get_clean();
     }
 
-    private static function doctor_aggregate_rating(int $post_id): array {
+    private static function should_noindex_request(): bool {
+        if (self::is_private_request()) {
+            return true;
+        }
+
+        if (is_singular('saas_doctors') && !self::is_current_doctor_indexable()) {
+            return true;
+        }
+
+        if (!is_post_type_archive('saas_doctors')) {
+            return false;
+        }
+
+        foreach (array('search', 'doctor_search', 'city_id', 'province_id', 'available_only', 'payment_filter', 'online', 'pay_at_clinic') as $key) {
+            if (!empty($_GET[$key])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function is_current_doctor_indexable(): bool {
         global $wpdb;
 
+        $post_id = get_queried_object_id();
+        if ($post_id <= 0 || 'publish' !== get_post_status($post_id)) {
+            return false;
+        }
+
+        return (bool) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT id FROM ' . DB::table('doctors') . ' WHERE post_id = %d AND is_active = 1 AND is_verified = 1 LIMIT 1',
+                $post_id
+            )
+        );
+    }
+
+    private static function is_private_request(): bool {
+        foreach (array('webtanan_auth_page', 'webtanan_payment_result', 'webtanan_resume_payment', 'webtanan_waiting_list', 'webtanan_survey') as $key) {
+            if (get_query_var($key) || isset($_GET[$key])) {
+                return true;
+            }
+        }
+
+        if (!is_singular()) {
+            return false;
+        }
+
+        $post = get_post();
+        if (!$post || empty($post->post_content)) {
+            return false;
+        }
+
+        foreach (array('webtanan_booking_auth', 'webtanan_booking_patient_panel', 'webtanan_booking_doctor_dashboard', 'webtanan_booking_resume_payment', 'webtanan_booking_waiting_list', 'webtanan_booking_survey') as $shortcode) {
+            if (has_shortcode($post->post_content, $shortcode)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function doctor_rating_summary(int $post_id): array {
+        if ($post_id <= 0) {
+            return array('rating' => 0.0, 'count' => 0);
+        }
+
+        if (!array_key_exists($post_id, self::$doctor_rating_cache)) {
+            self::prime_doctor_rating_cache(array($post_id));
+        }
+
+        return self::$doctor_rating_cache[$post_id] ?? array('rating' => 0.0, 'count' => 0);
+    }
+
+    public static function prime_doctor_rating_cache(array $post_ids): void {
+        global $wpdb;
+
+        $post_ids = array_values(array_unique(array_filter(array_map('absint', $post_ids))));
+        $post_ids = array_values(array_filter($post_ids, static function (int $post_id): bool {
+            return !array_key_exists($post_id, self::$doctor_rating_cache);
+        }));
+        if (!$post_ids) {
+            return;
+        }
+
+        foreach ($post_ids as $post_id) {
+            self::$doctor_rating_cache[$post_id] = array('rating' => 0.0, 'count' => 0);
+        }
+
         $rating_meta_keys = array('rating', '_rating', 'webtanan_rating', '_webtanan_rating');
-        $placeholders = implode(',', array_fill(0, count($rating_meta_keys), '%s'));
-        $sql = "SELECT AVG(r.rating) AS avg_rating, COUNT(*) AS rating_count
+        $post_placeholders = implode(',', array_fill(0, count($post_ids), '%d'));
+        $meta_placeholders = implode(',', array_fill(0, count($rating_meta_keys), '%s'));
+        $sql = "SELECT r.post_id, AVG(r.rating) AS avg_rating, COUNT(*) AS rating_count
             FROM (
-                SELECT c.comment_ID, MAX(CAST(cm.meta_value AS DECIMAL(3,2))) AS rating
+                SELECT c.comment_post_ID AS post_id, c.comment_ID, MAX(CAST(cm.meta_value AS DECIMAL(3,2))) AS rating
                 FROM $wpdb->comments c
                 INNER JOIN $wpdb->commentmeta cm ON cm.comment_id = c.comment_ID
-                WHERE c.comment_post_ID = %d
+                WHERE c.comment_post_ID IN ($post_placeholders)
                     AND c.comment_approved = '1'
-                    AND cm.meta_key IN ($placeholders)
+                    AND cm.meta_key IN ($meta_placeholders)
                     AND cm.meta_value <> ''
-                GROUP BY c.comment_ID
+                GROUP BY c.comment_post_ID, c.comment_ID
             ) r
-            WHERE r.rating BETWEEN 1 AND 5";
-        $params = array_merge(array($post_id), $rating_meta_keys);
-        $row = $wpdb->get_row($wpdb->prepare($sql, $params), ARRAY_A);
+            WHERE r.rating BETWEEN 1 AND 5
+            GROUP BY r.post_id";
+        $rows = $wpdb->get_results($wpdb->prepare($sql, array_merge($post_ids, $rating_meta_keys)), ARRAY_A);
+        foreach ((array) $rows as $row) {
+            $post_id = (int) ($row['post_id'] ?? 0);
+            if ($post_id <= 0) {
+                continue;
+            }
+            self::$doctor_rating_cache[$post_id] = array(
+                'rating' => round((float) $row['avg_rating'], 2),
+                'count' => (int) $row['rating_count'],
+            );
+        }
+    }
 
-        if (!$row || (int) ($row['rating_count'] ?? 0) <= 0) {
+    private static function doctor_aggregate_rating(int $post_id): array {
+        $summary = self::doctor_rating_summary($post_id);
+        if ($summary['count'] <= 0) {
             return array();
         }
 
         return array(
             '@type' => 'AggregateRating',
-            'ratingValue' => round((float) $row['avg_rating'], 2),
-            'reviewCount' => (int) $row['rating_count'],
+            'ratingValue' => $summary['rating'],
+            'reviewCount' => $summary['count'],
             'bestRating' => 5,
             'worstRating' => 1,
         );

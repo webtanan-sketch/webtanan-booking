@@ -323,6 +323,7 @@ final class Payment_Gateways {
                 ),
                 array('id' => (int) $transaction['id'])
             );
+            self::mark_failed_payment_lock((int) $transaction['appointment_id'], (int) $transaction['id'], $params['tracking_number']);
 
             return self::redirect_response((int) $transaction['id']);
         }

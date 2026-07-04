@@ -4,7 +4,7 @@ Tags: booking, doctors, appointments, saas, elementor
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,8 @@ Version 1.0.4 hardens secretary access control and cancellation refunds: assigne
 Version 1.0.5 completes the AJAX Elementor doctor search widget, upgrades the patient panel wallet history with related appointment codes, and adds optimized admin financial reports for platform commission, withdrawable earnings, clinic-payment debt and patient wallet balances.
 
 Version 1.1.0 adds production hardening and SEO improvements: doctor profile JSON-LD is generated in `wp_head` with empty fields omitted, optional aggregate ratings are supported, OTP sending is limited to 3 requests per mobile/purpose in 15 minutes, and the OTP table has an indexed rate-limit lookup path.
+
+Version 1.4.0 hardens OTP profile completion, adds safe patient/doctor account selection and pending doctor applications, restores logged-in payment for unpaid appointments, upgrades doctor and patient dashboards, uses a local Jalali engine, and adds specialty icons plus configurable homepage sections.
 
 == Shortcodes ==
 
@@ -126,4 +128,61 @@ SMS adapter:
 
 == Important ==
 
-This is a foundation phase. Before production launch, test AqayePardakht with real credentials, complete settlement approval workflow, Persian calendar UI, dashboard UX, test suite and concurrency testing on the target MySQL/MariaDB engine.
+Before production launch, verify the configured SMS patterns and AqayePardakht credentials on the target site, then run one real low-value gateway payment. Version 1.4.5 includes transactional slot locking, failed-payment recovery, wallet checkout, Jalali scheduling, role-aware dashboards, responsive booking UI, printable receipts, post-visit surveys and Rank Math-aware public SEO routes.
+
+== Changelog ==
+
+= 1.4.5 =
+
+* Added owner-aware failed-payment recovery without a second OTP challenge, including a live lock countdown and one-click re-lock of the same slot.
+* Added automatic retry for transient IPPanel DNS, timeout, connection, 429 and 5xx failures with capped attempts and a cron lock.
+* Reduced IPPanel pattern payloads to message-specific variable whitelists.
+* Unified the mobile dashboard navigation into the companion theme header hamburger while preserving the desktop sidebar.
+* Added an authenticated in-panel survey form and hardened survey insert, update and publication-consent behavior.
+
+= 1.4.4 =
+
+* Completed a cross-screen UX audit for public booking, authentication, patient and clinic dashboards.
+* Added Persian network-error handling, keyboard focus management and Escape behavior for dialogs and mobile sidebars.
+* Connected doctor services, certificates and frequently asked questions to both doctor and administrator profile editors.
+* Added secure deletion and duplicate-safe updates for weekly schedules and special-date rules.
+* Fixed empty profile navigation targets and gallery compatibility for array-based media metadata.
+* Removed OTP values from REST debug responses.
+
+= 1.4.3 =
+
+* Added a direct jump from an unavailable day to the doctor's first available appointment.
+* Made the IPPanel OTP placeholder configurable and stopped reporting success when the provider rejects delivery.
+* Added Persian/Arabic digit normalization for OTP mobile numbers and codes.
+* Added clean specialty URLs, legacy redirects, canonical metadata and Rank Math robots/title/description filters.
+* Removed duplicate Physician JSON-LD from the doctor body template.
+* Replaced placeholder doctor ratings with approved real review aggregates.
+* Added an indexed, cron-refreshed next-slot cache for faster doctor discovery sorting.
+
+= 1.4.2 =
+
+* Fixed the global OTP enhancer scope error that stopped all frontend widgets during DOM initialization.
+* Added a runtime DOM initialization smoke test in addition to static JavaScript syntax validation.
+* Completed the signed post-visit survey UI with responsive rating controls and visible loading/error states.
+* Added secure survey access from eligible patient appointment history entries.
+
+= 1.4.1 =
+
+* Added doctor appointment card grids and immediate date-driven dashboard refreshes.
+* Unified weekly schedules and special-date rules in one scheduling workspace.
+* Split financial ledger and settlement request views.
+* Added patient favorite doctors with secure REST-backed user preferences.
+* Added six-box OTP input, automatic submit, countdown and timezone-safe verification.
+* Restricted OTP pattern params to the numeric `verifyotp` value.
+* Switched newly generated appointment codes to unique 10-digit numeric values.
+* Added tabbed plugin settings for shorter admin workflows.
+
+= 1.4.0 =
+
+* Added patient/doctor account onboarding and secure profile completion.
+* Added retry checkout for unpaid and failed appointments with wallet or gateway selection.
+* Unified web and printable appointment receipts.
+* Blocked past appointment times in both REST responses and server-side locking.
+* Unified doctor cards and specialty archive links across theme, shortcodes and Elementor.
+* Added administrator-controlled homepage section visibility, ordering and doctor limits.
+* Hid the WordPress admin bar for patient, doctor and secretary roles.

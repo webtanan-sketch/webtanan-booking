@@ -1,5 +1,11 @@
 # نسخه 0.9.0: بازطراحی ظاهر فرانت‌اند
 
+## Empty-day recovery در نسخه 1.4.3
+
+- اگر روز انتخاب‌شده اسلات نداشته باشد یا همه ساعت‌ها پر/گذشته باشند، یک CTA کوچک برای نمایش اولین نوبت آزاد ظاهر می‌شود.
+- CTA از `GET /doctors/{id}/next-available` فقط یک اسلات می‌گیرد، نوار روزها را به تاریخ مقصد منتقل می‌کند و ساعت‌های همان روز را دوباره بارگذاری می‌کند.
+- این رفتار هم در shortcode تقویم و هم در مودال رزرو صفحه پزشک فعال است و داده زمان‌دار در HTML کش‌شده ذخیره نمی‌شود.
+
 این فاز روی ظاهر بخش‌هایی تمرکز دارد که بیمار، پزشک و منشی می‌بینند. منطق رزرو، پرداخت، کیف پول و دسترسی‌ها تغییر معماری نداشته و همچنان بر پایه REST و جداول اختصاصی عمل می‌کند.
 
 ## محدوده بازطراحی
@@ -98,6 +104,18 @@
 - The native header CTA opens a global patient OTP modal through `data-webtanan-modal-trigger="auth"`. If the booking plugin is inactive, the CTA falls back to the configured patient portal URL.
 - `front-page.php` renders a conversion-focused medical SaaS intro, dynamic doctor search, clickable specialty pills, and featured active doctors ordered by cached next slot when available.
 - `archive-saas_doctors.php` renders the premium discovery experience and delegates doctor results to the plugin AJAX search widget so first available appointments remain cache-safe.
+
+# v1.3.2 Role-Aware Login And Patient Booking
+
+- ورود و ثبت‌نام از یک صفحه مستقل OTP انجام می‌شود و شماره موبایل پس از تایید به نقش واقعی حساب متصل می‌ماند.
+- پزشک و منشی پس از ورود به پیشخوان پزشک هدایت می‌شوند؛ بیمار به پنل بیمار می‌رود.
+- بیمار جدید پیش از رزرو باید نام، نام خانوادگی و کد ملی معتبر را تکمیل کند.
+- انتخاب ساعت برای کاربر مهمان قفل ایجاد نمی‌کند. ورود، تکمیل پروفایل و انتخاب مراجعه‌کننده قبل از `POST /appointments/lock` انجام می‌شود.
+- بیمار می‌تواند «خودم» یا یکی از افراد ذخیره‌شده در بخش «افراد من» را انتخاب کند.
+- اطلاعات هویتی نوبت از سمت سرور و بر اساس مالکیت حساب ساخته می‌شود؛ نام، کد ملی و موبایل ارسال‌شده از کلاینت مبنای رزرو نیست.
+- کارت پزشک نشان پرداخت ندارد و تایید پزشک با نشان آبی کنار نام نمایش داده می‌شود.
+- هدر داخلی تکراری از پنل بیمار و پزشک حذف شد؛ shell سایت از قالب و منوی نقش‌محور از افزونه تامین می‌شود.
+- شمارش معکوس رزرو از timestamp واقعی سرور استفاده می‌کند تا اختلاف timezone باعث پایان فوری مهلت نشود.
 - Doctor specialties are clickable in theme cards, plugin AJAX cards, single doctor profiles, and shortcode-rendered doctor cards using `/?post_type=saas_doctors&specialty_id={id}`.
 - The printable receipt template was rebuilt as a clean invoice: tracking code, patient, doctor, date/time, paid prepayment, remaining visit amount, clinic address, and print action.
 - Visible frontend developer copy such as API/loading implementation notes was removed from public templates. Time-sensitive information is still loaded via REST/AJAX, but the user-facing copy is now product-friendly.
@@ -129,3 +147,32 @@
 - داشبورد پزشک و پنل بیمار با shell نمونه هماهنگ شدند: `sample-dashboard-header`, `sidebar`, `nav-item`, `main-content`, `stats-grid`, `dashboard-grid`, `card`, `appointment-item`, و `footer-bar`.
 - قالب همراه نیز برای `front-page.php` و `archive-saas_doctors.php` از همان لایه sample استفاده می‌کند تا shell قالب و خروجی پلاگین visually یکپارچه باشند.
 - منوی کناری داشبوردها در موبایل با `wb-sample-sidebar-toggle` به drawer تبدیل می‌شود و در دسکتاپ sidebar ثابت نمونه را حفظ می‌کند.
+## v1.4 Sample DOM Reset
+
+- قالب `webtanan-saas-theme` مالک shell عمومی سایت است: `site-header`, `header-inner`, `main-nav`, `site-footer`.
+- هدر دیگر `<main>` باز نمی‌کند؛ هر تمپلیت صفحه، `main` مخصوص خود را می‌سازد تا nesting خراب ایجاد نشود.
+- صفحه اصلی با کلاس‌های sample بازسازی شد: `hero-section`, `search-form`, `specialties-grid`, `doctor-card`.
+- آرشیو پزشکان داخل قالب با `archive-layout`, `archive-sidebar`, `archive-main`, `doctors-grid` ساخته می‌شود و نتایج فقط از REST/AJAX پلاگین پر می‌شوند.
+- پروفایل پزشک به قرارداد sample نزدیک شد: `profile-layout`, `profile-main`, `profile-hero`, `hero-avatar`, `hero-info`, `content-box`, `profile-sidebar`, `booking-widget`.
+- کارت پزشک در JS و PHP به ساختار واحد sample تغییر کرد: `doctor-card`, `doc-header`, `doc-avatar`, `doc-info`, `doc-meta`.
+- CSS قدیمی و متداخل پلاگین با یک لایه functional جایگزین شد؛ پلاگین فونت را از قالب ارث می‌برد و فقط stateهای لازم برای رزرو، مودال، داشبورد، جدول و کارت‌ها را استایل می‌کند.
+- سایدبار داشبورد از `Sidebar_Menu::render()` ساخته می‌شود و خروجی آن کلاس‌های sample dashboard را دارد: `dashboard-sidebar`, `sidebar-brand`, `sidebar-menu`, `nav-item`.
+
+## v1.4.0 Account, Payment And Mobile Completion
+
+- فرم OTP دارای انتخاب بیمار/پزشک است؛ حساب پزشک تا زمان تایید مدیر فقط یک درخواست pending باقی می‌ماند.
+- تکمیل پروفایل بعد از OTP با completion token کوتاه‌عمر انجام می‌شود تا تغییر هم‌زمان کوکی ورود باعث خطای nonce نشود.
+- نوبت پرداخت‌نشده در پنل بیمار، فاکتور و انتخاب کیف پول/درگاه را بدون درخواست OTP دوباره باز می‌کند.
+- نمای اول پنل بیمار سه نوبت آینده واقعی را نمایش می‌دهد و دیگر متن ارجاعی جایگزین داده نیست.
+- کارت نوبت پزشک/منشی عملیات حضور، عدم حضور، پرداخت مطب، لغو و پرونده را در همان کارت نگه می‌دارد؛ ساعت آزاد نیز CTA ثبت حضوری دارد.
+- مودال‌ها به `body` منتقل می‌شوند تا overflow یا stacking context قالب باعث نمایش پایین صفحه یا حذف backdrop نشود.
+- منوی موبایل پنل‌ها drawer سمت راست با backdrop، بستن با انتخاب لینک و کنترل `aria-expanded` دارد.
+- فرم‌های پروفایل پزشک، پرونده پزشکی، نوبت حضوری و روزهای خاص روی موبایل تک‌ستونه و لمس‌پذیر هستند.
+## تکمیل تجربه پرداخت، اسلات و صفحه اصلی - 2026-06-28
+
+- رسید وب و رسید چاپی اکنون از یک قرارداد بصری مشترک استفاده می‌کنند: کد پیگیری برجسته، مشخصات نوبت، جدول هزینه خدمات رزرو و حالت چاپ بدون هدر سایت.
+- نتیجه پرداخت ناموفق برای بیمار واردشده مستقیماً فاکتور و انتخاب کیف پول/درگاه را نمایش می‌دهد و OTP تکراری درخواست نمی‌کند. بازیابی عمومی همچنان با کد نوبت و OTP محافظت می‌شود.
+- ساعت‌های گذشته امروز در REST و دامنه رزرو با وضعیت `past` غیرفعال می‌شوند و کنترل نهایی سمت سرور مانع قفل‌کردن زمان گذشته است.
+- راهنمای رنگ اسلات‌ها با نشان رنگی روشن برای ساعت آزاد، در حال رزرو، پرشده و زمان گذشته بازطراحی شد.
+- لینک تخصص‌ها همیشه به آرشیو واقعی `saas_doctors` می‌رود و کارت‌های صفحه اصلی، جستجو، آرشیو و Elementor از renderer مشترک افزونه استفاده می‌کنند.
+- مدیر می‌تواند نمایش، ترتیب، عنوان و تعداد آیتم سکشن‌های تخصص‌ها، جدیدترین پزشکان، پزشکان پرمراجعه و سه سکشن سفارشی را از تنظیمات کنترل کند.

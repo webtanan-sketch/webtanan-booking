@@ -15,6 +15,7 @@ final class Activator {
         DB::create_tables();
         Roles::add_roles();
         self::seed_specialties();
+        Post_Types::register();
 
         if (!get_option(DB::OPTION_SETTINGS)) {
             add_option(DB::OPTION_SETTINGS, DB::default_settings());

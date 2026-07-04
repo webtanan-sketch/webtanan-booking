@@ -14,6 +14,7 @@ final class SMS {
         add_action('webtanan_booking_send_reminders', array(__CLASS__, 'send_24h_reminders'));
         add_action('webtanan_booking_send_waiting_list_messages', array(__CLASS__, 'send_waiting_list_30m_messages'));
         add_action('webtanan_booking_send_survey_requests', array(__CLASS__, 'send_survey_requests'));
+        add_action('webtanan_booking_retry_failed_sms', array(__CLASS__, 'retry_failed_messages'));
     }
 
     public static function message_types(): array {
@@ -69,7 +70,7 @@ final class SMS {
             return self::log_and_return($mobile, $pattern_code, $message_type, $variables, array('message' => 'Recipient mobile is empty.'), 'failed', $appointment_id);
         }
 
-        if (self::recent_duplicate_exists($mobile, $message_type, $appointment_id)) {
+        if ('otp' !== $message_type && self::recent_duplicate_exists($mobile, $message_type, $appointment_id)) {
             return self::log_and_return($mobile, $pattern_code, $message_type, $variables, array('message' => 'Duplicate SMS blocked for 40 seconds.'), 'duplicate_blocked', $appointment_id);
         }
 
@@ -230,6 +231,72 @@ final class SMS {
         return $sent;
     }
 
+    public static function retry_failed_messages(): int {
+        global $wpdb;
+
+        if (get_transient('webtanan_booking_sms_retry_lock')) {
+            return 0;
+        }
+        set_transient('webtanan_booking_sms_retry_lock', 1, 10 * MINUTE_IN_SECONDS);
+
+        $table = DB::table('sms_logs');
+        $since = wp_date('Y-m-d H:i:s', current_time('timestamp') - (6 * HOUR_IN_SECONDS), wp_timezone());
+        $before = wp_date('Y-m-d H:i:s', current_time('timestamp') - (2 * MINUTE_IN_SECONDS), wp_timezone());
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM $table
+                WHERE status = 'failed'
+                    AND created_at BETWEEN %s AND %s
+                    AND message_type NOT IN ('otp','manual_sms')
+                ORDER BY id ASC
+                LIMIT 50",
+                $since,
+                $before
+            ),
+            ARRAY_A
+        );
+
+        $sent = 0;
+        foreach ((array) $rows as $row) {
+            $appointment_id = (int) ($row['related_appointment_id'] ?? 0);
+            $message_type = sanitize_key((string) ($row['message_type'] ?? ''));
+            $mobile = sanitize_text_field((string) ($row['mobile'] ?? ''));
+            if ('' === $message_type || '' === $mobile || self::sms_already_sent_to($appointment_id, $message_type, $mobile)) {
+                continue;
+            }
+
+            $provider = json_decode((string) ($row['provider_response'] ?? ''), true);
+            if (!self::is_transient_provider_failure(is_array($provider) ? $provider : array())) {
+                continue;
+            }
+
+            $attempts = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM $table
+                    WHERE mobile = %s AND message_type = %s AND related_appointment_id = %d
+                        AND status = 'failed' AND created_at >= %s",
+                    $mobile,
+                    $message_type,
+                    $appointment_id,
+                    $since
+                )
+            );
+            if ($attempts >= 3) {
+                continue;
+            }
+
+            $variables = json_decode((string) ($row['variables'] ?? ''), true);
+            $result = self::send_pattern($mobile, $message_type, is_array($variables) ? $variables : array(), $appointment_id);
+            if (in_array((string) ($result['status'] ?? ''), array('sent', 'queued', 'test_mode'), true)) {
+                $sent++;
+            }
+        }
+
+        delete_transient('webtanan_booking_sms_retry_lock');
+
+        return $sent;
+    }
+
     public static function list_ippanel_patterns(int $page = 1, int $per_page = 100): array {
         return (new IPPanel_SMS_Service())->list_patterns($page, $per_page);
     }
@@ -368,6 +435,13 @@ final class SMS {
             )
         );
 
+        if ('failed' === $status && !in_array($message_type, array('otp', 'manual_sms'), true) && self::is_transient_provider_failure($provider_response)) {
+            $next_retry = wp_next_scheduled('webtanan_booking_retry_failed_sms');
+            if (!$next_retry || $next_retry > time() + (3 * MINUTE_IN_SECONDS)) {
+                wp_schedule_single_event(time() + (2 * MINUTE_IN_SECONDS), 'webtanan_booking_retry_failed_sms');
+            }
+        }
+
         return array('status' => $status, 'provider_response' => $provider_response);
     }
 
@@ -456,6 +530,31 @@ final class SMS {
         ) > 0;
     }
 
+    private static function sms_already_sent_to(int $appointment_id, string $message_type, string $mobile): bool {
+        global $wpdb;
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COUNT(*) FROM ' . DB::table('sms_logs') . ' WHERE related_appointment_id = %d AND message_type = %s AND mobile = %s AND status IN ("sent","test_mode","queued")',
+                $appointment_id,
+                $message_type,
+                $mobile
+            )
+        ) > 0;
+    }
+
+    private static function is_transient_provider_failure(array $provider): bool {
+        $error_code = sanitize_key((string) ($provider['error_code'] ?? ''));
+        $http_code = absint($provider['http_code'] ?? 0);
+        $message = strtolower((string) ($provider['message'] ?? ''));
+
+        if ('http_error' === $error_code) {
+            return (bool) preg_match('/timeout|timed out|resolve|resolving|temporary|connection|curl error (6|7|28)/i', $message);
+        }
+
+        return 429 === $http_code || $http_code >= 500;
+    }
+
     private static function mobile_for_user(int $user_id): string {
         foreach (array('webtanan_mobile', 'billing_phone', 'mobile', 'phone') as $key) {
             $mobile = get_user_meta($user_id, $key, true);
@@ -528,12 +627,53 @@ final class SMS {
             }
         }
 
-        if ('otp' === $message_type && isset($variables['otp'])) {
-            $variables['code'] = $variables['otp'];
-            unset($variables['otp']);
+        if ('otp' === $message_type) {
+            $settings = self::settings();
+            $parameter_name = sanitize_key((string) ($settings['otp_parameter_name'] ?? 'verifyotp'));
+            if ('' === $parameter_name) {
+                $parameter_name = 'verifyotp';
+            }
+            $otp_value = '';
+            if (isset($variables['otp'])) {
+                $otp_value = (string) $variables['otp'];
+            }
+
+            if (isset($variables['code'])) {
+                $otp_value = (string) $variables['code'];
+            }
+
+            if (isset($variables['verifyotp'])) {
+                $otp_value = (string) $variables['verifyotp'];
+            }
+
+            if (isset($variables[$parameter_name])) {
+                $otp_value = (string) $variables[$parameter_name];
+            }
+
+            return array($parameter_name => preg_replace('/\D/', '', $otp_value));
         }
 
-        return IPPanel_SMS_Service::sanitize_params($variables);
+        $allowed_by_type = array(
+            'appointment_confirmed' => array('doctor_name', 'patient_name', 'date', 'time', 'appointment_code', 'clinic_name', 'clinic_address', 'amount', 'tracking_code'),
+            'appointment_cancelled' => array('doctor_name', 'patient_name', 'date', 'time', 'appointment_code', 'reason', 'refund_status', 'amount'),
+            'bulk_appointment_cancelled' => array('doctor_name', 'date', 'reason', 'status', 'amount'),
+            'reminder_24h' => array('doctor_name', 'patient_name', 'date', 'time', 'appointment_code', 'clinic_name', 'clinic_address'),
+            'waiting_list_30m' => array('doctor_name', 'patient_name', 'date', 'time', 'appointment_code', 'queue_position', 'ahead_count', 'waiting_list_url'),
+            'appointment_survey' => array('doctor_name', 'patient_name', 'date', 'time', 'appointment_code', 'survey_url'),
+            'wallet_charged' => array('patient_name', 'appointment_code', 'amount', 'status'),
+            'late_payment_wallet_charged' => array('patient_name', 'doctor_name', 'appointment_code', 'amount', 'status'),
+            'payment_failed' => array('patient_name', 'doctor_name', 'appointment_code', 'amount', 'reason'),
+            'settlement_requested' => array('doctor_name', 'amount', 'status'),
+            'settlement_paid' => array('doctor_name', 'amount', 'status', 'tracking_code'),
+            'settlement_status' => array('doctor_name', 'amount', 'status', 'reason', 'tracking_code'),
+        );
+        if (isset($allowed_by_type[$message_type])) {
+            $variables = array_intersect_key($variables, array_flip($allowed_by_type[$message_type]));
+        }
+
+        $variables = apply_filters('webtanan_booking_sms_pattern_variables', $variables, $message_type, $appointment_id);
+
+        return IPPanel_SMS_Service::sanitize_params(is_array($variables) ? $variables : array());
     }
 
     private static function waiting_list_url(array $appointment): string {
@@ -556,6 +696,10 @@ final class SMS {
             ),
             home_url('/')
         );
+    }
+
+    public static function public_survey_url(array $appointment): string {
+        return self::survey_url($appointment);
     }
 
     public static function appointment_token(array $appointment, string $purpose): string {

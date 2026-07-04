@@ -38,7 +38,9 @@ final class Sidebar_Menu {
 
         ob_start();
         ?>
-        <aside class="sidebar wb-sidebar wb-nav" id="<?php echo esc_attr($id); ?>">
+        <aside class="dashboard-sidebar sidebar wb-sidebar wb-nav" id="<?php echo esc_attr($id); ?>">
+            
+            <nav class="sidebar-menu">
             <?php foreach ($items as $item) : ?>
                 <?php if (($item['type'] ?? 'item') === 'divider') : ?>
                     <div class="sidebar-divider"></div>
@@ -67,12 +69,12 @@ final class Sidebar_Menu {
                 $badge_value = $badges[$key] ?? ($item['badge'] ?? '');
                 $badge_tone = sanitize_html_class((string) ($item['badge_tone'] ?? 'info'));
                 $url = !empty($item['url']) ? esc_url($item['url']) : '';
-                $tag = $url ? 'a' : 'div';
+                $tag = $url ? 'a' : 'button';
                 ?>
                 <<?php echo tag_escape($tag); ?>
                     class="<?php echo esc_attr(implode(' ', $classes)); ?>"
                     <?php if ($url) : ?>href="<?php echo esc_url($url); ?>"<?php endif; ?>
-                    <?php if (!$url) : ?>role="button" tabindex="0"<?php endif; ?>
+                    <?php if (!$url) : ?>type="button"<?php endif; ?>
                     data-wb-view="<?php echo esc_attr($view); ?>"
                     data-menu-key="<?php echo esc_attr($key); ?>">
                     <i class="<?php echo esc_attr((string) ($item['icon'] ?? 'fas fa-circle')); ?>" aria-hidden="true"></i>
@@ -82,6 +84,7 @@ final class Sidebar_Menu {
                     <?php endif; ?>
                 </<?php echo tag_escape($tag); ?>>
             <?php endforeach; ?>
+            </nav>
         </aside>
         <?php
 
@@ -127,6 +130,7 @@ final class Sidebar_Menu {
             array('key' => 'patient-records', 'view' => 'patient-records', 'icon' => 'fas fa-prescription', 'label' => __('نسخه‌ها و پرونده', 'webtanan-booking')),
             array('type' => 'divider', 'label' => __('حساب کاربری', 'webtanan-booking')),
             array('key' => 'patient-wallet', 'view' => 'patient-wallet', 'icon' => 'fas fa-wallet', 'label' => __('کیف پول', 'webtanan-booking')),
+            array('key' => 'patient-family', 'view' => 'patient-family', 'icon' => 'fas fa-users', 'label' => __('افراد من', 'webtanan-booking')),
             array('key' => 'patient-favorites', 'view' => 'patient-favorites', 'icon' => 'fas fa-heart', 'label' => __('پزشکان منتخب', 'webtanan-booking')),
             array('key' => 'patient-profile', 'view' => 'patient-profile', 'icon' => 'fas fa-user-circle', 'label' => __('پروفایل', 'webtanan-booking')),
             array('key' => 'help', 'view' => 'help', 'icon' => 'fas fa-question-circle', 'label' => __('راهنما', 'webtanan-booking')),
@@ -140,13 +144,11 @@ final class Sidebar_Menu {
             array('key' => 'appointments', 'view' => 'calendar', 'icon' => 'fas fa-calendar-check', 'label' => __('نوبت‌ها', 'webtanan-booking'), 'badge_tone' => 'success'),
             array('key' => 'patients', 'view' => 'patients', 'icon' => 'fas fa-users', 'label' => __('بیماران', 'webtanan-booking')),
             array('key' => 'records', 'view' => 'records', 'icon' => 'fas fa-file-prescription', 'label' => __('پرونده بیماران', 'webtanan-booking')),
-            array('key' => 'calendar', 'view' => 'calendar', 'icon' => 'fas fa-clock', 'label' => __('زمان‌بندی', 'webtanan-booking')),
             array('key' => 'schedule', 'view' => 'schedule', 'icon' => 'fas fa-calendar-alt', 'label' => __('برنامه نوبت‌دهی', 'webtanan-booking')),
-            array('key' => 'exceptions', 'view' => 'exceptions', 'icon' => 'fas fa-calendar-plus', 'label' => __('روزهای خاص', 'webtanan-booking')),
             array('type' => 'divider', 'label' => __('مدیریت', 'webtanan-booking')),
             array('key' => 'profile', 'view' => 'profile', 'icon' => 'fas fa-user-md', 'label' => __('پروفایل', 'webtanan-booking')),
             array('key' => 'wallet', 'view' => 'wallet', 'icon' => 'fas fa-file-invoice', 'label' => __('صورتحساب‌ها', 'webtanan-booking'), 'finance' => true),
-            array('key' => 'settlements', 'view' => 'wallet', 'icon' => 'fas fa-money-check-alt', 'label' => __('تسویه حساب', 'webtanan-booking'), 'finance' => true),
+            array('key' => 'settlements', 'view' => 'settlements', 'icon' => 'fas fa-money-check-alt', 'label' => __('تسویه حساب', 'webtanan-booking'), 'finance' => true),
             array('key' => 'settings', 'view' => 'settings', 'icon' => 'fas fa-cog', 'label' => __('تنظیمات', 'webtanan-booking'), 'doctor_only' => true),
             array('key' => 'logout', 'view' => 'logout', 'icon' => 'fas fa-sign-out-alt', 'label' => __('خروج', 'webtanan-booking'), 'logout' => true),
         );

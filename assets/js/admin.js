@@ -190,5 +190,48 @@
         syncSettlementTracking($(this));
     });
 
+    $('.webtanan-home-section-order').each(function () {
+        const $list = $(this);
+        const $value = $list.siblings('.webtanan-home-section-order-value');
+        const sync = function () {
+            const order = $list.children('[data-section]').map(function () {
+                return String($(this).data('section') || '');
+            }).get().filter(Boolean);
+            $value.val(order.join(','));
+        };
+
+        if ($.fn.sortable) {
+            $list.sortable({
+                axis: 'y',
+                handle: '.dashicons-move',
+                placeholder: 'webtanan-home-section-placeholder',
+                update: sync
+            });
+        }
+        sync();
+    });
+
+    $('.webtanan-settings-tabs').each(function () {
+        const $tabs = $(this);
+        const activate = function (name) {
+            const tab = name || 'general';
+            $tabs.find('[data-settings-tab]').each(function () {
+                const active = $(this).data('settings-tab') === tab;
+                $(this).toggleClass('is-active', active).attr('aria-selected', active ? 'true' : 'false');
+            });
+            $('.webtanan-settings-panel[data-settings-panel]').each(function () {
+                $(this).toggleClass('is-active', $(this).data('settings-panel') === tab);
+            });
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#settings-${tab}`);
+            }
+        };
+        const hash = String(window.location.hash || '').replace('#settings-', '');
+        activate($tabs.find(`[data-settings-tab="${hash}"]`).length ? hash : 'general');
+        $tabs.on('click', '[data-settings-tab]', function () {
+            activate($(this).data('settings-tab'));
+        });
+    });
+
     initUserPicker();
 })(jQuery);

@@ -73,7 +73,7 @@ final class IPPanel_SMS_Service {
             $body = array('raw' => $body_raw);
         }
 
-        $meta_status = isset($body['meta']['status']) ? (bool) $body['meta']['status'] : ($http_code >= 200 && $http_code < 300);
+        $meta_status = $this->response_meta_success($body, $http_code);
         $success = $http_code >= 200 && $http_code < 300 && $meta_status;
 
         return array(
@@ -159,7 +159,7 @@ final class IPPanel_SMS_Service {
             $body = array('raw' => $body_raw);
         }
 
-        $meta_status = isset($body['meta']['status']) ? (bool) $body['meta']['status'] : ($http_code >= 200 && $http_code < 300);
+        $meta_status = $this->response_meta_success($body, $http_code);
         $success = $http_code >= 200 && $http_code < 300 && $meta_status;
 
         return array(
@@ -221,7 +221,15 @@ final class IPPanel_SMS_Service {
     }
 
     public static function normalize_mobile_e164(string $mobile): string {
-        $mobile = trim($mobile);
+        $mobile = strtr(
+            trim($mobile),
+            array(
+                '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+                '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+                '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+                '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            )
+        );
         $mobile = preg_replace('/[^0-9+]/', '', $mobile);
 
         if (0 === strpos($mobile, '+98')) {
@@ -272,6 +280,22 @@ final class IPPanel_SMS_Service {
         $sms['base_url'] = untrailingslashit($sms['base_url'] ?: 'https://edge.ippanel.com/v1');
 
         return $sms;
+    }
+
+    private function response_meta_success(array $body, int $http_code): bool {
+        if (!isset($body['meta']) || !is_array($body['meta']) || !array_key_exists('status', $body['meta'])) {
+            return $http_code >= 200 && $http_code < 300;
+        }
+
+        $status = $body['meta']['status'];
+        if (is_bool($status)) {
+            return $status;
+        }
+        if (is_numeric($status)) {
+            return 1 === (int) $status;
+        }
+
+        return in_array(strtolower(trim((string) $status)), array('true', 'success', 'ok', 'sent'), true);
     }
 
     private function failed(string $code, string $message, array $extra = array()): array {

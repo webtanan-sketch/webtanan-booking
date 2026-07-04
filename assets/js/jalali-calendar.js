@@ -3,12 +3,16 @@
 
     const monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
     const weekDays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
+    const engine = window.WebtananJalaaliEngine || null;
 
     function div(a, b) {
         return Math.floor(a / b);
     }
 
     function gregorianToJalali(gy, gm, gd) {
+        if (engine && typeof engine.toJalaali === 'function') {
+            return engine.toJalaali(gy, gm, gd);
+        }
         const gdm = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
         let jy = gy <= 1600 ? 0 : 979;
         gy -= gy <= 1600 ? 621 : 1600;
@@ -30,6 +34,9 @@
     }
 
     function jalaliToGregorian(jy, jm, jd) {
+        if (engine && typeof engine.toGregorian === 'function') {
+            return engine.toGregorian(jy, jm, jd);
+        }
         jy += 1595;
         let days = -355668 + (365 * jy) + (div(jy, 33) * 8) + div((jy % 33) + 3, 4) + jd + (jm < 7 ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
         let gy = 400 * div(days, 146097);
@@ -99,6 +106,9 @@
     }
 
     function daysInJalaliMonth(jy, jm) {
+        if (engine && typeof engine.jalaaliMonthLength === 'function') {
+            return engine.jalaaliMonthLength(jy, jm);
+        }
         const current = fromJalali(jy, jm, 1);
         const next = jm === 12 ? fromJalali(jy + 1, 1, 1) : fromJalali(jy, jm + 1, 1);
 
@@ -215,7 +225,7 @@
                     <strong>${monthNames[view.jm - 1]} ${toPersianNumber(view.jy)}</strong>
                     <button type="button" data-jalali-nav="next" aria-label="ماه بعد">›</button>
                 </div>
-                <div class="webtanan-jalali-weekdays">${weekDays.map((day) => `<span>${day}</span>`).join('')}</div>
+                <div class="webtanan-jalali-weekdays">${weekDays.map((day) => `<span title="${day}">${day.charAt(0)}</span>`).join('')}</div>
                 <div class="webtanan-jalali-grid">${cells}</div>
                 <div class="webtanan-jalali-actions"><button type="button" data-jalali-today="1">امروز</button></div>
             `;

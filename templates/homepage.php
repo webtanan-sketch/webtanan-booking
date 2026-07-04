@@ -79,7 +79,7 @@ $specialty_count = (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . DB::table('spe
     </div>
 
     <div class="container webtanan-public-container wb-home-section wb-home-steps how-it-works">
-        <article><span>1</span><h3><?php esc_html_e('پزشک را انتخاب کنید', 'webtanan-booking'); ?></h3><p><?php esc_html_e('بر اساس تخصص، شهر، روش پرداخت و اولین نوبت آزاد فیلتر کنید.', 'webtanan-booking'); ?></p></article>
+        <article><span>1</span><h3><?php esc_html_e('پزشک را انتخاب کنید', 'webtanan-booking'); ?></h3><p><?php esc_html_e('بر اساس نام، تخصص و اولین نوبت آزاد جستجو کنید.', 'webtanan-booking'); ?></p></article>
         <article><span>2</span><h3><?php esc_html_e('زمان مناسب را بردارید', 'webtanan-booking'); ?></h3><p><?php esc_html_e('زمان انتخاب‌شده برای مدت کوتاه برای شما نگه داشته می‌شود.', 'webtanan-booking'); ?></p></article>
         <article><span>3</span><h3><?php esc_html_e('پرداخت کنید و رسید بگیرید', 'webtanan-booking'); ?></h3><p><?php esc_html_e('بعد از پرداخت، کد پیگیری و فاکتور نوبت آماده چاپ است.', 'webtanan-booking'); ?></p></article>
     </div>

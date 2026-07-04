@@ -74,19 +74,6 @@ final class Doctor_List_Widget extends \Elementor\Widget_Base {
             )
         );
         $this->add_control(
-            'payment_filter',
-            array(
-                'label' => __('روش پرداخت', 'webtanan-booking'),
-                'type' => \Elementor\Controls_Manager::SELECT,
-                'default' => '',
-                'options' => array(
-                    '' => __('همه روش‌ها', 'webtanan-booking'),
-                    'online' => __('پرداخت آنلاین', 'webtanan-booking'),
-                    'clinic' => __('پرداخت در مطب', 'webtanan-booking'),
-                ),
-            )
-        );
-        $this->add_control(
             'sort',
             array(
                 'label' => __('مرتب‌سازی', 'webtanan-booking'),
@@ -111,18 +98,9 @@ final class Doctor_List_Widget extends \Elementor\Widget_Base {
             )
         );
         $this->add_control(
-            'online',
+            'available_only',
             array(
-                'label' => __('فقط پرداخت آنلاین', 'webtanan-booking'),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
-                'return_value' => '1',
-                'default' => '',
-            )
-        );
-        $this->add_control(
-            'pay_at_clinic',
-            array(
-                'label' => __('فقط پرداخت در مطب', 'webtanan-booking'),
+                'label' => __('فقط پزشکان دارای نوبت آزاد', 'webtanan-booking'),
                 'type' => \Elementor\Controls_Manager::SWITCHER,
                 'return_value' => '1',
                 'default' => '',
@@ -138,11 +116,9 @@ final class Doctor_List_Widget extends \Elementor\Widget_Base {
             '" specialty_id="' . absint($settings['specialty_id'] ?? 0) .
             '" province_id="' . absint($settings['province_id'] ?? 0) .
             '" city_id="' . absint($settings['city_id'] ?? 0) .
-            '" payment_filter="' . esc_attr($settings['payment_filter'] ?? '') .
             '" sort="' . esc_attr($settings['sort'] ?? '') .
             '" layout="' . esc_attr($settings['layout'] ?? 'grid') .
-            '" online="' . esc_attr($settings['online'] ?? '') .
-            '" pay_at_clinic="' . esc_attr($settings['pay_at_clinic'] ?? '') . '"]'
+            '" available_only="' . esc_attr($settings['available_only'] ?? '') . '"]'
         );
     }
 }

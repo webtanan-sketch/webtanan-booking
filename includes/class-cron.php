@@ -43,7 +43,36 @@ final class Cron {
 
     public static function every_15_minutes(): void {
         Booking::expire_locks();
+        self::refresh_next_slot_cache();
         do_action('webtanan_booking_send_waiting_list_messages');
         do_action('webtanan_booking_send_survey_requests');
+        do_action('webtanan_booking_retry_failed_sms');
+    }
+
+    public static function refresh_next_slot_cache(): int {
+        global $wpdb;
+
+        $table = DB::table('doctors');
+        $doctor_ids = $wpdb->get_col("SELECT id FROM $table WHERE is_active = 1 AND is_verified = 1 ORDER BY id ASC");
+        $updated = 0;
+        foreach ((array) $doctor_ids as $doctor_id) {
+            $slots = Booking::next_available((int) $doctor_id, 1);
+            $slot = $slots[0] ?? null;
+            $next = $slot ? sanitize_text_field((string) $slot['date']) . ' ' . substr(sanitize_text_field((string) $slot['start_time']), 0, 5) . ':00' : null;
+            $result = $wpdb->update(
+                $table,
+                array('next_free_slot_cache' => $next),
+                array('id' => (int) $doctor_id),
+                array('%s'),
+                array('%d')
+            );
+            if (false !== $result) {
+                $updated++;
+            }
+        }
+
+        $wpdb->query("UPDATE $table SET next_free_slot_cache = NULL WHERE is_active = 0 OR is_verified = 0");
+
+        return $updated;
     }
 }

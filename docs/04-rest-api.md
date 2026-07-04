@@ -133,6 +133,9 @@ OTP هش‌شده ذخیره می‌شود و ارسال‌ها rate limit دا�
 - `GET /doctor-dashboard/appointments`
 - `GET /doctor-dashboard/calendar`
 - `POST /doctor-dashboard/schedules`
+- `DELETE /doctor-dashboard/schedules/{id}`
+- `GET|POST /doctor-dashboard/exceptions`
+- `DELETE /doctor-dashboard/exceptions/{id}`
 - `POST /doctor-dashboard/settlement-request`
 
 دسترسی این APIها بر اساس نقش پزشک، منشی مجاز یا ادمین بررسی می‌شود.
@@ -142,6 +145,7 @@ OTP هش‌شده ذخیره می‌شود و ارسال‌ها rate limit دا�
 - `GET /patient-panel/appointments?scope=upcoming|history`
 - `GET /patient-panel/wallet`
 - `GET /appointments/{id}/receipt`
+- `GET|POST /patient-panel/appointments/{id}/survey`
 
 `GET /patient-panel/wallet` فقط ledger کاربر لاگین‌شده را برمی‌گرداند و هر ردیف شامل `entry_type`، `amount`، `balance_after`، `related_appointment_id` و در صورت وجود `appointment_code` است.
 ## v1.2 Payment, Wallet, And Profile Endpoints
@@ -167,6 +171,8 @@ The patient resumes payment with appointment code plus mobile OTP. If the lock e
 - `POST /doctor-dashboard/profile/upload`
 
 Doctors can edit only the doctor row linked to their own user. Admin users can switch doctors. Upload accepts `jpg`, `png`, and `webp` files up to 5 MB.
+
+The profile payload also includes `services`, `certificates`, and `faq`. Lists are stored as sanitized arrays in doctor post meta. FAQ rows use `question` and `answer` keys. Weekly schedule and special-date delete routes verify the active dashboard doctor before deleting a row.
 
 ## v1.2.2 Medical Records, Bulk Cancel, Survey, And Waiting List
 

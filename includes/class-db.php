@@ -94,6 +94,7 @@ final class DB {
             is_verified tinyint(1) NOT NULL DEFAULT 0,
             allow_online_payment tinyint(1) NOT NULL DEFAULT 1,
             allow_pay_at_clinic tinyint(1) NOT NULL DEFAULT 0,
+            next_free_slot_cache datetime NULL DEFAULT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
@@ -104,7 +105,8 @@ final class DB {
             KEY city_id (city_id),
             KEY province_id (province_id),
             KEY is_active (is_active),
-            KEY is_verified (is_verified)
+            KEY is_verified (is_verified),
+            KEY next_free_slot_cache (next_free_slot_cache)
         ) $charset_collate;";
 
         $schemas[] = "CREATE TABLE $specialties (
@@ -112,6 +114,7 @@ final class DB {
             name varchar(191) NOT NULL,
             slug varchar(191) NOT NULL,
             parent_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            icon_attachment_id bigint(20) unsigned NOT NULL DEFAULT 0,
             is_active tinyint(1) NOT NULL DEFAULT 1,
             sort_order int(11) NOT NULL DEFAULT 0,
             created_at datetime NOT NULL,
@@ -119,6 +122,7 @@ final class DB {
             PRIMARY KEY  (id),
             UNIQUE KEY slug (slug),
             KEY parent_id (parent_id),
+            KEY icon_attachment_id (icon_attachment_id),
             KEY is_active (is_active),
             KEY sort_order (sort_order)
         ) $charset_collate;";
@@ -439,6 +443,25 @@ final class DB {
             'ui_font_family' => '',
             'ui_font_attachment_id' => 0,
             'ui_font_url' => '',
+            'homepage' => array(
+                'hero_title' => 'سریع‌ترین راه رزرو نوبت از',
+                'hero_highlight' => 'بهترین پزشکان',
+                'hero_description' => 'پزشک مناسب را پیدا کنید و نوبت خود را آنلاین رزرو کنید.',
+                'specialty_title' => 'تخصص‌های پربازدید',
+                'specialty_layout' => 'top',
+                'specialty_columns' => 4,
+                'specialty_limit' => 8,
+                'show_specialties' => true,
+                'show_latest_doctors' => true,
+                'show_popular_doctors' => true,
+                'latest_title' => 'جدیدترین پزشکان',
+                'latest_subtitle' => 'تازه به وب‌تنان اضافه شده‌اند',
+                'popular_title' => 'پزشکان پرمراجعه',
+                'popular_subtitle' => 'بر اساس نوبت‌های ثبت‌شده',
+                'doctor_section_limit' => 4,
+                'section_order' => array('specialties', 'latest_doctors', 'popular_doctors', 'custom_1', 'custom_2', 'custom_3'),
+                'custom_sections' => array(),
+            ),
             'gateway_settings' => array(
                 'active_gateway' => 'aqayepardakht',
                 'merchant_id' => '',
@@ -463,6 +486,7 @@ final class DB {
                 'api_key' => '',
                 'originator' => '',
                 'from_number' => '',
+                'otp_parameter_name' => 'verifyotp',
                 'test_mode' => false,
                 'log_enabled' => true,
                 'send_to_patient' => true,
@@ -538,6 +562,15 @@ final class DB {
     }
 
     public static function code(string $prefix): string {
+        if ('APT' === strtoupper($prefix)) {
+            $code = (string) random_int(1, 9);
+            for ($i = 1; $i < 10; $i++) {
+                $code .= (string) random_int(0, 9);
+            }
+
+            return $code;
+        }
+
         return strtoupper($prefix) . '-' . strtoupper(wp_generate_password(12, false, false));
     }
 }

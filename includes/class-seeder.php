@@ -347,6 +347,7 @@ final class Seeder {
         }
 
         update_user_meta((int) $user_id, 'webtanan_dummy_user', 'yes');
+        update_user_meta((int) $user_id, 'webtanan_mobile', '0912000000' . ($index + 1));
 
         return (int) $user_id;
     }

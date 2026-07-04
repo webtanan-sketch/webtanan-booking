@@ -12,6 +12,8 @@ defined('ABSPATH') || exit;
 final class Post_Types {
     public static function init(): void {
         add_action('init', array(__CLASS__, 'register'));
+        add_filter('query_vars', array(__CLASS__, 'query_vars'));
+        add_action('template_redirect', array(__CLASS__, 'redirect_legacy_specialty_url'), 1);
         add_action('add_meta_boxes_saas_doctors', array(__CLASS__, 'add_doctor_metabox'));
         add_action('save_post_saas_doctors', array(__CLASS__, 'save_doctor_metabox'), 10, 2);
         add_filter('single_template', array(__CLASS__, 'single_template'));
@@ -56,6 +58,99 @@ final class Post_Types {
                 'rewrite' => array('slug' => 'doctor-location'),
             )
         );
+
+        add_rewrite_rule(
+            '^doctors/specialty/([^/]+)/?$',
+            'index.php?post_type=saas_doctors&webtanan_specialty=$matches[1]',
+            'top'
+        );
+
+        if ('2' !== get_option('webtanan_booking_rewrite_version')) {
+            flush_rewrite_rules(false);
+            update_option('webtanan_booking_rewrite_version', '2', false);
+        }
+    }
+
+    public static function query_vars(array $vars): array {
+        $vars[] = 'webtanan_specialty';
+
+        return $vars;
+    }
+
+    public static function specialty_id_from_request(): int {
+        global $wpdb;
+
+        $legacy_id = isset($_GET['specialty_id']) ? absint($_GET['specialty_id']) : 0;
+        if ($legacy_id > 0) {
+            return $legacy_id;
+        }
+
+        $slug = sanitize_title(rawurldecode((string) get_query_var('webtanan_specialty')));
+        if ('' === $slug) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT id FROM ' . DB::table('specialties') . ' WHERE slug = %s AND is_active = 1 LIMIT 1',
+                $slug
+            )
+        );
+    }
+
+    public static function specialty(int $specialty_id): ?array {
+        global $wpdb;
+
+        if ($specialty_id <= 0) {
+            return null;
+        }
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT id, name, slug FROM ' . DB::table('specialties') . ' WHERE id = %d AND is_active = 1 LIMIT 1',
+                $specialty_id
+            ),
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : null;
+    }
+
+    public static function specialty_url(int $specialty_id, string $fallback_search = ''): string {
+        $archive_url = get_post_type_archive_link('saas_doctors') ?: add_query_arg('post_type', 'saas_doctors', home_url('/'));
+        $specialty = self::specialty($specialty_id);
+        if ($specialty && !empty($specialty['slug']) && get_option('permalink_structure')) {
+            $slug = rawurlencode(rawurldecode((string) $specialty['slug']));
+
+            return home_url(user_trailingslashit('doctors/specialty/' . $slug));
+        }
+
+        if ($specialty_id > 0) {
+            return add_query_arg('specialty_id', $specialty_id, $archive_url);
+        }
+
+        return '' !== trim($fallback_search) ? add_query_arg('search', trim($fallback_search), $archive_url) : $archive_url;
+    }
+
+    public static function redirect_legacy_specialty_url(): void {
+        if (is_admin() || wp_doing_ajax() || !is_post_type_archive('saas_doctors') || empty($_GET['specialty_id']) || !get_option('permalink_structure')) {
+            return;
+        }
+
+        $filter_keys = array('search', 'doctor_search', 'city_id', 'province_id', 'available_only', 'payment_filter');
+        foreach ($filter_keys as $key) {
+            if (!empty($_GET[$key])) {
+                return;
+            }
+        }
+
+        $specialty_id = absint($_GET['specialty_id']);
+        if (!self::specialty($specialty_id)) {
+            return;
+        }
+
+        wp_safe_redirect(self::specialty_url($specialty_id), 301, 'Webtanan Booking');
+        exit;
     }
 
     public static function add_doctor_metabox(): void {
@@ -103,6 +198,8 @@ final class Post_Types {
         $doctor = is_array($doctor) ? $doctor : array();
         $settings = DB::get_settings();
         $specialties = $wpdb->get_results('SELECT id, name FROM ' . DB::table('specialties') . ' WHERE is_active = 1 ORDER BY sort_order ASC, name ASC');
+        $doctor_user_id = (int) ($doctor['user_id'] ?? 0);
+        $doctor_login_mobile = $doctor_user_id > 0 ? Patient_Profile::user_mobile($doctor_user_id) : '';
 
         $field = static function (string $key, $default = '') use ($doctor) {
             return $doctor[$key] ?? $default;
@@ -110,6 +207,11 @@ final class Post_Types {
 
         ?>
         <div class="webtanan-admin-grid">
+            <p>
+                <label for="webtanan_doctor_login_mobile"><?php esc_html_e('شماره موبایل ورود پزشک', 'webtanan-booking'); ?></label>
+                <input type="tel" inputmode="numeric" dir="ltr" id="webtanan_doctor_login_mobile" name="webtanan_doctor[login_mobile]" value="<?php echo esc_attr($doctor_login_mobile); ?>" class="widefat" placeholder="09123456789">
+                <span class="description"><?php esc_html_e('برای ورود پزشک با کد یک‌بارمصرف استفاده می‌شود.', 'webtanan-booking'); ?></span>
+            </p>
             <p>
                 <label for="webtanan_doctor_user_id"><?php esc_html_e('کاربر وردپرس پزشک', 'webtanan-booking'); ?></label>
                 <?php
@@ -237,9 +339,20 @@ final class Post_Types {
 
         $raw = isset($_POST['webtanan_doctor']) && is_array($_POST['webtanan_doctor']) ? wp_unslash($_POST['webtanan_doctor']) : array();
         $now = DB::now();
+        $user_id = isset($raw['user_id']) ? absint($raw['user_id']) : 0;
+        $login_mobile = OTP::normalize_mobile((string) ($raw['login_mobile'] ?? ''));
+        if ($user_id > 0 && '' === $login_mobile) {
+            return;
+        }
+        if ($user_id > 0) {
+            $mobile_owner = Patient_Profile::find_user_id_by_mobile($login_mobile, $user_id);
+            if ($mobile_owner > 0) {
+                return;
+            }
+        }
         $data = array(
             'post_id' => $post_id,
-            'user_id' => isset($raw['user_id']) ? absint($raw['user_id']) : 0,
+            'user_id' => $user_id,
             'secretary_user_id' => isset($raw['secretary_user_id']) ? absint($raw['secretary_user_id']) : 0,
             'doctor_code' => isset($raw['doctor_code']) ? sanitize_text_field($raw['doctor_code']) : '',
             'medical_system_number' => isset($raw['medical_system_number']) ? sanitize_text_field($raw['medical_system_number']) : '',
@@ -266,6 +379,13 @@ final class Post_Types {
 
         $table = DB::table('doctors');
         $existing_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE post_id = %d", $post_id));
+        if ($user_id > 0) {
+            update_user_meta($user_id, 'webtanan_mobile', $login_mobile);
+            $doctor_user = get_user_by('id', $user_id);
+            if ($doctor_user instanceof \WP_User && !in_array('webtanan_doctor', (array) $doctor_user->roles, true)) {
+                $doctor_user->add_role('webtanan_doctor');
+            }
+        }
         if ($existing_id > 0) {
             $wpdb->update($table, $data, array('id' => $existing_id));
             return;

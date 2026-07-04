@@ -10,7 +10,7 @@
     --wba-info: #2563eb;
     --wba-warm: #d97706;
     --wba-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-    font-family: inherit;
+   
     color: var(--wba-text);
 }
 
@@ -351,6 +351,38 @@
     margin-bottom: 8px;
 }
 
+.webtanan-specialty-admin-icon {
+    width: 42px;
+    height: 42px;
+    display: block;
+    object-fit: contain;
+    border: 1px solid var(--wba-border-soft);
+    border-radius: 8px;
+    background: var(--wba-surface);
+    padding: 4px;
+}
+
+.webtanan-home-settings {
+    max-width: 980px;
+}
+
+.webtanan-custom-sections fieldset {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.7fr) minmax(220px, 1fr) minmax(220px, 1.5fr);
+    gap: 10px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--wba-border-soft);
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.webtanan-custom-sections fieldset > label,
+.webtanan-custom-sections fieldset > textarea,
+.webtanan-custom-sections fieldset > input {
+    min-width: 0;
+}
+
 .webtanan-media-preview,
 .webtanan-gallery-preview {
     display: flex;
@@ -485,4 +517,73 @@
     .webtanan-filter-bar .button {
         width: 100%;
     }
+
+    .webtanan-custom-sections fieldset {
+        grid-template-columns: 1fr;
+    }
 }
+.webtanan-home-section-order {
+    display: grid;
+    gap: 8px;
+    max-width: 720px;
+    margin: 14px 0 24px;
+}
+
+.webtanan-home-section-order li {
+    display: grid;
+    grid-template-columns: 30px minmax(160px, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--wb-border-color, #dbe3ef);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.webtanan-home-section-order .dashicons-move {
+    color: #64748b;
+    cursor: grab;
+}
+
+.webtanan-home-section-placeholder {
+    min-height: 48px;
+    border: 1px dashed #2563eb !important;
+    background: #eff6ff !important;
+}
+.webtanan-settings-tabs {
+    position: sticky;
+    top: 32px;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 16px 0 20px;
+    padding: 7px;
+    border: 1px solid #dbe3ef;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.webtanan-settings-tabs button {
+    min-height: 40px;
+    padding: 8px 15px;
+    border: 0;
+    border-radius: 8px;
+    color: #475569;
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.webtanan-settings-tabs button.is-active {
+    color: #ffffff;
+    background: #2563eb;
+}
+
+.webtanan-settings-panel { display: none; }
+.webtanan-settings-panel.is-active { display: block; }
+.webtanan-settings-panel.is-active > h2:first-child { margin-top: 0; }

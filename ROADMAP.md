@@ -24,6 +24,9 @@ The plugin already includes:
 - 🧬 Doctor JSON-LD schema generated in `wp_head`
 - 🛡️ OTP send rate limiting with indexed lookup
 - 📊 Admin financial reports
+- 🔗 SEO-friendly specialty archives with Rank Math metadata filters
+- ⚡ Cron-refreshed next-available cache for doctor discovery sorting
+- ✅ Provider-aware OTP delivery errors and configurable IPPanel placeholder
 
 The next work should focus on browser/load testing, race-condition test automation, payment callback replay testing, and cache compatibility verification.
 

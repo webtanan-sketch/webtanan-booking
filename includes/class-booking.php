@@ -53,6 +53,8 @@ final class Booking {
         }
 
         $now = current_time('timestamp');
+        $today = current_time('Y-m-d');
+        $current_time = current_time('H:i:s');
         $slots = array();
 
         foreach ($segments as $segment) {
@@ -74,6 +76,10 @@ final class Booking {
                     $status = self::public_slot_status($appointment, $now);
                     $appointment_status = (string) $appointment['appointment_status'];
                     $payment_status = (string) $appointment['payment_status'];
+                }
+
+                if ('available' === $status && ($date < $today || ($date === $today && $start_time <= $current_time))) {
+                    $status = 'past';
                 }
 
                 $slots[] = array(
@@ -132,6 +138,16 @@ final class Booking {
             return new \WP_Error('webtanan_invalid_slot', __('تاریخ یا ساعت نوبت معتبر نیست.', 'webtanan-booking'), array('status' => 400));
         }
 
+        $today = current_time('Y-m-d');
+        $current_time = current_time('H:i:s');
+        if ($date < $today || ($date === $today && $start_time <= $current_time)) {
+            return new \WP_Error(
+                'webtanan_slot_in_past',
+                __('زمان این نوبت گذشته است. لطفاً یکی از ساعت‌های آینده را انتخاب کنید.', 'webtanan-booking'),
+                array('status' => 409)
+            );
+        }
+
         if (!self::slot_exists_in_schedule($doctor_id, $date, $start_time)) {
             return new \WP_Error('webtanan_slot_not_in_schedule', __('زمان انتخاب‌شده خارج از برنامه کاری پزشک است.', 'webtanan-booking'), array('status' => 400));
         }
@@ -140,7 +156,8 @@ final class Booking {
         $duration = self::slot_duration($doctor_id, $date, $start_time);
         $end_time = date('H:i:s', strtotime($date . ' ' . $start_time) + ($duration * MINUTE_IN_SECONDS));
         $lock_token = wp_generate_uuid4();
-        $locked_until = date('Y-m-d H:i:s', current_time('timestamp') + ((int) $settings['lock_duration_minutes'] * MINUTE_IN_SECONDS));
+        $lock_expires_at = time() + (max(1, (int) $settings['lock_duration_minutes']) * MINUTE_IN_SECONDS);
+        $locked_until = wp_date('Y-m-d H:i:s', $lock_expires_at, wp_timezone());
         $table = DB::table('appointments');
         $now = DB::now();
 
@@ -189,7 +206,7 @@ final class Booking {
         );
 
         if ($existing) {
-            $data['appointment_code'] = DB::code('APT');
+            $data['appointment_code'] = self::new_appointment_code();
             $updated = $wpdb->update($table, $data, array('id' => (int) $existing['id']));
             $appointment_id = (int) $existing['id'];
             if (false === $updated) {
@@ -198,7 +215,7 @@ final class Booking {
                 return new \WP_Error('webtanan_lock_failed', __('قفل کردن زمان نوبت انجام نشد.', 'webtanan-booking'), array('status' => 500));
             }
         } else {
-            $data['appointment_code'] = DB::code('APT');
+            $data['appointment_code'] = self::new_appointment_code();
             $data['created_at'] = $now;
             $inserted = $wpdb->insert($table, $data);
             if (!$inserted) {
@@ -216,6 +233,7 @@ final class Booking {
             'appointment_code' => (string) $data['appointment_code'],
             'lock_token' => $lock_token,
             'locked_until' => $locked_until,
+            'locked_until_timestamp' => $lock_expires_at,
             'amount' => self::doctor_booking_fee($doctor),
             'booking_fee' => self::doctor_booking_fee($doctor),
             'visit_price' => (float) $doctor['visit_price'],
@@ -225,6 +243,14 @@ final class Booking {
 
     public static function initiate_payment(int $appointment_id, string $lock_token, string $gateway_id = '') {
         return Payment_Gateways::initiate_payment($appointment_id, $lock_token, $gateway_id);
+    }
+
+    private static function lock_expiry_timestamp(string $locked_until): int {
+        try {
+            return (new \DateTimeImmutable($locked_until, wp_timezone()))->getTimestamp();
+        } catch (\Exception $exception) {
+            return 0;
+        }
     }
 
     public static function renew_lock_for_resume(int $appointment_id, string $mobile) {
@@ -266,6 +292,22 @@ final class Booking {
             DB::rollback();
 
             return new \WP_Error('webtanan_resume_not_payable', __('این نوبت دیگر قابل پرداخت نیست.', 'webtanan-booking'), array('status' => 409));
+        }
+
+        try {
+            $appointment_at = new \DateTimeImmutable(
+                (string) $appointment['appointment_date'] . ' ' . self::normalize_time((string) $appointment['start_time']),
+                wp_timezone()
+            );
+            if ($appointment_at <= current_datetime()) {
+                DB::rollback();
+
+                return new \WP_Error('webtanan_resume_time_passed', __('زمان این نوبت گذشته و دیگر قابل پرداخت نیست.', 'webtanan-booking'), array('status' => 409));
+            }
+        } catch (\Exception $exception) {
+            DB::rollback();
+
+            return new \WP_Error('webtanan_resume_invalid_time', __('زمان نوبت معتبر نیست.', 'webtanan-booking'), array('status' => 409));
         }
 
         if (!self::slot_exists_in_schedule((int) $appointment['doctor_id'], (string) $appointment['appointment_date'], (string) $appointment['start_time'])) {
@@ -314,6 +356,7 @@ final class Booking {
                 'appointment_code' => (string) $appointment['appointment_code'],
                 'lock_token' => (string) $appointment['lock_token'],
                 'locked_until' => (string) $appointment['locked_until'],
+                'locked_until_timestamp' => self::lock_expiry_timestamp((string) $appointment['locked_until']),
                 'amount' => self::appointment_charge_amount($appointment),
                 'booking_fee' => self::appointment_charge_amount($appointment),
                 'visit_price' => (float) $appointment['visit_price'],
@@ -321,7 +364,8 @@ final class Booking {
         }
 
         $lock_token = wp_generate_uuid4();
-        $locked_until = date('Y-m-d H:i:s', current_time('timestamp') + ((int) $settings['lock_duration_minutes'] * MINUTE_IN_SECONDS));
+        $lock_expires_at = time() + (max(1, (int) $settings['lock_duration_minutes']) * MINUTE_IN_SECONDS);
+        $locked_until = wp_date('Y-m-d H:i:s', $lock_expires_at, wp_timezone());
         $wpdb->update(
             $appointments,
             array(
@@ -345,6 +389,7 @@ final class Booking {
             'appointment_code' => (string) $appointment['appointment_code'],
             'lock_token' => $lock_token,
             'locked_until' => $locked_until,
+            'locked_until_timestamp' => $lock_expires_at,
             'amount' => self::appointment_charge_amount($appointment),
             'booking_fee' => self::appointment_charge_amount($appointment),
             'visit_price' => (float) $appointment['visit_price'],
@@ -628,7 +673,7 @@ final class Booking {
         }
 
         $data = array(
-            'appointment_code' => DB::code('APT'),
+            'appointment_code' => self::new_appointment_code(),
             'doctor_id' => $doctor_id,
             'patient_user_id' => absint($args['patient_user_id'] ?? 0),
             'patient_first_name' => sanitize_text_field($args['patient_first_name'] ?? ''),
@@ -1719,5 +1764,20 @@ final class Booking {
         }
 
         return '00:00:00';
+    }
+
+    private static function new_appointment_code(): string {
+        global $wpdb;
+
+        $table = DB::table('appointments');
+        for ($attempt = 0; $attempt < 12; $attempt++) {
+            $code = DB::code('APT');
+            $exists = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE appointment_code = %s", $code));
+            if (!$exists) {
+                return $code;
+            }
+        }
+
+        return (string) time() . (string) random_int(100, 999);
     }
 }

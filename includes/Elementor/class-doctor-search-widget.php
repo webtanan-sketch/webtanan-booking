@@ -104,20 +104,6 @@ final class Doctor_Search_Widget extends \Elementor\Widget_Base {
         );
 
         $this->add_control(
-            'payment_filter',
-            array(
-                'label' => __('روش پرداخت پیش‌فرض', 'webtanan-booking'),
-                'type' => \Elementor\Controls_Manager::SELECT,
-                'default' => '',
-                'options' => array(
-                    '' => __('همه روش‌ها', 'webtanan-booking'),
-                    'online' => __('پرداخت آنلاین', 'webtanan-booking'),
-                    'clinic' => __('پرداخت در مطب', 'webtanan-booking'),
-                ),
-            )
-        );
-
-        $this->add_control(
             'show_filters',
             array(
                 'label' => __('نمایش فیلترها', 'webtanan-booking'),
@@ -134,6 +120,15 @@ final class Doctor_Search_Widget extends \Elementor\Widget_Base {
                 'type' => \Elementor\Controls_Manager::SWITCHER,
                 'return_value' => 'yes',
                 'default' => 'yes',
+            )
+        );
+        $this->add_control(
+            'available_only',
+            array(
+                'label' => __('فقط پزشکان دارای نوبت آزاد', 'webtanan-booking'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'return_value' => '1',
+                'default' => '',
             )
         );
 
@@ -183,11 +178,11 @@ final class Doctor_Search_Widget extends \Elementor\Widget_Base {
             '" specialty_id="' . absint($settings['specialty_id'] ?? 0) .
             '" province_id="' . absint($settings['province_id'] ?? 0) .
             '" city_id="' . absint($settings['city_id'] ?? 0) .
-            '" payment_filter="' . esc_attr($settings['payment_filter'] ?? '') .
             '" sort="' . esc_attr($settings['sort'] ?? 'first_available') .
             '" layout="' . esc_attr($settings['layout_mode'] ?? 'grid') .
             '" show_filters="' . esc_attr($settings['show_filters'] ?? 'yes') .
-            '" show_sort="' . esc_attr($settings['show_sort'] ?? 'yes') . '"]'
+            '" show_sort="' . esc_attr($settings['show_sort'] ?? 'yes') .
+            '" available_only="' . esc_attr($settings['available_only'] ?? '') . '"]'
         );
     }
 }

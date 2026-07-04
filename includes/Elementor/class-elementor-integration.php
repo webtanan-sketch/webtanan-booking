@@ -10,11 +10,21 @@ namespace Webtanan\Booking;
 defined('ABSPATH') || exit;
 
 final class Elementor_Integration {
+    private static $hooks_registered = false;
+
     public static function init(): void {
-        if (!did_action('elementor/loaded')) {
+        if (did_action('elementor/loaded')) {
+            self::register_hooks();
+        } else {
+            add_action('elementor/loaded', array(__CLASS__, 'register_hooks'));
+        }
+    }
+
+    public static function register_hooks(): void {
+        if (self::$hooks_registered) {
             return;
         }
-
+        self::$hooks_registered = true;
         add_action('elementor/widgets/register', array(__CLASS__, 'register_widgets'));
     }
 
@@ -28,6 +38,7 @@ final class Elementor_Integration {
         require_once WEBTANAN_BOOKING_PATH . 'includes/Elementor/class-doctor-card-widget.php';
         require_once WEBTANAN_BOOKING_PATH . 'includes/Elementor/class-booking-calendar-widget.php';
         require_once WEBTANAN_BOOKING_PATH . 'includes/Elementor/class-next-available-widget.php';
+        require_once WEBTANAN_BOOKING_PATH . 'includes/Elementor/class-specialty-list-widget.php';
 
         $widgets = array(
             new \Webtanan\Booking\Elementor\Doctor_Search_Widget(),
@@ -35,6 +46,7 @@ final class Elementor_Integration {
             new \Webtanan\Booking\Elementor\Doctor_Card_Widget(),
             new \Webtanan\Booking\Elementor\Booking_Calendar_Widget(),
             new \Webtanan\Booking\Elementor\Next_Available_Widget(),
+            new \Webtanan\Booking\Elementor\Specialty_List_Widget(),
         );
 
         foreach ($widgets as $widget) {
